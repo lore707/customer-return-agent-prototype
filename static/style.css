@@ -456,3 +456,225 @@ td a { color: #9f8cff; font-weight: 800; text-decoration: none; } td small { dis
 
 @media (max-width: 1000px) { .landing-hero { grid-template-columns: 1fr; }.landing-product-preview { width: min(620px,100%); margin: auto; transform: none; }.landing-workflow { grid-template-columns: 1fr; }.landing-workflow > b { transform: rotate(90deg); text-align: center; }.verification-grid { grid-template-columns: 1fr; }.verification-grid a { min-height: 190px; }.verification-grid h3 { margin-top: 28px; }.verification-grid p { min-height: 0; }.landing-cta { gap: 25px; flex-direction: column; align-items: flex-start; } }
 @media (max-width: 650px) { .landing-nav,.landing-main,.landing-footer { width: calc(100% - 28px); }.landing-nav { height: 66px; }.landing-nav nav { display: none; }.landing-nav > .button { padding: 8px 10px; }.landing-brand strong { display: none; }.landing-hero { min-height: auto; padding: 58px 0 38px; gap: 45px; }.landing-hero-copy h1 { font-size: 39px; }.landing-hero-copy > p { font-size: 12px; }.landing-actions { flex-direction: column; }.landing-trust { gap: 8px; flex-direction: column; }.landing-product-preview { padding: 11px; }.preview-flow { padding: 10px 5px; }.preview-cases-head,.preview-cases a { grid-template-columns: 1fr 1fr; }.preview-cases a > strong { display: none; }.landing-proof-strip { grid-template-columns: 1fr 1fr; margin-bottom: 80px; }.landing-proof-strip div { border-right: 0; }.landing-section { margin-bottom: 85px; }.landing-section-head h2 { font-size: 29px; }.landing-cta { padding: 28px 22px; }.landing-cta > div:last-child { width: 100%; flex-direction: column; }.landing-footer { gap: 12px; flex-direction: column; justify-content: center; text-align: center; } }
+
+/* Readability pass: keep the dense operations layout, but never make core content microscopic. */
+.nav-item { font-size: 12px; }
+.sidebar-foot { font-size: 10px; }
+.page-kicker,
+.eyebrow { font-size: 11px; }
+.mode-chip,
+.lock-chip,
+.connection-chip,
+.source-badge,
+.soft-badge,
+.read-only-badge,
+.required-badge,
+.status,
+.reason-chip,
+.resolution,
+.message-count,
+.eligibility { font-size: 10px; }
+.button { min-height: 39px; padding: 10px 14px; font-size: 12px; }
+textarea,
+input,
+select { font-size: 13px; line-height: 1.5; }
+.muted,
+.panel-heading p,
+.panel-copy { font-size: 13px; }
+.inline-note,
+.text-link { font-size: 11px; }
+table { font-size: 12px; }
+th { font-size: 10px; }
+td small { font-size: 10px; }
+.kpi small { font-size: 11px; }
+.kpi em { font-size: 10px; }
+.expected-result span { font-size: 10px; }
+.expected-result strong { font-size: 12px; }
+.policy-summary > span,
+.policy-summary summary,
+.policy-summary ul { font-size: 11px; }
+.pipeline > div > span { font-size: 10px; }
+.pipeline strong { font-size: 12px; }
+.pipeline small { font-size: 10px; }
+
+/* Database and case detail */
+.physical-note p { font-size: 12px; }
+.progress-step > span,
+.progress-step small { font-size: 10px; }
+.proof-comparison small { font-size: 9px; }
+.proof-comparison strong { font-size: 11px; }
+.match-badge { font-size: 10px; }
+.provenance-card p { font-size: 12px; }
+.provenance-meta small { font-size: 9px; }
+.provenance-meta strong { font-size: 11px; }
+.payload-details summary { font-size: 11px; }
+.payload-details pre { font-size: 11px; }
+.policy-card small { font-size: 11px; }
+.policy-facts strong { font-size: 11px; }
+.inspection-warning,
+.inspection-checks label { font-size: 11px; }
+.shipping-card small,
+.shipping-data dt { font-size: 10px; }
+.shipping-data dd { font-size: 11px; }
+.conversation-message strong { font-size: 11px; }
+.conversation-message span { font-size: 10px; }
+.conversation-message p { font-size: 12px; line-height: 1.6; }
+.followup-box label { font-size: 11px; }
+.timeline time { font-size: 10px; }
+.timeline strong { font-size: 11px; }
+.timeline span { font-size: 10px; line-height: 1.5; }
+
+/* Dashboard */
+.console-header h1 { font-size: 31px; }
+.console-header p { font-size: 13px; }
+.console-header .eyebrow { font-size: 10px; }
+.dashboard-stats article { min-height: 108px; padding: 15px; }
+.dashboard-stats small { min-height: 31px; font-size: 11px; line-height: 1.4; }
+.dashboard-stats strong { font-size: 26px; }
+.dashboard-stats p { font-size: 9px; line-height: 1.45; }
+.console-card-header h2,
+.mini-card-title h2 { font-size: 14px; }
+.console-card-header p { font-size: 10px; }
+.compact-table table,
+.compact-table td { font-size: 11px; }
+.compact-table th { font-size: 10px; }
+.compact-table td > strong { font-size: 11px; }
+.compact-table .status { padding: 5px 7px; font-size: 9px; }
+.compact-table td > a { font-size: 10px; }
+.outcome-card { min-height: 158px; padding: 15px 16px; }
+.total-orb small { font-size: 8px; }
+.bar-list > div { grid-template-columns: 150px 1fr 20px; min-height: 19px; }
+.bar-list span { font-size: 10px; }
+.bar-list > div > strong { font-size: 10px; }
+.activity-list > div { min-height: 42px; font-size: 11px; }
+.activity-list .activity-head { min-height: 35px; font-size: 10px; }
+.activity-list p { font-size: 11px; }
+
+/* Workbench */
+.workbench-header .back-link { font-size: 11px; }
+.case-title-row h1 { font-size: 27px; }
+.workbench-header p { font-size: 11px; }
+.reason-pill { font-size: 10px; }
+.case-switcher span { font-size: 10px; }
+.case-switcher select { font-size: 11px; }
+.workbench-panel-head,
+.workbench-panel-head > div { font-size: 10px; }
+.tiny-button { font-size: 10px; }
+.thread-meta strong { font-size: 11px; }
+.thread-meta time { font-size: 10px; }
+.avatar { width: 30px; height: 30px; flex-basis: 30px; font-size: 11px; }
+.thread-content p { font-size: 13px; line-height: 1.65; }
+.sent-marker { font-size: 9px; }
+.customer-simulator > div:first-child span { font-size: 10px; }
+.customer-simulator > div:first-child small,
+.simulation-note { font-size: 9px; }
+.decision-tabs button { font-size: 10px; }
+.draft-state { font-size: 9px; }
+.section-label { font-size: 9px; }
+.decision-summary small,
+.context-section dt { font-size: 9px; }
+.decision-summary strong { font-size: 11px; }
+.decision-summary .eligibility { font-size: 9px; }
+.draft-editor-head small { font-size: 9px; }
+.draft-editor > textarea { font-size: 13px; line-height: 1.65; }
+.draft-actions .button { min-height: 37px; font-size: 10px; }
+.feedback-box > div:first-child small { font-size: 9px; }
+.feedback-tags button { font-size: 9px; }
+.feedback-box textarea,
+.regenerate-box textarea { font-size: 12px; }
+.regenerate-box strong { font-size: 12px; }
+.regenerate-box p { font-size: 10px; line-height: 1.5; }
+.checkpoint-box strong { font-size: 11px; }
+.checkpoint-box p { font-size: 10px; line-height: 1.5; }
+.context-section h3 { font-size: 16px; }
+.context-section p { font-size: 11px; line-height: 1.6; }
+.context-section dd { font-size: 11px; }
+.case-timeline li { min-height: 34px; font-size: 10px; }
+
+/* Policy registry */
+.policy-console-header h1 { font-size: 30px; }
+.policy-stats article { min-height: 108px; }
+.policy-stats small { font-size: 11px; }
+.policy-stats strong { font-size: 26px; }
+.policy-stats p { font-size: 9px; }
+.policy-search input { font-size: 12px; }
+.policy-list-item { min-height: 106px; }
+.policy-list-item strong { font-size: 12px; }
+.policy-list-item p { font-size: 10px; line-height: 1.45; }
+.policy-list-item small,
+.list-count { font-size: 9px; }
+.policy-state { font-size: 9px; }
+.policy-detail-head { min-height: 78px; }
+.policy-detail-head h2 { font-size: 19px; }
+.policy-detail-head p { font-size: 10px; }
+.policy-tabs button { font-size: 10px; }
+.policy-info-card dt,
+.policy-info-card dd { font-size: 11px; line-height: 1.45; }
+.policy-card-title button { font-size: 9px; }
+.main-rule-list li { min-height: 39px; }
+.main-rule-list strong,
+.main-rule-list em { font-size: 10px; line-height: 1.4; }
+.decision-flow article { min-height: 101px; }
+.decision-flow article i { font-size: 9px; }
+.decision-flow article strong { font-size: 10px; }
+.decision-flow article p { font-size: 9px; line-height: 1.5; }
+.decision-flow > small { font-size: 9px; }
+.policy-table-section th,
+.policy-table-section td { font-size: 11px; line-height: 1.45; }
+.policy-panel-copy,
+.policy-empty-state p { font-size: 11px; }
+
+/* Analytics */
+.analytics-header h1 { font-size: 30px; }
+.analytics-kpis article { min-height: 116px; }
+.analytics-kpis small { min-height: 29px; font-size: 10px; }
+.analytics-kpis strong { font-size: 24px; }
+.analytics-kpis p { font-size: 9px; }
+.analytics-card-head h2 { font-size: 14px; }
+.analytics-card-head > span,
+.analytics-card-head > a { font-size: 9px; }
+.chart-legend span,
+.chart-labels { font-size: 9px; }
+.analytics-donut small { font-size: 10px; }
+.donut-layout li { font-size: 10px; }
+.performance-metric span,
+.sla-row span { font-size: 10px; }
+.feedback-analytics li { grid-template-columns: 150px 1fr 29px; min-height: 34px; }
+.feedback-analytics li span,
+.feedback-analytics li strong { font-size: 10px; }
+.analytics-empty strong { font-size: 12px; }
+.analytics-empty p { font-size: 10px; }
+.target-chip { font-size: 9px !important; }
+.analytics-footnote { font-size: 9px; }
+
+/* Landing */
+.landing-nav nav a { font-size: 12px; }
+.landing-brand strong { font-size: 15px; }
+.landing-eyebrow { font-size: 11px; }
+.button.large { min-height: 47px; font-size: 12px; }
+.landing-trust { flex-wrap: wrap; font-size: 10px; }
+.preview-top strong { font-size: 11px; }
+.preview-live { font-size: 9px; }
+.preview-metrics small { font-size: 9px; }
+.preview-flow strong { font-size: 10px; }
+.preview-flow small { font-size: 9px; }
+.preview-cases-head { font-size: 9px; }
+.preview-cases a { font-size: 10px; }
+.preview-cases .status { font-size: 8px; }
+.landing-proof-strip span { font-size: 10px; }
+.landing-section-head p { font-size: 14px; }
+.landing-workflow h3 { font-size: 16px; }
+.landing-workflow p { font-size: 11px; line-height: 1.6; }
+.verification-grid a > span { font-size: 11px; }
+.verification-grid h3 { font-size: 19px; }
+.verification-grid p { font-size: 12px; line-height: 1.65; }
+.verification-grid b { font-size: 11px; }
+.landing-cta p { font-size: 12px; line-height: 1.6; }
+.landing-footer { font-size: 10px; }
+
+@media (max-width: 650px) {
+  .nav-item span { font-size: 9px; }
+  .landing-hero-copy > p { font-size: 14px; }
+  .landing-trust { font-size: 10px; }
+  .landing-workflow article { min-height: 0; }
+}
