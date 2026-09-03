@@ -581,6 +581,21 @@ def _render_workbench(case_id: str):
         return render_template("404.html"), 404
     messages = database.get_case_messages(case_id)
     timeline = database.get_timeline(case_id)
+    cases = database.list_cases(limit=100)
+    review_statuses = {domain.CaseStatus.WAITING_HUMAN_APPROVAL.value}
+    escalated_statuses = {domain.CaseStatus.ESCALATED.value}
+    case_counts = {
+        "all": len(cases),
+        "review": sum(item["status"] in review_statuses for item in cases),
+        "escalated": sum(item["status"] in escalated_statuses for item in cases),
+        "closed": sum(item["status"] == domain.CaseStatus.CLOSED.value for item in cases),
+    }
+    previous_return_count = sum(
+        item["id"] != return_case["id"]
+        and item.get("shopify_order_number")
+        == return_case.get("shopify_order_number")
+        for item in cases
+    )
     return render_template(
         "workbench.html",
         case=return_case,
@@ -588,7 +603,12 @@ def _render_workbench(case_id: str):
         timeline=timeline,
         feedback=database.get_case_feedback(case_id),
         status_labels=domain.STATUS_LABELS,
-        cases=database.list_cases(limit=50),
+        cases=cases,
+        case_counts=case_counts,
+        previous_return_count=previous_return_count,
+        source_payload=json.dumps(
+            return_case.get("source_payload") or {}, ensure_ascii=False, indent=2
+        ),
         scenario=demo.get_scenario(return_case.get("scenario_slug")),
     )
 

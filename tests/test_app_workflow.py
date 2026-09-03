@@ -300,6 +300,18 @@ class AppWorkflowTests(unittest.TestCase):
             )
         )
 
+    def test_workbench_exposes_case_picker_and_shopify_evidence(self):
+        app.demo.ensure_showcase()
+        return_case = database.get_case_by_scenario("withdrawal-approved")
+        response = self.client.get(f"/workbench/{return_case['id']}")
+
+        self.assertEqual(200, response.status_code)
+        self.assertIn(b"Casi disponibili", response.data)
+        self.assertIn(b"Solo messaggi inviati", response.data)
+        self.assertIn(b"Dati Shopify usati nella decisione", response.data)
+        self.assertIn(b"Snapshot ordine verificabile", response.data)
+        self.assertIn(b"HAIR-AIR-PRO", response.data)
+
 
 if __name__ == "__main__":
     unittest.main()
