@@ -312,6 +312,49 @@ class AppWorkflowTests(unittest.TestCase):
         self.assertIn(b"Snapshot ordine verificabile", response.data)
         self.assertIn(b"HAIR-AIR-PRO", response.data)
 
+    def test_policy_import_preview_requires_human_confirmation(self):
+        extraction = self.client.post(
+            "/policies/extract",
+            json={
+                "mode": "text",
+                "text": (
+                    "Il recesso è ammesso entro 14 giorni dalla consegna. "
+                    "Il prodotto deve essere integro e rivendibile. Foto e video "
+                    "sono richiesti per i difetti. Il rimborso parte dopo il controllo."
+                ),
+            },
+        )
+        self.assertEqual(200, extraction.status_code)
+        rules = extraction.get_json()["rules"]
+        self.assertTrue(any(item["id"] == "return_window" for item in rules))
+
+        denied = self.client.post(
+            "/policies/publish-preview",
+            json={"name": "Policy test", "rules": rules, "human_confirmed": False},
+        )
+        self.assertEqual(400, denied.status_code)
+        published = self.client.post(
+            "/policies/publish-preview",
+            json={"name": "Policy test", "rules": rules, "human_confirmed": True},
+        )
+        self.assertEqual(200, published.status_code)
+        self.assertTrue(published.get_json()["active_policy_unchanged"])
+
+    def test_policy_simulation_runs_the_deterministic_engine(self):
+        app.demo.ensure_showcase()
+        response = self.client.post(
+            "/policies/simulate",
+            json={
+                "order_number": "1008",
+                "message": "Vorrei restituire l’asciugacapelli. Ho aperto la confezione.",
+            },
+        )
+        self.assertEqual(200, response.status_code)
+        result = response.get_json()
+        self.assertEqual("withdrawal_eligible", result["rule_id"])
+        self.assertEqual("eligible", result["eligibility"])
+        self.assertTrue(result["no_real_action"])
+
 
 if __name__ == "__main__":
     unittest.main()

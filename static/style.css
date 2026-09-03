@@ -809,3 +809,125 @@ td small { font-size: 10px; }
   .shopify-line-item { grid-template-columns: 1fr; }
   .shopify-line-item dl { grid-template-columns: 1fr; }
 }
+
+/* Policy management system. */
+.policies-page a,
+.policies-page button { text-decoration: none; }
+.policy-console-header { align-items: center; }
+.policy-console-header .eyebrow { margin-bottom: 6px; }
+.policy-console-header .header-actions { align-items: center; }
+.policy-console-header .button { min-height: 42px; }
+.policy-list-item { text-decoration: none; }
+.policy-list-item > div { padding-right: 12px; }
+.policy-list-item strong { color: #f0f2fb; font-weight: 700; text-decoration: none; }
+.policy-list-item p,
+.policy-list-item small,
+.policy-list-item b { text-decoration: none; }
+.policy-list-item p { color: #a0aac2; }
+.policy-list-item small { color: #737e9a; }
+.policy-list-item b { top: 42px; font-size: 13px; font-weight: 500; }
+.policy-tabs button { cursor: pointer; }
+.policy-card-title button { cursor: pointer; text-decoration: none; }
+
+.policy-simulator { display: grid; grid-template-columns: minmax(250px,.72fr) minmax(330px,1fr); min-height: 500px; padding: 22px; gap: 18px; align-content: start; }
+.policy-simulator-intro { padding: 7px 4px; }
+.policy-simulator-intro h3 { margin: 9px 0 8px; font-size: 22px; }
+.policy-simulator-intro p { max-width: 430px; font-size: 12px; line-height: 1.65; }
+.policy-simulator-form { display: grid; padding: 17px; gap: 13px; border: 1px solid rgba(128,142,176,.11); border-radius: 10px; background: rgba(15,20,38,.72); }
+.policy-simulator-form label > span,
+.policy-name-field > span,
+.policy-source-panel > label > span { display: block; margin-bottom: 6px; color: #aab3ca; font: 600 10px var(--font-display); }
+.policy-simulator-form textarea { min-height: 108px; }
+.policy-simulator-form .button { width: fit-content; }
+.simulation-result { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(240px,1fr) 1fr; padding: 18px; gap: 22px; border: 1px solid rgba(85,217,140,.2); border-radius: 10px; background: rgba(36,86,61,.1); }
+.simulation-result h3 { margin: 8px 0 6px; font-size: 18px; text-transform: capitalize; }
+.simulation-result h3 b { color: var(--green); }
+.simulation-result p { margin: 0; font-size: 12px; line-height: 1.6; }
+.simulation-result dl { display: grid; grid-template-columns: 120px 1fr; margin: 0; gap: 8px 10px; align-content: center; }
+.simulation-result dt,
+.simulation-result dd { margin: 0; font-size: 11px; }
+.simulation-result dt { color: #7c87a3; }
+.simulation-result dd { color: #d0d6e7; }
+.simulation-result > small { grid-column: 1 / -1; color: #61d797; font-size: 10px; }
+
+.modal-open { overflow: hidden; }
+.policy-modal { position: fixed; inset: 0; z-index: 80; display: grid; padding: 26px; place-items: center; }
+.policy-modal-backdrop { position: absolute; inset: 0; background: rgba(2,4,12,.78); backdrop-filter: blur(10px); }
+.policy-modal-card { position: relative; display: flex; width: min(900px,100%); max-height: calc(100vh - 52px); flex-direction: column; border: 1px solid rgba(160,139,237,.27); border-radius: 16px; overflow: hidden; background: linear-gradient(145deg,#151a31,#0c1021); box-shadow: 0 35px 100px rgba(0,0,0,.58); }
+.policy-modal-head { display: flex; padding: 22px 24px 18px; gap: 20px; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid var(--border); }
+.policy-modal-head h2 { margin: 7px 0 5px; font-size: 23px; }
+.policy-modal-head p { margin: 0; font-size: 12px; }
+.policy-modal-head > button { display: grid; width: 34px; height: 34px; flex: 0 0 34px; place-items: center; border: 1px solid var(--border); border-radius: 9px; color: #aab3ca; background: rgba(255,255,255,.025); cursor: pointer; font-size: 19px; }
+.policy-import-progress { display: flex; min-height: 58px; padding: 10px 24px; align-items: center; border-bottom: 1px solid var(--border); background: rgba(7,10,23,.32); }
+.policy-import-progress > span { display: flex; gap: 7px; align-items: center; color: #68738f; font: 600 10px var(--font-display); }
+.policy-import-progress > span b { display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid var(--border); border-radius: 50%; color: #7f8aa5; font-size: 9px; }
+.policy-import-progress > span.active { color: #c8baff; }
+.policy-import-progress > span.active b { border-color: rgba(133,91,255,.55); color: #fff; background: rgba(116,72,230,.34); }
+.policy-import-progress > i { height: 1px; flex: 1; margin: 0 10px; background: var(--border); }
+.policy-import-step { display: none; min-height: 0; padding: 22px 24px 24px; overflow-y: auto; }
+.policy-import-step.active { display: block; }
+.policy-name-field { display: block; margin-bottom: 15px; }
+.policy-source-tabs { display: grid; grid-template-columns: repeat(3,1fr); gap: 7px; }
+.policy-source-tabs button { min-height: 42px; padding: 8px; border: 1px solid var(--border); border-radius: 8px; color: #8d97b3; background: rgba(255,255,255,.02); cursor: pointer; font: 600 10px var(--font-display); }
+.policy-source-tabs button.active { border-color: rgba(133,91,255,.55); color: #ded7fa; background: rgba(116,72,230,.16); }
+.policy-source-panel { display: none; min-height: 245px; margin-top: 12px; }
+.policy-source-panel.active { display: block; }
+.policy-source-panel textarea { min-height: 215px; }
+.policy-source-panel > label:not(.policy-dropzone) { display: block; padding: 35px 0; }
+.policy-dropzone { display: grid; min-height: 225px; place-items: center; align-content: center; border: 1px dashed rgba(145,123,226,.42); border-radius: 11px; cursor: pointer; background: rgba(118,76,232,.045); text-align: center; }
+.policy-dropzone input { display: none; }
+.policy-dropzone > span { display: grid; width: 42px; height: 42px; margin: 0 auto 10px; place-items: center; border-radius: 11px; color: #b7a6ff; background: rgba(126,79,237,.16); font-size: 20px; }
+.policy-dropzone strong { font-size: 13px; }
+.policy-dropzone small { margin-top: 5px; color: #727d98; font-size: 10px; }
+.text-action { margin-top: 8px; padding: 0; border: 0; color: #aa8dff; background: transparent; cursor: pointer; font: 600 10px var(--font-display); }
+.policy-security-note { display: block; margin-top: -21px; color: #737d98; font-size: 10px; }
+.policy-import-actions { display: flex; margin-top: 16px; gap: 10px; align-items: center; justify-content: flex-end; }
+.policy-import-note { margin-right: auto; color: #747f9b; font-size: 10px; }
+.extraction-summary { display: flex; margin-bottom: 15px; gap: 15px; align-items: flex-start; justify-content: space-between; }
+.extraction-summary h3 { margin: 7px 0 4px; font-size: 19px; }
+.extraction-summary p { margin: 0; font-size: 11px; }
+.extracted-rules { display: grid; grid-template-columns: 1fr 1fr; gap: 9px; }
+.extracted-rule { position: relative; display: block; padding: 11px; border: 1px solid rgba(128,142,176,.11); border-radius: 9px; background: rgba(255,255,255,.018); }
+.extracted-rule.needs-review { border-color: rgba(247,189,85,.25); }
+.extracted-rule > span { display: block; margin-bottom: 6px; color: #929db8; font: 600 9px var(--font-display); }
+.extracted-rule input { min-height: 38px; padding: 8px 10px; font-size: 11px; }
+.extracted-rule small { display: block; margin-top: 5px; color: #68738f; font-size: 8px; }
+.extracted-rule.needs-review small { color: #c49d55; }
+.policy-confirmations { display: grid; gap: 8px; }
+.policy-confirmations article { display: grid; grid-template-columns: 30px 1fr auto; min-height: 70px; padding: 12px; gap: 11px; align-items: center; border: 1px solid rgba(247,189,85,.2); border-radius: 9px; background: rgba(94,70,31,.08); }
+.policy-confirmations article > span { display: grid; width: 28px; height: 28px; place-items: center; border-radius: 8px; color: #f3be57; background: rgba(247,189,85,.11); font-weight: 800; }
+.policy-confirmations article strong { font-size: 11px; }
+.policy-confirmations article p { margin: 4px 0 0; font-size: 10px; line-height: 1.45; }
+.policy-confirmations article button { min-width: 88px; padding: 8px; border: 1px solid rgba(247,189,85,.22); border-radius: 8px; color: #e8c57e; background: rgba(247,189,85,.07); cursor: pointer; font: 600 9px var(--font-display); }
+.policy-confirmations article button.confirmed { border-color: rgba(85,217,140,.28); color: #8ee9b0; background: rgba(85,217,140,.08); }
+.policy-clear-state { padding: 14px; border: 1px solid rgba(85,217,140,.2); border-radius: 9px; color: #8de7ae; background: rgba(85,217,140,.06); font-size: 11px; }
+.human-confirmation { display: flex; margin-top: 15px; padding: 13px; gap: 9px; align-items: flex-start; border: 1px solid var(--border); border-radius: 9px; color: #bac2d7; background: rgba(255,255,255,.02); font-size: 11px; }
+.human-confirmation input { width: auto; margin: 2px 0 0; accent-color: var(--violet); }
+.policy-published { padding: 58px 30px; text-align: center; }
+.policy-published > span { display: grid; width: 54px; height: 54px; margin: 0 auto 17px; place-items: center; border-radius: 50%; color: #99edb8; background: rgba(85,217,140,.12); font-size: 23px; }
+.policy-published h3 { font-size: 22px; }
+.policy-published p { max-width: 530px; margin: 0 auto 20px; font-size: 12px; }
+.policy-modal-message { margin: 0 24px 20px; padding: 11px 13px; border-radius: 8px; font-size: 11px; }
+
+@media (max-width: 800px) {
+  .policy-simulator { grid-template-columns: 1fr; }
+  .simulation-result { grid-template-columns: 1fr; }
+  .simulation-result > small { grid-column: auto; }
+  .policy-import-progress > span { font-size: 0; }
+  .policy-import-progress > span b { font-size: 9px; }
+  .extracted-rules { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 650px) {
+  .policy-console-header .header-actions { width: 100%; justify-content: space-between; }
+  .policy-source-tabs { grid-template-columns: 1fr; }
+  .policy-modal { padding: 10px; }
+  .policy-modal-card { max-height: calc(100vh - 20px); }
+  .policy-modal-head,
+  .policy-import-step { padding-right: 16px; padding-left: 16px; }
+  .policy-import-progress { padding-right: 16px; padding-left: 16px; }
+  .policy-import-actions { align-items: stretch; flex-direction: column; }
+  .policy-import-actions .button { width: 100%; }
+  .policy-confirmations article { grid-template-columns: 30px 1fr; }
+  .policy-confirmations article button { grid-column: 2; width: fit-content; }
+}

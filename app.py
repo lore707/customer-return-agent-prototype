@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from pathlib import Path
 
 from flask import Flask, jsonify, redirect, render_template, request, url_for
@@ -21,7 +21,9 @@ import database  # noqa: E402
 import demo  # noqa: E402
 import domain  # noqa: E402
 import policy_config  # noqa: E402
+import policy_import  # noqa: E402
 import return_shipping  # noqa: E402
+import rules  # noqa: E402
 import shopify_client  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
@@ -459,6 +461,32 @@ def policies():
             ("Bassa confidenza", f"Escalation sotto {policy['escalation']['low_confidence_below']:.0%}"),
         ]
         description = "Regole per difetti, danni e casi che non possono essere decisi automaticamente."
+    flows = {
+        "standard": [
+            ("Tipo richiesta", "Recesso"),
+            ("Eligibility", "Finestra e ordine"),
+            ("Condizioni", "Prodotto rivendibile"),
+            ("Risoluzione", "Rimborso"),
+            ("Approval", "Revisione operatore"),
+        ],
+        "hygiene": [
+            ("Categoria", "Prodotto personale"),
+            ("Sigillo", "Integro o aperto"),
+            ("Difetto?", "Recesso o garanzia"),
+            ("Eligibility", "Esito deterministico"),
+            ("Approval", "Revisione operatore"),
+        ],
+        "exceptions": [
+            ("Difetto", "DOA, danno o errore"),
+            ("Evidence", "Foto e video"),
+            ("Warranty", "Finestra applicabile"),
+            ("Resolution", "Swap, rimborso o stop"),
+            ("Approval", "Revisione operatore"),
+        ],
+    }
+    simulation_orders = [
+        item for item in database.list_cases(limit=100) if item.get("shopify_order_number")
+    ]
     return render_template(
         "policies.html",
         policy=policy,
@@ -466,8 +494,149 @@ def policies():
         selected=selected,
         selected_id=selected_id,
         rules_view=rules_view,
+        decision_flow=flows[selected_id],
         description=description,
         rule_count=_policy_rule_count(policy) - _policy_rule_count(policy["unresolved"]),
+        decision_count=database.performance_analytics()["generated"],
+        simulation_orders=simulation_orders,
+    )
+
+
+@app.post("/policies/extract")
+def extract_policy_preview():
+    """Estrae una bozza strutturata senza modificare la policy attiva."""
+
+    try:
+        upload = request.files.get("file")
+        if upload and upload.filename:
+            text = policy_import.document_text(
+                upload.filename,
+                upload.read(policy_import.MAX_DOCUMENT_BYTES + 1),
+                upload.content_type or "",
+            )
+            source = upload.filename
+        else:
+            data = request.get_json(silent=True) or {}
+            mode = str(data.get("mode") or "text")
+            if mode == "url":
+                text, source = policy_import.url_text(str(data.get("url") or ""))
+            else:
+                text = str(data.get("text") or "").strip()
+                source = "Testo incollato"
+            if not text:
+                raise policy_import.PolicyImportError("Inserisci una policy da analizzare.")
+        extraction = policy_import.extract_structured_rules(text)
+    except policy_import.PolicyImportError as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({**extraction, "source": source, "sandbox": True})
+
+
+@app.post("/policies/publish-preview")
+def publish_policy_preview():
+    """Valida il passaggio di pubblicazione senza cambiare il motore attivo."""
+
+    data = request.get_json(silent=True) or {}
+    name = str(data.get("name") or "").strip()
+    rules_preview = data.get("rules") or []
+    if not name or not isinstance(rules_preview, list) or not rules_preview:
+        return jsonify({"errore": "Nome e regole della policy sono obbligatori."}), 400
+    if not data.get("human_confirmed"):
+        return jsonify({"errore": "Conferma la revisione umana prima di pubblicare."}), 400
+    return jsonify(
+        {
+            "status": "sandbox_published",
+            "version": "1.0-preview",
+            "policy_name": name,
+            "rule_count": len(rules_preview),
+            "active_policy_unchanged": True,
+        }
+    )
+
+
+def _simulation_category(message: str) -> str:
+    lowered = message.casefold()
+    if any(term in lowered for term in ("articolo errato", "articolo sbagliato", "prodotto sbagliato")):
+        return "articolo_errato"
+    if any(term in lowered for term in ("arrivato rotto", "pacco rotto", "danno da trasporto")):
+        return "arrivato_rotto"
+    if any(term in lowered for term in ("non funziona", "difett", "guasto", "doa")):
+        return "doa"
+    return "recesso"
+
+
+@app.post("/policies/simulate")
+def simulate_policy():
+    """Esegue il motore deterministico su uno snapshot, senza creare azioni."""
+
+    data = request.get_json(silent=True) or {}
+    order_number = str(data.get("order_number") or "").strip().lstrip("#")
+    message = str(data.get("message") or "").strip()
+    if not order_number or not message:
+        return jsonify({"errore": "Seleziona un ordine e descrivi lo scenario."}), 400
+    return_case = next(
+        (
+            item
+            for item in database.list_cases(query=order_number, limit=100)
+            if str(item.get("shopify_order_number") or "").lstrip("#") == order_number
+        ),
+        None,
+    )
+    if return_case is None:
+        return jsonify({"errore": "Ordine demo non trovato."}), 404
+
+    payload = return_case.get("source_payload") or {}
+    category = _simulation_category(message)
+    products = [
+        {
+            "titolo": return_case.get("product_name"),
+            "sku": return_case.get("sku"),
+            "quantita": return_case.get("quantity") or 1,
+        }
+    ]
+    order_data = {
+        "numero_ordine": order_number,
+        "stato_evasione": str(payload.get("fulfillment_status") or "fulfilled").lower(),
+        "prodotti": products,
+    }
+    try:
+        simulation_date = date.fromisoformat(str(return_case.get("request_date") or "")[:10])
+    except ValueError:
+        simulation_date = date.today()
+    lowered = message.casefold()
+    decision = rules.applica_regole(
+        category,
+        order_number,
+        order_data,
+        {"delivered_at": return_case.get("delivery_date")},
+        oggi=simulation_date,
+        prove_fornite=any(term in lowered for term in ("allego", "foto", "video")),
+        sigillo_integro=(
+            True
+            if "sigillo integro" in lowered
+            else False
+            if any(term in lowered for term in ("aperto", "usato"))
+            else None
+        ),
+        confidence=0.96,
+        requested_resolution=(
+            "refund"
+            if "rimborso" in lowered
+            else "swap"
+            if any(term in lowered for term in ("sostituzione", "swap"))
+            else None
+        ),
+    )
+    return jsonify(
+        {
+            "category": category,
+            "outcome": decision["esito_proposto"],
+            "eligibility": domain.eligibility_for_outcome(decision["esito_proposto"]),
+            "motivation": decision["motivazione"],
+            "rule_id": decision.get("rule_id"),
+            "policy_sections": decision.get("policy_sections") or [],
+            "policy_version": decision.get("policy_version"),
+            "no_real_action": True,
+        }
     )
 
 

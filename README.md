@@ -16,6 +16,7 @@ scenari guidati che funzionano anche senza credenziali Shopify o Anthropic.
 - separazione tra estrazione AI e decisioni deterministiche;
 - approvazione umana e checkpoint fisico in magazzino;
 - state machine, audit trail e database operativo SQLite;
+- importazione policy in regole strutturate con conferma umana;
 - esecuzione pubblica sicura tramite snapshot anonimizzati dello store test.
 
 ## Architecture
@@ -71,7 +72,7 @@ e Claude live.
 - `/`: landing portfolio e percorso di verifica;
 - `/dashboard`: panoramica operativa e coda prioritaria;
 - `/workbench`: conversazione, bozza AI, revisione umana e feedback;
-- `/policies`: regole applicate, eccezioni e flusso decisionale;
+- `/policies`: importazione documenti, regole strutturate, eccezioni, simulazione e versioning sandbox;
 - `/database`: pratiche persistenti, memoria conversazionale e stato;
 - `/analytics`: metriche calcolate da pratiche, audit e feedback.
 
@@ -183,6 +184,13 @@ fallback a rimborso quando manca lo stock sostitutivo. Le voci marcate
 `[DA CONFERMARE]` non vengono inventate: compaiono in dashboard e richiedono
 una decisione umana.
 
+Il wizard **Aggiungi policy** accetta testo, TXT/MD, PDF, DOCX oppure un URL
+HTTPS pubblico. Produce una bozza di campi strutturati modificabili, separa le
+ambiguità e richiede una conferma umana. Nella demo la pubblicazione crea solo
+una versione sandbox e non sostituisce `return_policies.json`. Il tab
+**Simulazioni** esegue invece il vero motore deterministico su uno snapshot
+Shopify senza creare pratiche o azioni esterne.
+
 ## API integrations
 
 - Shopify: lettura dell'ordine di test durante il workflow; scrittura usata
@@ -200,9 +208,10 @@ I test non richiedono API o credenziali:
 python -m unittest discover -s tests -v
 ```
 
-I 30 test coprono regole, sigillo, prove, confidence, scadenze, persistenza,
+I 36 test coprono regole, sigillo, prove, confidence, scadenze, persistenza,
 scenari portfolio, pagine separate, feedback, conversazione simulata,
-transizioni, ispezione e workflow completo con etichetta mock.
+transizioni, ispezione, importazione policy, simulazione e workflow completo
+con etichetta mock.
 
 ## Deploy portfolio su Render
 
@@ -222,6 +231,7 @@ lo stato tecnico non sensibile.
   sintetici la dashboard usa esclusivamente i dati demo salvati nel manifest;
 - Shopify REST dovrà essere migrato a GraphQL;
 - SQLite e processo Flask singolo sono adatti alla demo, non alla produzione;
+- le policy importate vengono pubblicate solo nella sandbox e non modificano il motore attivo;
 - il return rate non è calcolabile senza il totale degli ordini venduti.
 
 ## Future improvements
