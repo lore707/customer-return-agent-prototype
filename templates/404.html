@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Pratica non trovata{% endblock %}
+{% block page_title %}Pagina non disponibile{% endblock %}
+{% block page_subtitle %}La risorsa richiesta non è presente nel database demo{% endblock %}
+{% block content %}
+  <section class="centered"><article class="panel not-found-card"><span class="eyebrow">Errore 404</span><h2>Pratica non trovata</h2><p>La pratica richiesta non esiste oppure gli scenari portfolio sono stati ripristinati.</p><a class="button primary" href="{{ url_for('index') }}">Torna alla dashboard →</a></article></section>
+{% endblock %}

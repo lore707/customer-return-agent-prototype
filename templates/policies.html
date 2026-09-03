@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Policies · Return Agent{% endblock %}
+{% block workspace_header %}{% endblock %}
+{% block page_class %}console-page policies-page{% endblock %}
+
+{% block content %}
+  <header class="console-header policy-console-header">
+    <div><h1>Policies</h1><p>Crea e gestisci le regole di reso applicate dall’agente.</p></div>
+    <div class="header-actions"><span class="mode-chip lock-chip">Versione {{ policy.version }}</span></div>
+  </header>
+
+  <section class="policy-stats">
+    <article><span class="metric-symbol violet">◇</span><div><small>Policy attive</small><strong>{{ policy_cards|length }}</strong><p>Moduli operativi</p></div></article>
+    <article><span class="metric-symbol blue">⟳</span><div><small>Versioni totali</small><strong>1</strong><p>File versionato nel repository</p></div></article>
+    <article><span class="metric-symbol green">✓</span><div><small>Regole totali</small><strong>{{ rule_count }}</strong><p>Valori deterministici</p></div></article>
+    <article><span class="metric-symbol amber">!</span><div><small>Eccezioni manuali</small><strong>{{ policy.unresolved|length }}</strong><p>Da confermare nelle policy</p></div></article>
+  </section>
+
+  <section class="policy-layout">
+    <aside class="console-card policy-list-panel">
+      <div class="policy-search"><span>⌕</span><input id="policySearch" placeholder="Cerca policy…"></div>
+      <div class="policy-list" id="policyList">
+        {% for item in policy_cards %}<a class="policy-list-item {% if item.id == selected_id %}active{% endif %}" href="{{ url_for('policies', policy=item.id) }}" data-policy-name="{{ item.title|lower }} {{ item.description|lower }}"><div><strong>{{ item.title }}</strong><span class="policy-state">{{ item.status }}</span></div><p>{{ item.description }}</p><small>v{{ policy.version }} · Fonte {{ policy.source }}</small><b>›</b></a>{% endfor %}
+      </div>
+      <small class="list-count">Mostra {{ policy_cards|length }} di {{ policy_cards|length }} policy</small>
+    </aside>
+
+    <article class="console-card policy-detail-panel">
+      <div class="policy-detail-head"><div><h2>{{ selected.title }} <span class="policy-state">{{ selected.status }}</span></h2><p>Versione corrente: {{ policy.version }}</p></div><span class="read-only-badge">Sorgente versionata</span></div>
+      <nav class="policy-tabs"><button class="active" data-policy-tab="overview">Panoramica</button><button data-policy-tab="rules">Regole</button><button data-policy-tab="exceptions">Eccezioni</button><button data-policy-tab="history">Cronologia versioni</button><button data-policy-tab="simulations">Simulazioni</button></nav>
+
+      <div class="policy-tab-panel active" data-policy-panel="overview">
+        <div class="policy-overview-grid">
+          <section class="policy-info-card"><span class="section-label">Info generali</span><dl><dt>Nome policy</dt><dd>{{ selected.title }}</dd><dt>Versione corrente</dt><dd><span class="version-chip">{{ policy.version }}</span></dd><dt>Stato</dt><dd><span class="green-text">● Attiva</span></dd><dt>Fonte</dt><dd>{{ policy.source }}</dd><dt>Descrizione</dt><dd>{{ description }}</dd><dt>Applicata a</dt><dd>Laifen · Xiaomi · Yimiki · Dreo</dd></dl></section>
+          <section class="policy-info-card"><div class="policy-card-title"><span class="section-label">Regole principali</span><button data-go-rules>Visualizza tutto</button></div><ul class="main-rule-list">{% for label, value in rules_view %}<li><span class="rule-icon">◇</span><strong>{{ label }}</strong><em>{{ value }}</em></li>{% endfor %}</ul></section>
+        </div>
+        <section class="decision-flow"><span class="section-label">Flusso decisionale</span><div>{% set flow = [('1','Tipo richiesta','Recesso, Difetto, Errore, Danno'),('2','Verifica idoneità','Regole di finestra e prodotto'),('3','Valutazione condizioni','Prove e stato prodotto'),('4','Azione proposta','Rimborso, sostituzione o stop'),('5','Approvazione','Automatica o manuale')] %}{% for number,title,copy in flow %}<article><i>{{ number }}</i><strong>{{ title }}</strong><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div><small>La bozza AI non modifica mai il risultato di questo flusso.</small></section>
+      </div>
+
+      <div class="policy-tab-panel" data-policy-panel="rules"><section class="policy-table-section"><span class="section-label">Tutte le regole del modulo</span><table><thead><tr><th>Regola</th><th>Valore applicato</th><th>Tipo</th></tr></thead><tbody>{% for label,value in rules_view %}<tr><td>{{ label }}</td><td>{{ value }}</td><td><span class="source-badge fixture">Deterministica</span></td></tr>{% endfor %}</tbody></table></section></div>
+      <div class="policy-tab-panel" data-policy-panel="exceptions"><section class="policy-table-section"><span class="section-label">Regole non ancora confermate</span><p class="policy-panel-copy">In questi casi l’agente non decide: passa la pratica a un operatore.</p><table><thead><tr><th>ID</th><th>Sezione</th><th>Descrizione</th></tr></thead><tbody>{% for item in policy.unresolved %}<tr><td><code>{{ item.id }}</code></td><td>{{ item.section }}</td><td>{{ item.description }}</td></tr>{% endfor %}</tbody></table></section></div>
+      <div class="policy-tab-panel" data-policy-panel="history"><section class="policy-empty-state"><span>⟳</span><h3>Una versione tracciata</h3><p>{{ policy.version }} è la versione attiva letta da <code>return_policies.json</code>. Le modifiche passano dal repository e restano verificabili.</p></section></div>
+      <div class="policy-tab-panel" data-policy-panel="simulations"><section class="policy-empty-state"><span>▷</span><h3>Prova la policy nel Workbench</h3><p>Gli scenari guidati mostrano input, regola applicata, esito e risposta prima dell’approvazione.</p><a class="button primary" href="{{ url_for('workbench') }}">Apri Workbench</a></section></div>
+    </article>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const policyTabs = document.querySelectorAll("[data-policy-tab]");
+  policyTabs.forEach(button => button.addEventListener("click", () => { policyTabs.forEach(x => x.classList.toggle("active", x === button)); document.querySelectorAll("[data-policy-panel]").forEach(panel => panel.classList.toggle("active", panel.dataset.policyPanel === button.dataset.policyTab)); }));
+  document.querySelector("[data-go-rules]")?.addEventListener("click", () => document.querySelector('[data-policy-tab="rules"]').click());
+  document.getElementById("policySearch")?.addEventListener("input", event => { const value = event.target.value.toLowerCase(); document.querySelectorAll("[data-policy-name]").forEach(item => item.classList.toggle("hidden", !item.dataset.policyName.includes(value))); });
+</script>
+{% endblock %}

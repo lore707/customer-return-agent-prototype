@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics · Return Agent{% endblock %}
+{% block workspace_header %}{% endblock %}
+{% block page_class %}console-page analytics-page{% endblock %}
+
+{% block content %}
+  <header class="console-header analytics-header">
+    <div><h1>Analytics</h1><p>Panoramica delle performance del sistema e dell’agente.</p></div>
+    <div class="header-actions"><span class="mode-chip">Ultimi 14 giorni</span><span class="connection-chip">Dati reali del prototipo</span></div>
+  </header>
+
+  <section class="analytics-kpis">
+    {% set cards = [
+      ('violet','◇','Pratiche totali',metrics.total,'Record persistenti'),
+      ('blue','◌','Draft generati',metrics.generated,'Bozze disponibili'),
+      ('green','✓','Approvati senza modifiche',metrics.approved,(metrics.approval_rate|string) ~ '% delle decisioni'),
+      ('amber','✎','Modificati dagli operatori',metrics.modified,'Feedback salvato'),
+      ('violet','↻','Rigenerati',metrics.regenerated,'Con istruzioni operatore'),
+      ('rose','!','Escalati',metrics.escalated,'Revisione manuale')
+    ] %}
+    {% for tone,icon,label,value,caption in cards %}<article><span class="metric-symbol {{ tone }}">{{ icon }}</span><div><small>{{ label }}</small><strong>{{ value }}</strong><p>{{ caption }}</p></div><svg viewBox="0 0 100 42" preserveAspectRatio="none" aria-hidden="true"><polyline points="{{ chart.total if loop.index in [1,2,5] else chart.approved if loop.index in [3,4] else chart.escalated }}"/></svg></article>{% endfor %}
+  </section>
+
+  <section class="analytics-main-grid">
+    <article class="console-card trend-card">
+      <div class="analytics-card-head"><h2>Andamento pratiche</h2><span>Giornaliero</span></div>
+      <div class="chart-legend"><span><i class="violet-line"></i>Totali</span><span><i class="green-line"></i>Approvate</span><span><i class="rose-line"></i>Escalate</span></div>
+      <div class="line-chart"><div class="chart-grid"><i></i><i></i><i></i><i></i></div><svg viewBox="0 0 100 42" preserveAspectRatio="none" aria-label="Andamento cumulativo degli ultimi 14 giorni"><polyline class="total-line" points="{{ chart.total }}"/><polyline class="approved-line" points="{{ chart.approved }}"/><polyline class="escalated-line" points="{{ chart.escalated }}"/></svg><div class="chart-labels"><span>{{ metrics.daily[0].day[5:] }}</span><span>{{ metrics.daily[4].day[5:] }}</span><span>{{ metrics.daily[9].day[5:] }}</span><span>{{ metrics.daily[-1].day[5:] }}</span></div></div>
+    </article>
+
+    <article class="console-card distribution-card">
+      <div class="analytics-card-head"><h2>Distribuzione per motivo</h2><a href="{{ url_for('database_register') }}">Visualizza dettagli</a></div>
+      <div class="donut-layout"><div class="analytics-donut" style="--segments: conic-gradient({{ donut_gradient }})"><span><strong>{{ metrics.total }}</strong><small>Totale</small></span></div><ul>{% for item in reasons %}<li><i style="background:{{ item.color }}"></i><span>{{ item.return_reason.replace('_',' ') }}</span><strong>{{ item.percentage }}%</strong><em>{{ item.count }}</em></li>{% else %}<li>Nessun dato</li>{% endfor %}</ul></div>
+    </article>
+  </section>
+
+  <section class="analytics-bottom-grid">
+    <article class="console-card performance-card"><div class="analytics-card-head"><h2>Performance agente</h2><span>Live</span></div><div class="performance-metric"><div><span>Tasso di approvazione senza modifiche</span><strong>{{ metrics.approval_rate }}%</strong></div><div class="progress-track"><i style="width:{{ metrics.approval_rate }}%"></i></div></div><div class="performance-metric"><div><span>Confidenza media</span><strong>{{ metrics.avg_confidence }}%</strong></div><div class="progress-track"><i style="width:{{ metrics.avg_confidence }}%"></i></div></div><div class="performance-metric"><div><span>Tempo medio di generazione</span><strong>{{ metrics.avg_generation_ms }} ms</strong></div><div class="progress-track"><i style="width:{{ [metrics.avg_generation_ms / 30, 100]|min }}%"></i></div></div></article>
+
+    <article class="console-card feedback-analytics"><div class="analytics-card-head"><h2>Feedback operatori</h2><span>{{ feedback|sum(attribute='count') }} totali</span></div>{% set max_feedback = feedback|map(attribute='count')|max or 1 %}<ul>{% for item in feedback %}<li><span>{{ item.label }}</span><div><i style="width:{{ item.count * 100 / max_feedback }}%"></i></div><strong>{{ item.count }}</strong></li>{% else %}<div class="analytics-empty"><strong>Nessun feedback ancora</strong><p>Modifica o rigenera una risposta nel Workbench per popolare questa analisi.</p></div>{% endfor %}</ul></article>
+
+    <article class="console-card sla-card"><div class="analytics-card-head"><h2>SLA &amp; performance</h2><span>Prototipo</span></div><div class="sla-row"><div><span>Pratiche risolte entro SLA (24h)</span><strong>{{ metrics.resolved_within_sla }}%</strong></div><span class="target-chip">Misurato</span><div class="progress-track"><i style="width:{{ metrics.resolved_within_sla }}%"></i></div></div><div class="sla-row"><div><span>Tempo medio prima risposta</span><strong>{{ metrics.avg_generation_ms }} ms</strong></div><span class="target-chip">AI draft</span><div class="progress-track"><i style="width:{{ [metrics.avg_generation_ms / 30, 100]|min }}%"></i></div></div><div class="sla-row"><div><span>Tempo medio di risoluzione</span><strong>{{ metrics.avg_resolution_hours }}h</strong></div><span class="target-chip">End-to-end</span><div class="progress-track"><i style="width:{{ [metrics.avg_resolution_hours * 100 / 24, 100]|min }}%"></i></div></div></article>
+  </section>
+
+  <p class="analytics-footnote">Le metriche derivano dalle tabelle <code>return_cases</code>, <code>audit_events</code> e <code>operator_feedback</code>. Nessun valore di portfolio è hardcoded.</p>
+{% endblock %}

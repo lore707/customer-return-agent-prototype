@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: customer-return-agent-demo
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DEMO_MODE
+        value: true
+      - key: RETURN_SHIPPING_PROVIDER
+        value: mock
+      - key: DATABASE_PATH
+        value: /tmp/customer-return-agent.db

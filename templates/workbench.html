@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block title %}Workbench · {{ case.id }}{% endblock %}
+{% block workspace_header %}{% endblock %}
+{% block page_class %}console-page workbench-page{% endblock %}
+
+{% block content %}
+  <header class="workbench-header">
+    <div>
+      <a class="back-link" href="{{ url_for('dashboard') }}">← Torna alla dashboard</a>
+      <div class="case-title-row"><h1>Case {{ case.id.replace('DEMO-', 'RC-') }}</h1><span class="reason-pill">{{ case.return_reason.replace('_', ' ') }}</span></div>
+      <p>Ordine #{{ case.shopify_order_number or '—' }} · {{ case.customer_name or 'Cliente' }} · Aggiornato {{ case.updated_at[11:16] }}</p>
+    </div>
+    <div class="workbench-header-actions">
+      <label class="case-switcher"><span>Pratica</span><select onchange="if(this.value) location.href='/workbench/'+encodeURIComponent(this.value)">{% for item in cases %}<option value="{{ item.id }}" {% if item.id == case.id %}selected{% endif %}>{{ item.id.replace('DEMO-', 'RC-') }} · #{{ item.shopify_order_number }}</option>{% endfor %}</select></label>
+      <span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span>
+    </div>
+  </header>
+
+  <div id="pageMessage" class="conversation-note hidden"></div>
+
+  <section class="workbench-grid">
+    <article class="console-card conversation-workspace">
+      <div class="workbench-panel-head"><span>Conversation</span><div><i class="live-dot"></i> Live</div><button class="tiny-button" type="button" data-open-context>↻ View case timeline</button></div>
+      <div class="conversation-thread">
+        {% for message in messages %}
+          <div class="thread-message {% if message.role == 'cliente' %}customer{% else %}agent{% endif %}">
+            <span class="avatar {% if message.role == 'cliente' %}customer-avatar{% else %}agent-avatar{% endif %}">{{ (case.customer_name or 'C')[0] if message.role == 'cliente' else 'R' }}</span>
+            <div class="thread-content">
+              <div class="thread-meta"><strong>{% if message.role == 'cliente' %}{{ case.customer_name or 'Cliente' }}{% else %}Customer Return Agent{% endif %}</strong><time>{{ message.created_at[11:16] }}</time></div>
+              <p>{{ message.message }}</p>
+              {% if message.role == 'operatore' %}<small class="sent-marker">✓ {% if message.metadata.delivery_mode == 'portfolio_simulation' or message.metadata.demo %}Invio simulato · {% endif %}{% if case.human_decision == 'modified_and_approved' %}Modificata dall’operatore{% else %}Approvata dall’operatore{% endif %}</small>{% endif %}
+            </div>
+          </div>
+        {% else %}<p class="empty-state">Nessun messaggio nella conversazione.</p>{% endfor %}
+      </div>
+
+      {% if case.status != 'CLOSED' %}
+        <div class="customer-simulator">
+          <div><span>Customer simulator</span><small>Il messaggio compare come risposta del cliente e resta nella memoria del caso.</small></div>
+          <div class="simulator-compose"><textarea id="customerMessage" rows="2" maxlength="5000" placeholder="Scrivi il prossimo messaggio come cliente…"></textarea><button class="button primary" id="sendCustomer" type="button">Invia come cliente <span>▷</span></button></div>
+          <small class="simulation-note">Ambiente portfolio: nessuna email reale viene inviata.</small>
+        </div>
+      {% endif %}
+    </article>
+
+    <article class="console-card decision-workspace">
+      <div class="decision-tabs"><button class="active" type="button" data-tab="response">AI response</button><button type="button" data-tab="context">Decision context</button><span class="draft-state">● {% if case.status == 'WAITING_HUMAN_APPROVAL' %}Pending review{% else %}{{ status_labels.get(case.status, case.status) }}{% endif %}</span></div>
+
+      <div class="decision-tab-panel active" data-panel="response">
+        <section class="decision-summary">
+          <span class="section-label">Summary</span>
+          <div><span><small>Intent</small><strong>{{ case.return_reason.replace('_', ' ') }}</strong></span><span><small>Confidence</small><strong>{{ ((case.confidence or 0) * 100)|round|int }}%</strong></span><span><small>Outcome</small><strong class="eligibility eligibility-{{ case.eligibility_result }}">{{ case.eligibility_result.replace('_', ' ') }}</strong></span><span><small>Policy</small><strong>{{ case.policy_decision.rule_id or 'manual_review' }}</strong></span></div>
+        </section>
+
+        <section class="draft-editor">
+          <div class="draft-editor-head"><span class="section-label">AI draft response</span><small>{{ (case.original_suggested_response or '')|length }} caratteri · {% if case.ai_mode == 'live_claude' %}Claude live{% else %}demo registrata{% endif %}</small></div>
+          <textarea id="finalResponse" {% if case.status != 'WAITING_HUMAN_APPROVAL' %}readonly{% endif %}>{{ case.original_suggested_response or case.final_response or '' }}</textarea>
+
+          {% if case.status == 'WAITING_HUMAN_APPROVAL' %}
+            <div class="draft-actions"><button class="button success" type="button" data-send="approve">✓ Approve &amp; send</button><button class="button primary" type="button" data-send="modify">✎ Modify &amp; send</button><button class="button ghost" type="button" id="showRegenerate">↻ Regenerate</button><button class="button danger ghost" type="button" id="discardDraft">× Discard</button></div>
+          {% elif case.status == 'NEEDS_INFORMATION' %}
+            <div class="checkpoint-box"><strong>Risposta inviata: siamo in attesa del cliente.</strong><p>Usa il simulatore a sinistra oppure registra direttamente l’informazione ricevuta.</p><div class="draft-actions">
+              {% if case.suggested_resolution == 'chiedi_foto_video' %}<button class="button primary" data-evidence="doa">Foto/video: difetto</button><button class="button ghost" data-evidence="arrivato_rotto">Foto/video: trasporto</button>{% endif %}
+              {% if case.suggested_resolution == 'chiedi_stato_sigillo' %}<button class="button primary" data-seal="true">Sigillo integro</button><button class="button danger ghost" data-seal="false">Prodotto aperto</button>{% endif %}
+              {% if case.suggested_resolution == 'offri_scelta_rimborso_o_swap' %}<button class="button primary" data-resolution="refund">Rimborso</button><button class="button ghost" data-resolution="swap">Sostituzione</button>{% endif %}
+            </div></div>
+          {% elif case.status in ['WAITING_FOR_RETURN','RETURN_IN_TRANSIT','RETURN_RECEIVED','RETURN_VALIDATED','REFUND_PENDING','REPLACEMENT_PENDING','REJECTED','ESCALATED'] %}
+            <div class="checkpoint-box operations-checkpoint"><strong>Checkpoint operativo</strong>
+              {% if case.status == 'RETURN_RECEIVED' %}<p>Il tracking conferma l’arrivo, non la conformità. Completa tutti i controlli prima di autorizzare rimborso o swap.</p><div class="inspection-checks compact-inspection"><label><input type="checkbox" data-inspection="product_condition"> Condizioni prodotto</label><label><input type="checkbox" data-inspection="serial_and_accessories"> Seriale e accessori</label><label><input type="checkbox" data-inspection="product_packaging"> Confezione</label></div><input id="inspectionNote" placeholder="Nota del controllo fisico (facoltativa)">{% else %}<p>Registra il prossimo passaggio verificato dall’operatore. Le azioni economiche restano simulate.</p>{% endif %}
+              <div class="draft-actions">
+                {% if case.status == 'WAITING_FOR_RETURN' %}<button class="button ghost" data-advance="in_transit">Segna in transito</button><button class="button primary" data-advance="received">Segna ricevuto</button>
+                {% elif case.status == 'RETURN_IN_TRANSIT' %}<button class="button primary" data-advance="received">Segna ricevuto</button>
+                {% elif case.status == 'RETURN_RECEIVED' %}<button class="button success" data-advance="validate_return">Controllato: reso valido</button><button class="button danger ghost" data-advance="reject_after_inspection">Anomalia: escala</button>
+                {% elif case.status == 'RETURN_VALIDATED' and case.suggested_resolution == 'procedi_swap' %}<button class="button primary" data-advance="start_resolution">Avvia sostituzione</button><button class="button ghost" data-advance="start_refund_no_stock">Stock assente: rimborso</button>
+                {% elif case.status == 'RETURN_VALIDATED' %}<button class="button primary" data-advance="start_resolution">Avvia rimborso</button>
+                {% elif case.status in ['REFUND_PENDING','REPLACEMENT_PENDING'] %}<button class="button success" data-advance="complete">Completa e chiudi</button>
+                {% elif case.status in ['REJECTED','ESCALATED'] %}<button class="button ghost" data-advance="close">Chiudi pratica</button>{% endif %}
+              </div>
+            </div>
+          {% endif %}
+        </section>
+
+        {% if case.status == 'WAITING_HUMAN_APPROVAL' %}
+          <section class="feedback-box">
+            <div><span class="section-label">Feedback <em>(optional)</em></span><small>Perché modifichi questa risposta?</small></div>
+            <div class="feedback-tags" id="feedbackTags"><button type="button" data-feedback="policy_interpretation">Policy interpretation</button><button type="button" data-feedback="missing_information">Missing information</button><button type="button" data-feedback="tone_style">Tone / Style</button><button type="button" data-feedback="too_verbose">Too verbose</button><button type="button" data-feedback="incorrect_action">Incorrect action</button><button type="button" data-feedback="other">Other</button></div>
+            <textarea id="feedbackNote" rows="2" maxlength="500" placeholder="Aggiungi un commento utile per le generazioni successive…"></textarea>
+          </section>
+          <section class="regenerate-box hidden" id="regenerateBox"><strong>Rigenera con istruzioni</strong><p>La policy e l’esito restano bloccati: cambia solo il testo.</p><textarea id="regenerateInstructions" rows="2" maxlength="1000" placeholder="Es. più breve, tono più diretto, evidenzia il controllo fisico…"></textarea><div><button class="button primary" type="button" id="confirmRegenerate">Genera nuova versione</button><button class="button ghost" type="button" id="cancelRegenerate">Annulla</button></div></section>
+        {% endif %}
+      </div>
+
+      <div class="decision-tab-panel" data-panel="context">
+        <section class="context-section"><span class="section-label">Shopify context</span><dl><dt>Ordine</dt><dd>#{{ case.shopify_order_number or '—' }}</dd><dt>Cliente</dt><dd>{{ case.customer_name or '—' }}</dd><dt>Prodotto</dt><dd>{{ case.product_name or '—' }}</dd><dt>SKU</dt><dd>{{ case.sku or '—' }}</dd><dt>Consegna</dt><dd>{{ case.delivery_date or '—' }}</dd><dt>Fonte</dt><dd>{{ case.data_source or '—' }} · {{ case.source_mode }}</dd></dl></section>
+        <section class="context-section"><span class="section-label">Policy evaluation</span><h3>{{ case.suggested_resolution.replace('_', ' ') }}</h3><p>{{ case.policy_applied or 'Revisione manuale richiesta.' }}</p><dl><dt>Regola</dt><dd>{{ case.policy_decision.rule_id or '—' }}</dd><dt>Sezioni</dt><dd>{{ case.policy_decision.policy_sections|join(', ') if case.policy_decision.policy_sections else '—' }}</dd><dt>Controllo fisico</dt><dd>{% if case.policy_decision.physical_validation_required %}Obbligatorio{% else %}Non richiesto ora{% endif %}</dd></dl></section>
+        <section class="case-timeline"><span class="section-label">Case timeline</span><ol>{% for item in timeline %}<li><time>{{ item.created_at[11:16] }}</time><span>{{ item.event_type.replace('_', ' ') }}</span></li>{% endfor %}</ol></section>
+      </div>
+    </article>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const caseId = {{ case.id|tojson }}, demoSource = {{ (case.source_mode == 'recorded_fixture')|tojson }};
+  const pageMessage = document.getElementById("pageMessage"); let feedbackTag = "";
+  function showError(error) { pageMessage.textContent = error.message; pageMessage.className = "conversation-note error-box"; window.scrollTo({top: 0, behavior: "smooth"}); }
+  async function post(url, body) { const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore || "Operazione non riuscita"); window.location.reload(); }
+  document.querySelectorAll("[data-tab]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-tab]").forEach(x => x.classList.toggle("active", x === button)); document.querySelectorAll("[data-panel]").forEach(x => x.classList.toggle("active", x.dataset.panel === button.dataset.tab)); }));
+  document.querySelector("[data-open-context]")?.addEventListener("click", () => document.querySelector('[data-tab="context"]').click());
+  document.querySelectorAll("[data-feedback]").forEach(button => button.addEventListener("click", () => { feedbackTag = feedbackTag === button.dataset.feedback ? "" : button.dataset.feedback; document.querySelectorAll("[data-feedback]").forEach(x => x.classList.toggle("active", x.dataset.feedback === feedbackTag)); }));
+  document.querySelectorAll("[data-send]").forEach(button => button.addEventListener("click", async () => { try { await post("/conferma", {case_id: caseId, azione: "accetta", testo_finale: document.getElementById("finalResponse").value, feedback_tag: feedbackTag, motivazione: document.getElementById("feedbackNote")?.value || ""}); } catch (error) { showError(error); } }));
+  document.getElementById("showRegenerate")?.addEventListener("click", () => document.getElementById("regenerateBox").classList.remove("hidden"));
+  document.getElementById("cancelRegenerate")?.addEventListener("click", () => document.getElementById("regenerateBox").classList.add("hidden"));
+  document.getElementById("confirmRegenerate")?.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/draft-action`, {action: "regenerate", reason_tag: feedbackTag, instructions: document.getElementById("regenerateInstructions").value}); } catch (error) { showError(error); } });
+  document.getElementById("discardDraft")?.addEventListener("click", async () => { if (!confirm("Scartare la bozza e inviare il caso a revisione manuale?")) return; try { await post(`/cases/${encodeURIComponent(caseId)}/draft-action`, {action: "discard", reason_tag: feedbackTag, instructions: document.getElementById("feedbackNote")?.value || ""}); } catch (error) { showError(error); } });
+  document.getElementById("sendCustomer")?.addEventListener("click", async () => { const field = document.getElementById("customerMessage"), message = field.value.trim(); if (!message) return; try { const url = demoSource ? `/cases/${encodeURIComponent(caseId)}/simulate-message` : "/messaggio"; const body = demoSource ? {message} : {case_id: caseId, session_id: {{ (case.session_id or ('case-' ~ case.id))|tojson }}, messaggio: message}; await post(url, body); } catch (error) { showError(error); } });
+  document.querySelectorAll("[data-evidence]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/evidence`, {evidence_category: button.dataset.evidence}); } catch (error) { showError(error); } }));
+  document.querySelectorAll("[data-resolution]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/resolution-choice`, {choice: button.dataset.resolution}); } catch (error) { showError(error); } }));
+  document.querySelectorAll("[data-seal]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/seal`, {intact: button.dataset.seal === "true"}); } catch (error) { showError(error); } }));
+  document.querySelectorAll("[data-advance]").forEach(button => button.addEventListener("click", async () => { const checks = {}; document.querySelectorAll("[data-inspection]").forEach(item => checks[item.dataset.inspection] = item.checked); try { await post(`/cases/${encodeURIComponent(caseId)}/advance`, {azione: button.dataset.advance, checks, note: document.getElementById("inspectionNote")?.value || ""}); } catch (error) { showError(error); } }));
+</script>
+{% endblock %}

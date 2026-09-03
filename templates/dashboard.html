@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard resi · Return Agent{% endblock %}
+{% block workspace_header %}{% endblock %}
+{% block page_class %}console-page dashboard-page{% endblock %}
+
+{% block content %}
+  <header class="console-header">
+    <div><span class="eyebrow">Operations overview</span><h1>Dashboard resi</h1><p>Panoramica operativa delle pratiche, degli outcome e del lavoro in coda.</p></div>
+    <div class="header-actions"><span class="connection-chip"><span class="connection-dot live-dot"></span>{{ integration_status.shopify }}</span><span class="mode-chip lock-chip">▣ Demo sicura</span></div>
+  </header>
+
+  <section class="dashboard-stats">
+    <article><span class="metric-symbol violet">▤</span><div><small>Pratiche totali</small><strong>{{ stats.total }}</strong><p>Totale pratiche aperte</p></div></article>
+    <article><span class="metric-symbol amber">◷</span><div><small>Da approvare</small><strong>{{ stats.waiting_approval }}</strong><p>In attesa di revisione</p></div></article>
+    <article><span class="metric-symbol blue">◌</span><div><small>Informazioni richieste</small><strong>{{ stats.needs_information }}</strong><p>Dati dal cliente richiesti</p></div></article>
+    <article><span class="metric-symbol rose">!</span><div><small>Escalate</small><strong>{{ stats.escalated }}</strong><p>Richiedono escalation</p></div></article>
+    <article><span class="metric-symbol green">✓</span><div><small>Chiuse oggi</small><strong>{{ stats.closed_today }}</strong><p>Pratiche chiuse oggi</p></div></article>
+    <article><span class="metric-symbol violet">◴</span><div><small>Approvazione senza modifiche</small><strong>{{ stats.approval_rate }}%</strong><p>Decisioni auto-approvate</p></div></article>
+  </section>
+
+  <section class="operations-grid">
+    <article class="console-card priority-card">
+      <div class="console-card-header"><div><span class="title-icon violet">⚑</span><span><h2>Coda prioritaria</h2><p>Le pratiche che richiedono azione immediata</p></span></div></div>
+      <div class="compact-table"><table><thead><tr><th>Caso</th><th>Cliente</th><th>Motivo</th><th>Esito proposto</th><th>Stato</th><th></th></tr></thead><tbody>
+        {% for case in priority_cases %}<tr><td><strong>{{ case.id.replace('DEMO-', 'RC-') }}</strong></td><td>{{ case.customer_name or '—' }}</td><td>{{ case.return_reason.replace('_', ' ') }}</td><td>{{ case.suggested_resolution.replace('_', ' ') }}</td><td><span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span></td><td><a href="{{ url_for('workbench_case', case_id=case.id) }}">Apri <b>›</b></a></td></tr>
+        {% else %}<tr><td colspan="6" class="empty-state">Nessuna pratica prioritaria.</td></tr>{% endfor %}
+      </tbody></table></div>
+    </article>
+
+    <div class="dashboard-charts">
+      <article class="console-card outcome-card">
+        <div class="mini-card-title"><span class="title-icon violet">♙</span><h2>Outcome delle decisioni</h2><span class="total-orb"><strong>{{ stats.total }}</strong><small>Totale</small></span></div>
+        <div class="bar-list">{% set max_outcome = outcomes|map(attribute='count')|max or 1 %}{% for item in outcomes %}<div><span><i class="dot-{{ item.tone }}"></i>{{ item.label }}</span><div><i class="bar-{{ item.tone }}" style="width: {{ (item.count * 100 / max_outcome)|round|int }}%"></i></div><strong>{{ item.count }}</strong></div>{% endfor %}</div>
+      </article>
+      <article class="console-card outcome-card">
+        <div class="mini-card-title"><span class="title-icon violet">▱</span><h2>Pratiche per motivo</h2><span class="total-orb"><strong>{{ stats.total }}</strong><small>Totale</small></span></div>
+        <div class="bar-list reason-bars">{% set max_reason = reasons|map(attribute='count')|max or 1 %}{% for item in reasons[:4] %}<div><span>{{ item.return_reason.replace('_', ' ') }}</span><div><i class="bar-violet" style="width: {{ (item.count * 100 / max_reason)|round|int }}%"></i></div><strong>{{ item.count }}</strong></div>{% endfor %}</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="console-card activity-card">
+    <div class="console-card-header"><div><span class="title-icon violet">◷</span><span><h2>Attività recenti</h2></span></div></div>
+    <div class="activity-list"><div class="activity-head"><span>Orario</span><span>Caso</span><span>Evento</span><span>Operatore</span></div>{% for item in activities %}<div><time>{{ item.created_at[11:16] }}</time><a href="{{ url_for('workbench_case', case_id=item.case_id) }}">{{ item.case_id.replace('DEMO-', 'RC-') }}</a><p>{{ item.event_type.replace('_', ' ') }}</p><span class="activity-operator">♙ {{ item.assigned_operator or 'Customer Return Agent' }}</span></div>{% else %}<p class="empty-state">Nessuna attività disponibile.</p>{% endfor %}</div>
+  </section>
+{% endblock %}

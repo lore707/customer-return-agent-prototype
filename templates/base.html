@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{% block title %}Return Operations{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <div class="ambient ambient-one"></div>
+  <div class="ambient ambient-two"></div>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Navigazione principale">
+      <a class="brand-mark" href="{{ url_for('index') }}" aria-label="Return Operations home"><span>R</span></a>
+      <nav class="side-nav">
+        <a class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg><span>Dashboard</span>
+        </a>
+        <a class="nav-item {% if request.path.startswith('/workbench') or request.path.startswith('/cases/') %}active{% endif %}" href="/workbench">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H7l-3 3V5Z"/><path d="M8 9h8M8 12h5"/></svg><span>Workbench</span>
+        </a>
+        <a class="nav-item {% if request.endpoint == 'database_register' %}active{% endif %}" href="{{ url_for('database_register') }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg><span>Database</span>
+        </a>
+        <a class="nav-item {% if request.path.startswith('/policies') %}active{% endif %}" href="/policies">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Policies</span>
+        </a>
+        <a class="nav-item {% if request.path.startswith('/analytics') %}active{% endif %}" href="/analytics">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg><span>Analytics</span>
+        </a>
+      </nav>
+      <div class="sidebar-foot"><span class="pulse-dot"></span><span>Demo safe</span></div>
+    </aside>
+
+    <div class="workspace">
+      {% block workspace_header %}<header class="workspace-header">
+        <div>
+          <span class="page-kicker">{% block page_kicker %}Customer Return Agent{% endblock %}</span>
+          <h1>{% block page_title %}Return Operations{% endblock %}</h1>
+          <p>{% block page_subtitle %}Human-in-the-loop return automation{% endblock %}</p>
+        </div>
+        <div class="header-actions">
+          {% block header_actions %}<span class="mode-chip"><i></i> Portfolio demo</span>{% endblock %}
+        </div>
+      </header>{% endblock %}
+      <main class="page {% block page_class %}{% endblock %}">{% block content %}{% endblock %}</main>
+    </div>
+  </div>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

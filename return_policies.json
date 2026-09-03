@@ -1,0 +1,68 @@
+{
+  "version": "2026-09-02",
+  "source": "policies.md",
+  "stores": ["Laifen Italia", "Xiaomi Store Italia", "Yimiki", "Dreo"],
+  "withdrawal": {
+    "window_days": 14,
+    "starts_from": "tracking_delivery_date",
+    "resolution": "refund",
+    "return_shipping_payer": "customer",
+    "deduct_shipping_from_refund": true,
+    "external_packaging_required": true,
+    "required_condition": "resellable_same_condition",
+    "excluded_product_keywords": ["rasoio", "spazzolino"],
+    "sealed_excluded_product_is_eligible": true,
+    "refund_requires_physical_validation": true
+  },
+  "defective_product": {
+    "evidence_required": ["photo", "video"],
+    "within_withdrawal_window": ["refund", "swap"],
+    "after_withdrawal_window": "swap",
+    "return_shipping_payer": "company",
+    "replacement_value": "equal_or_higher",
+    "refund_if_no_replacement_stock": true,
+    "resolution_requires_physical_validation": true,
+    "warranty_max_days": null
+  },
+  "damaged_in_transit": {
+    "evidence_required": ["photo", "video"],
+    "resolution": "refund",
+    "return_shipping_payer": "company",
+    "resolution_requires_physical_validation": true
+  },
+  "wrong_item": {
+    "return_shipping_payer": "company",
+    "requires_human_review": true,
+    "resolution": null
+  },
+  "evidence": {
+    "inconclusive_or_refused": "do_not_proceed",
+    "no_response_close_days": 15,
+    "operator_confirms_damage_type": true
+  },
+  "return_logistics": {
+    "unshipped_label_close_days": 15,
+    "cancel_label_when_expired": true,
+    "partial_order_requires_line_item": true,
+    "single_item_swap_creates_separate_order": true
+  },
+  "physical_inspection": {
+    "required_before_refund_or_swap": true,
+    "checks": ["product_condition", "serial_and_accessories", "product_packaging"]
+  },
+  "escalation": {
+    "low_confidence_below": 0.7,
+    "attention_confidence_below": 0.9,
+    "signals": ["legal_threat", "chargeback", "consumer_complaint", "policy_exception", "decision_dispute", "potential_fraud", "ambiguous_evidence"],
+    "high_value_threshold_eur": null
+  },
+  "unresolved": [
+    {"id": "warranty_max_days", "section": "§1", "description": "Limite superiore della garanzia non confermato"},
+    {"id": "excluded_skus_by_store", "section": "§3", "description": "Lista SKU esclusi per store non confermata"},
+    {"id": "devalued_return_outcome", "section": "§4", "description": "Rimborso parziale o rifiuto per prodotto svalutato"},
+    {"id": "replacement_model_choice", "section": "§6", "description": "Scelta del modello sostitutivo in assenza dello stesso SKU"},
+    {"id": "damaged_return_parcel_outcome", "section": "§7", "description": "Gestione del pacco di reso danneggiato o incompleto"},
+    {"id": "wrong_item_resolution", "section": "§2", "description": "Risoluzione definitiva per articolo errato"},
+    {"id": "high_value_threshold_eur", "section": "§8", "description": "Soglia economica per escalation automatica"}
+  ]
+}

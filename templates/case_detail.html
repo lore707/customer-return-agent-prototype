@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+
+{% block title %}{{ case.id }} · Return Operations{% endblock %}
+{% block page_kicker %}<a class="back-link" href="{{ url_for('index') }}">← Torna alle operations</a>{% endblock %}
+{% block page_title %}{{ case.id }}{% endblock %}
+{% block page_subtitle %}Ordine #{{ case.shopify_order_number or 'non disponibile' }} · {{ case.customer_name or 'Cliente non disponibile' }}{% endblock %}
+{% block header_actions %}
+  {% if case.source_mode == 'recorded_fixture' %}<span class="source-badge fixture">Shopify snapshot</span>{% elif case.source_mode == 'live_api' %}<span class="source-badge live">Shopify live</span>{% endif %}
+  <span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span>
+{% endblock %}
+{% block page_class %}detail-page{% endblock %}
+
+{% block content %}
+  <div id="pageMessage" class="conversation-note hidden"></div>
+
+  <section class="panel progress-panel" aria-label="Avanzamento pratica">
+    {% for milestone in milestones %}
+      <div class="progress-step {% if milestone.completed %}completed{% elif milestone.active %}active{% endif %}">
+        <span>{% if milestone.completed %}✓{% else %}{{ loop.index }}{% endif %}</span><small>{{ milestone.label }}</small>
+      </div>
+      {% if not loop.last %}<i></i>{% endif %}
+    {% endfor %}
+  </section>
+
+  {% if scenario %}
+    <section class="proof-banner">
+      <div><span class="eyebrow">Scenario portfolio · {{ scenario.title }}</span><h2>Risultato atteso e risultato osservato</h2></div>
+      <div class="proof-comparison">
+        <span><small>Atteso</small><strong>{{ scenario.expected }}</strong></span>
+        <i>→</i>
+        <span><small>Motore</small><strong>{{ case.suggested_resolution.replace('_', ' ') }}</strong></span>
+        <b class="match-badge">{% if scenario.expected_outcome == case.suggested_resolution %}✓ Coerente{% else %}↻ Evoluto nel workflow{% endif %}</b>
+      </div>
+    </section>
+  {% endif %}
+
+  <section class="detail-grid">
+    <article class="panel span-two request-card">
+      <div class="card-icon violet">“</div>
+      <div><span class="eyebrow">Customer request</span><h2>Richiesta originale</h2><p class="message-box">{{ case.customer_message }}</p></div>
+    </article>
+
+    <article class="panel">
+      <div class="panel-heading compact-heading"><div><span class="eyebrow">Shopify context</span><h2>Ordine e cliente</h2></div><span class="source-badge {% if case.source_mode == 'live_api' %}live{% else %}fixture{% endif %}">{% if case.source_mode == 'live_api' %}Live API{% else %}Snapshot{% endif %}</span></div>
+      <dl class="data-list">
+        <dt>Ordine</dt><dd>#{{ case.shopify_order_number or '—' }}</dd>
+        <dt>Shopify ID</dt><dd>{{ case.shopify_order_id or '—' }}</dd>
+        <dt>Cliente</dt><dd>{{ case.customer_name or '—' }}</dd>
+        <dt>Email</dt><dd>{{ case.customer_email or '—' }}</dd>
+        <dt>Prodotto</dt><dd>{{ case.product_name or '—' }}</dd>
+        <dt>SKU</dt><dd><code>{{ case.sku or '—' }}</code></dd>
+        <dt>Quantità</dt><dd>{{ case.quantity or '—' }}</dd>
+        <dt>Consegna</dt><dd>{{ case.delivery_date or '—' }}</dd>
+      </dl>
+    </article>
+
+    <article class="panel analysis-card">
+      <div class="panel-heading compact-heading"><div><span class="eyebrow">AI analysis</span><h2>Classificazione</h2></div><span class="confidence-ring" style="--confidence: {{ ((case.confidence or 0) * 100)|round|int }}"><b>{{ ((case.confidence or 0) * 100)|round|int }}%</b></span></div>
+      <dl class="data-list">
+        <dt>Tipo</dt><dd>{{ case.return_type.replace('_', ' ') }}</dd>
+        <dt>Motivo</dt><dd>{{ case.return_reason.replace('_', ' ') }}</dd>
+        <dt>Eligibility</dt><dd><span class="eligibility eligibility-{{ case.eligibility_result }}">{{ case.eligibility_result.replace('_', ' ') }}</span></dd>
+        <dt>Modalità AI</dt><dd>{% if case.ai_mode == 'live_claude' %}Claude live{% else %}Esecuzione registrata{% endif %}</dd>
+        <dt>Tempo</dt><dd>{{ case.analysis_duration_ms or '—' }}{% if case.analysis_duration_ms %} ms{% endif %}</dd>
+      </dl>
+    </article>
+
+    <article class="panel span-two provenance-card">
+      <div>
+        <span class="eyebrow">Data provenance</span>
+        <h2>Questi dati non sono generati dall’AI</h2>
+        <p>La classificazione usa il messaggio cliente; ordine, cliente e prodotto provengono da <strong>{{ case.data_source or 'Shopify' }}</strong>. {% if case.source_mode == 'recorded_fixture' %}Per la demo pubblica viene mostrato lo snapshot registrato durante l’esperimento sullo store test.{% else %}Questa pratica è stata letta tramite API live.{% endif %}</p>
+      </div>
+      <div class="provenance-meta"><span><small>Modalità</small><strong>{{ case.source_mode or '—' }}</strong></span><span><small>Acquisizione</small><strong>{{ case.source_fetched_at[:16].replace('T', ' ') if case.source_fetched_at else '—' }}</strong></span></div>
+      <details class="payload-details"><summary>Visualizza payload Shopify anonimizzato <span>⌄</span></summary><pre>{{ source_payload }}</pre></details>
+    </article>
+
+    <article class="panel span-two policy-card">
+      <div class="card-icon blue">§</div>
+      <div>
+        <span class="eyebrow">Deterministic policy engine · {{ case.policy_decision.policy_version or policy_status.version }}</span>
+        <h2>{{ case.suggested_resolution.replace('_', ' ') }}</h2>
+        <p>{{ case.policy_applied or 'Valutazione manuale richiesta.' }}</p>
+        <div class="policy-facts">
+          <span><small>Regola</small><strong>{{ case.policy_decision.rule_id or 'legacy_case' }}</strong></span>
+          <span><small>Sezioni</small><strong>{{ case.policy_decision.policy_sections|join(', ') if case.policy_decision.policy_sections else '—' }}</strong></span>
+          {% if case.policy_decision.shipping_payer %}<span><small>Spedizione reso</small><strong>{% if case.policy_decision.shipping_payer == 'customer' %}Cliente{% else %}Azienda{% endif %}</strong></span>{% endif %}
+          {% if case.policy_decision.timeout_days %}<span><small>Scadenza</small><strong>{{ case.policy_decision.timeout_days }} giorni</strong></span>{% endif %}
+          {% if case.policy_decision.physical_validation_required %}<span><small>Risoluzione</small><strong>Solo dopo controllo fisico</strong></span>{% endif %}
+        </div>
+        {% if case.policy_decision.unresolved_policy %}<p class="inspection-warning"><strong>Regola da confermare:</strong> {{ case.policy_decision.unresolved_policy }}. Il sistema non prende una decisione autonoma.</p>{% endif %}
+        <small>L’LLM interpreta il messaggio e scrive la bozza; idoneità e prossima azione provengono dalle regole versionate.</small>
+      </div>
+    </article>
+
+    {% if case.status == 'WAITING_HUMAN_APPROVAL' %}
+      <article class="panel span-two action-card">
+        <div class="panel-heading"><div><span class="eyebrow">Human approval</span><h2>Risposta proposta</h2><p>Controlla o modifica il testo prima di registrare la decisione.</p></div><span class="required-badge">Azione richiesta</span></div>
+        <textarea id="finalResponse" rows="8">{{ case.original_suggested_response or '' }}</textarea>
+        <input id="humanReason" placeholder="Motivo della modifica o escalation (facoltativo)">
+        <div class="form-actions"><button class="button primary" data-confirm="accetta">Approva proposta <span>→</span></button><button class="button danger" data-confirm="rifiuta">Rifiuta suggerimento</button><button class="button warning" data-confirm="escala">Escala</button></div>
+        <p class="inline-note">La risposta viene archiviata nella pratica, ma non inviata realmente al cliente.</p>
+      </article>
+    {% elif case.status == 'NEEDS_INFORMATION' %}
+      <article class="panel span-two action-card">
+        <div class="panel-heading"><div><span class="eyebrow">Information checkpoint</span><h2>Informazioni mancanti</h2></div><span class="required-badge">In attesa del cliente</span></div>
+        <p class="message-box">{{ case.final_response or case.original_suggested_response }}</p>
+        <div class="form-actions">
+          {% if case.suggested_resolution == 'chiedi_foto_video' %}<button class="button primary" data-evidence="doa">Prove: difetto prodotto <span>→</span></button><button class="button ghost" data-evidence="arrivato_rotto">Prove: danno da trasporto</button>
+          {% elif case.suggested_resolution == 'chiedi_stato_sigillo' %}<button class="button primary" data-seal="true">Sigillo integro</button><button class="button danger" data-seal="false">Prodotto aperto/usato</button>
+          {% elif case.suggested_resolution == 'offri_scelta_rimborso_o_swap' %}<button class="button primary" data-resolution="refund">Cliente sceglie rimborso</button><button class="button ghost" data-resolution="swap">Cliente sceglie sostituzione</button>{% endif %}
+          <button class="button ghost" data-advance="{% if case.suggested_resolution == 'chiedi_foto_video' %}close_no_evidence{% else %}close{% endif %}">Chiudi pratica</button>
+        </div>
+      </article>
+    {% endif %}
+
+    {% if case.label_status == 'created' %}
+      <article class="panel span-two shipping-card">
+        <div><span class="integration-icon violet">↩</span><span><small>Return shipping · simulato</small><strong>Etichetta generata</strong></span></div>
+        <dl class="shipping-data"><div><dt>Provider</dt><dd>{{ case.shipping_provider }}</dd></div><div><dt>Return ID</dt><dd>{{ case.sendcloud_return_id }}</dd></div><div><dt>Tracking</dt><dd>{{ case.tracking_number }}</dd></div><div><dt>Azione esterna</dt><dd>Nessuna</dd></div></dl>
+      </article>
+    {% endif %}
+
+    {% if case.status not in ['WAITING_HUMAN_APPROVAL', 'NEEDS_INFORMATION'] and (case.final_response or case.original_suggested_response) %}
+      <article class="panel span-two response-card"><span class="eyebrow">Recorded response</span><h2>{% if case.suggested_resolution == 'escalation_operatore' %}Nota interna{% else %}Risposta registrata{% endif %}</h2><p class="message-box">{{ case.final_response or case.original_suggested_response }}</p><p class="inline-note">Testo archiviato; nessuna comunicazione reale è stata inviata.</p></article>
+    {% endif %}
+
+    {% if case.status in ['WAITING_FOR_RETURN', 'RETURN_IN_TRANSIT', 'RETURN_RECEIVED', 'RETURN_VALIDATED', 'REFUND_PENDING', 'REPLACEMENT_PENDING', 'REJECTED', 'ESCALATED'] %}
+      <article class="panel span-two action-card workflow-card">
+        <div class="panel-heading"><div><span class="eyebrow">Workflow control</span><h2>Aggiorna la pratica</h2></div><span class="required-badge">Operatore</span></div>
+        {% if case.status == 'RETURN_RECEIVED' %}<p class="inspection-warning"><strong>Il pacco è arrivato, ma non è ancora validato.</strong> I tre controlli sono obbligatori prima di rimborso o swap.</p><div class="inspection-checks"><label><input type="checkbox" data-inspection="product_condition"> Prodotto nelle condizioni previste</label><label><input type="checkbox" data-inspection="serial_and_accessories"> Seriale e accessori verificati</label><label><input type="checkbox" data-inspection="product_packaging"> Confezione prodotto verificata</label></div><input id="inspectionNote" placeholder="Note del controllo fisico (facoltative)">{% endif %}
+        <div class="form-actions">
+          {% if case.status == 'WAITING_FOR_RETURN' %}<button class="button ghost" data-advance="in_transit">Segna in transito</button><button class="button primary" data-advance="received">Segna ricevuto</button>
+          {% elif case.status == 'RETURN_IN_TRANSIT' %}<button class="button primary" data-advance="received">Segna ricevuto</button>
+          {% elif case.status == 'RETURN_RECEIVED' %}<button class="button primary" data-advance="validate_return">Controllato: reso valido <span>→</span></button><button class="button warning" data-advance="reject_after_inspection">Anomalia: escala</button>
+          {% elif case.status == 'RETURN_VALIDATED' and case.suggested_resolution == 'procedi_swap' %}<button class="button primary" data-advance="start_resolution">Sostitutivo disponibile: avvia swap <span>→</span></button><button class="button ghost" data-advance="start_refund_no_stock">Nessun sostitutivo: avvia rimborso</button>
+          {% elif case.status == 'RETURN_VALIDATED' %}<button class="button primary" data-advance="start_resolution">Avvia rimborso <span>→</span></button>
+          {% elif case.status in ['REFUND_PENDING', 'REPLACEMENT_PENDING'] %}<button class="button primary" data-advance="complete">Completa e chiudi <span>→</span></button>
+          {% elif case.status in ['REJECTED', 'ESCALATED'] %}<button class="button ghost" data-advance="close">Chiudi pratica</button>{% endif %}
+        </div>
+      </article>
+    {% endif %}
+
+    <article class="panel conversation-card">
+      <div class="panel-heading compact-heading"><div><span class="eyebrow">Conversation memory</span><h2>Messaggi della pratica</h2></div><span class="message-count">{{ messages|length }}</span></div>
+      <div class="conversation-history">
+        {% for message in messages %}<article class="conversation-message role-{{ message.role }}"><div><strong>{{ message.role|capitalize }}</strong><span>{{ message.channel }} · {{ message.created_at[:16].replace('T', ' ') }}</span></div><p>{{ message.message }}</p></article>{% else %}<p class="empty-state">Nessun messaggio archiviato.</p>{% endfor %}
+      </div>
+      {% if case.status != 'CLOSED' and live_intake_available %}<div class="followup-box"><label for="followupMessage">Nuovo messaggio del cliente</label><textarea id="followupMessage" rows="3" maxlength="5000" placeholder="L’agente userà anche la conversazione precedente."></textarea><div class="form-actions"><button class="button ghost" id="analyzeFollowup" type="button">Salva e analizza risposta</button></div></div>{% elif case.status != 'CLOSED' %}<p class="inline-note">I follow-up liberi richiedono le API live. Gli step guidati di questo scenario restano utilizzabili senza credenziali.</p>{% endif %}
+    </article>
+
+    <article class="panel timeline-card">
+      <div class="panel-heading compact-heading"><div><span class="eyebrow">Audit trail</span><h2>Timeline verificabile</h2></div><span class="soft-badge">{{ timeline|length }} eventi</span></div>
+      <ol class="timeline">{% for event in timeline %}<li><time>{{ event.created_at[:16].replace('T', ' ') }}</time><div><strong>{{ event.event_type.replace('_', ' ') }}</strong>{% if event.from_status or event.to_status %}<span>{{ status_labels.get(event.from_status, event.from_status or '—') }} → {{ status_labels.get(event.to_status, event.to_status or '—') }}</span>{% endif %}</div></li>{% endfor %}</ol>
+    </article>
+  </section>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const caseId = {{ case.id|tojson }}, pageMessage = document.getElementById("pageMessage");
+  async function post(url, body) { pageMessage.classList.add("hidden"); const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore || "Operazione non riuscita"); window.location.reload(); }
+  document.querySelectorAll("[data-confirm]").forEach(button => button.addEventListener("click", async () => { try { await post("/conferma", {case_id: caseId, azione: button.dataset.confirm, testo_finale: document.getElementById("finalResponse")?.value || "", motivazione: document.getElementById("humanReason")?.value || ""}); } catch (error) { showError(error); } }));
+  document.querySelectorAll("[data-advance]").forEach(button => button.addEventListener("click", async () => { const checks = {}; document.querySelectorAll("[data-inspection]").forEach(item => { checks[item.dataset.inspection] = item.checked; }); try { await post(`/cases/${encodeURIComponent(caseId)}/advance`, {azione: button.dataset.advance, note: document.getElementById("inspectionNote")?.value || "", checks}); } catch (error) { showError(error); } }));
+  document.getElementById("analyzeFollowup")?.addEventListener("click", async () => { const field = document.getElementById("followupMessage"), message = field.value.trim(); if (!message) return; try { await post("/messaggio", {case_id: caseId, session_id: {{ (case.session_id or ('case-' ~ case.id))|tojson }}, messaggio: message}); } catch (error) { showError(error); } });
+  document.querySelectorAll("[data-evidence]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/evidence`, {evidence_category: button.dataset.evidence}); } catch (error) { showError(error); } }));
+  document.querySelectorAll("[data-resolution]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/resolution-choice`, {choice: button.dataset.resolution}); } catch (error) { showError(error); } }));
+  document.querySelectorAll("[data-seal]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/seal`, {intact: button.dataset.seal === "true"}); } catch (error) { showError(error); } }));
+  function showError(error) { pageMessage.textContent = error.message; pageMessage.classList.remove("hidden"); pageMessage.classList.add("error-box"); window.scrollTo({top: 0, behavior: "smooth"}); }
+</script>
+{% endblock %}
