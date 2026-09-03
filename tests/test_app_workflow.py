@@ -248,7 +248,7 @@ class AppWorkflowTests(unittest.TestCase):
     def test_separate_portfolio_sections_render(self):
         app.demo.ensure_showcase()
         expectations = {
-            "/": b"I resi preparati",
+            "/": b"L\xe2\x80\x99AI prepara ogni caso di reso",
             "/dashboard": b"Dashboard resi",
             "/workbench": b"AI draft response",
             "/policies": b"Flusso decisionale",

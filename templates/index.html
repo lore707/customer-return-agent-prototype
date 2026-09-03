@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>Customer Return Agent · Portfolio</title>
+  <title>Customer Return Agent</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -15,40 +15,40 @@
   <header class="landing-nav">
     <a class="landing-brand" href="{{ url_for('index') }}"><span>R</span><strong>Return Agent</strong></a>
     <nav><a href="#workflow">Workflow</a><a href="{{ url_for('policies') }}">Policies</a><a href="{{ url_for('analytics_view') }}">Analytics</a></nav>
-    <a class="button ghost" href="{{ url_for('dashboard') }}">Apri il prototipo <span>→</span></a>
+    <a class="button ghost" href="{{ url_for('dashboard') }}">Apri la dashboard <span>→</span></a>
   </header>
 
   <main class="landing-main">
     <section class="landing-hero">
       <div class="landing-hero-copy">
-        <span class="landing-eyebrow"><i></i> AI operations portfolio project</span>
-        <h1>I resi preparati dall’AI.<br><em>Le decisioni approvate dalle persone.</em></h1>
-        <p>Un prototipo end-to-end che collega richieste cliente, dati Shopify, policy deterministiche e revisione umana in un unico workflow verificabile.</p>
+        <span class="landing-eyebrow"><i></i> AI-assisted returns operations</span>
+        <h1>L’AI prepara ogni caso di reso.<br><em>Le regole decidono.<br>L’operatore approva.</em></h1>
+        <p>Un prototipo end-to-end per Shopify che legge la richiesta del cliente, recupera i dati dell’ordine, applica le policy di reso e prepara una risposta pronta per la revisione umana.</p>
         <div class="landing-actions"><a class="button primary large" href="{{ url_for('dashboard') }}">Esplora la dashboard <span>→</span></a><a class="button ghost large" href="{{ url_for('workbench') }}">Prova il Workbench</a></div>
-        <div class="landing-trust"><span><i>✓</i>Nessun invio reale</span><span><i>✓</i>Store Shopify test</span><span><i>✓</i>Policy versionate</span></div>
+        <div class="landing-trust"><span>Shopify test store</span><b>·</b><span>Policy deterministiche</span><b>·</b><span>Human approval</span><b>·</b><span>Nessuna azione reale</span></div>
       </div>
 
       <div class="landing-product-preview">
         <div class="preview-top"><div><span class="preview-logo">R</span><strong>Operations overview</strong></div><span class="preview-live"><i></i> Demo sicura</span></div>
         <div class="preview-metrics"><article><small>Pratiche</small><strong>{{ metrics.total }}</strong></article><article><small>Aperte</small><strong>{{ metrics.open }}</strong></article><article><small>In attesa</small><strong>{{ metrics.waiting }}</strong></article></div>
         <div class="preview-flow"><div><span class="preview-node customer-node">1</span><strong>Cliente</strong><small>richiesta</small></div><b>→</b><div><span class="preview-node ai-node">2</span><strong>AI</strong><small>analisi + draft</small></div><b>→</b><div><span class="preview-node human-node">3</span><strong>Operatore</strong><small>approva</small></div></div>
-        <div class="preview-cases"><div class="preview-cases-head"><span>Casi dimostrativi</span><small>Apri per verificare</small></div>{% for case in cases[:3] %}<a href="{{ url_for('workbench_case', case_id=case.id) }}"><span>{{ case.id.replace('DEMO-', 'RC-') }}</span><strong>{{ case.return_reason.replace('_', ' ') }}</strong><em class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</em></a>{% endfor %}</div>
+        <div class="preview-cases"><div class="preview-cases-head"><span>Casi dimostrativi</span><small>Apri nel Workbench</small></div>{% for case in cases[:3] %}<a href="{{ url_for('workbench_case', case_id=case.id) }}"><span>{{ case.id.replace('DEMO-', 'RC-') }}</span><strong>{{ case.return_reason.replace('_', ' ') }}</strong><em class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</em></a>{% endfor %}</div>
       </div>
     </section>
 
-    <section class="landing-proof-strip"><div><strong>{{ metrics.total }}</strong><span>casi persistenti</span></div><div><strong>{{ policy_status.version }}</strong><span>versione policy</span></div><div><strong>30</strong><span>test automatici</span></div><div><strong>100%</strong><span>human gate prima dell’invio</span></div></section>
+    <section class="landing-proof-strip"><div><strong>{{ scenarios|length }}</strong><span>casi dimostrativi</span></div><div><strong>30/30</strong><span>test automatici</span></div><div><strong>100%</strong><span>risposte con human gate</span></div><div><strong>0</strong><span>azioni reali nella demo</span></div></section>
 
     <section class="landing-section" id="workflow">
-      <div class="landing-section-head"><span class="landing-eyebrow">Workflow</span><h2>Una sola storia, dall’email alla risoluzione.</h2><p>Ogni pagina risponde a una domanda precisa. Il recruiter può entrare in qualsiasi punto e verificare dati, decisione e cronologia.</p></div>
-      <div class="landing-workflow">{% set steps=[('01','Cliente','Scrive o continua la conversazione.'),('02','AI','Classifica e prepara una bozza.'),('03','Policy','Decide cosa è consentito.'),('04','Operatore','Approva, modifica o escala.'),('05','Database','Salva messaggi, eventi e outcome.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Workflow</span><h2>Una sola storia, dall’email alla risoluzione.</h2><p>Ogni richiesta attraversa lo stesso workflow: l’AI comprende il caso, Shopify fornisce i fatti, le regole determinano ciò che è consentito e l’operatore mantiene il controllo finale.</p></div>
+      <div class="landing-workflow">{% set steps=[('01','Cliente','Invia una richiesta o continua la conversazione.'),('02','AI','Comprende intento e contesto e prepara una risposta.'),('03','Policy','Verifica condizioni, eccezioni e azioni consentite.'),('04','Operatore','Approva, modifica, rigenera o escala.'),('05','Database','Conserva conversazione, decisioni, feedback e audit trail.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
     </section>
 
     <section class="landing-section landing-verification">
-      <div class="landing-section-head"><span class="landing-eyebrow">What to verify</span><h2>Il prototipo non chiede fiducia. Mostra le prove.</h2></div>
-      <div class="verification-grid"><a href="{{ url_for('workbench') }}"><span>01</span><h3>Conversazione e human gate</h3><p>La bozza AI resta separata dai messaggi inviati fino all’approvazione.</p><b>Apri Workbench →</b></a><a href="{{ url_for('policies') }}"><span>02</span><h3>Decisione deterministica</h3><p>La policy decide l’esito; il modello scrive soltanto come comunicarlo.</p><b>Leggi le policies →</b></a><a href="{{ url_for('database_register') }}"><span>03</span><h3>Memoria e audit trail</h3><p>Pratiche, messaggi, feedback e passaggi manuali rimangono persistenti.</p><b>Esplora il database →</b></a></div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Design principles</span><h2>Tre principi alla base del sistema.</h2></div>
+      <div class="verification-grid"><a href="{{ url_for('workbench') }}"><span>01</span><h3>Conversazione con human gate</h3><p>Le risposte generate dall’AI restano in bozza finché un operatore non le approva, modifica o rigenera.</p><b>Prova il Workbench →</b></a><a href="{{ url_for('policies') }}"><span>02</span><h3>Decisioni basate sulle policy</h3><p>L’AI interpreta la richiesta, ma non decide autonomamente l’idoneità: l’esito deriva da regole aziendali esplicite e verificabili.</p><b>Esplora le policy →</b></a><a href="{{ url_for('database_register') }}"><span>03</span><h3>Memoria e audit trail</h3><p>Messaggi, decisioni, modifiche e feedback degli operatori vengono salvati e rimangono consultabili nel tempo.</p><b>Apri il database →</b></a></div>
     </section>
 
-    <section class="landing-cta"><div><span class="landing-eyebrow">Interactive demo</span><h2>Parti da una pratica reale del sandbox.</h2><p>Non serve conoscere gli ordini Shopify: gli scenari sono già pronti e spiegano cosa verificare.</p></div><div><a class="button primary large" href="{{ url_for('dashboard') }}">Apri dashboard</a><a class="button ghost large" href="{{ url_for('workbench') }}">Vai al Workbench</a></div></section>
+    <section class="landing-cta"><div><span class="landing-eyebrow">Interactive sandbox</span><h2>Prova il workflow dall’inizio alla fine.</h2><p>Usa uno dei casi dimostrativi, continua la conversazione come cliente e controlla la risposta dell’agente come operatore.</p></div><div><a class="button primary large" href="{{ url_for('workbench') }}">Apri il Workbench</a><a class="button ghost large" href="{{ url_for('dashboard') }}">Esplora la dashboard</a></div></section>
   </main>
 
   <footer class="landing-footer"><span>Customer Return Agent · Portfolio prototype</span><span>Shopify test data · Shipping mock · Human approval</span></footer>
