@@ -59,6 +59,12 @@ CASE_FIELDS = {
     "source_mode",
     "source_fetched_at",
     "source_payload",
+    "case_facts",
+    "missing_information",
+    "actual_outcome",
+    "outcome_recorded_at",
+    "privacy_mode",
+    "product_category",
     "customer_history",
     "evidence",
     "integration_state",
@@ -77,6 +83,12 @@ MIGRATION_COLUMNS = {
     "source_mode": "TEXT",
     "source_fetched_at": "TEXT",
     "source_payload": "TEXT NOT NULL DEFAULT '{}'",
+    "case_facts": "TEXT NOT NULL DEFAULT '{}'",
+    "missing_information": "TEXT NOT NULL DEFAULT '[]'",
+    "actual_outcome": "TEXT",
+    "outcome_recorded_at": "TEXT",
+    "privacy_mode": "INTEGER NOT NULL DEFAULT 1",
+    "product_category": "TEXT",
     "customer_history": "TEXT NOT NULL DEFAULT '{}'",
     "evidence": "TEXT NOT NULL DEFAULT '{}'",
     "integration_state": "TEXT NOT NULL DEFAULT '{}'",
@@ -135,6 +147,14 @@ def init_database(path: str | Path | None = None) -> None:
             """CREATE INDEX IF NOT EXISTS idx_return_cases_scenario
                ON return_cases(scenario_slug)"""
         )
+        conn.execute(
+            """CREATE INDEX IF NOT EXISTS idx_return_cases_source_mode
+               ON return_cases(source_mode, created_at)"""
+        )
+        conn.execute(
+            """CREATE INDEX IF NOT EXISTS idx_return_cases_actual_outcome
+               ON return_cases(actual_outcome, created_at)"""
+        )
         # Migrazione semplice dei casi creati prima dell'introduzione della
         # memoria conversazionale: il messaggio originale diventa il primo
         # elemento dello storico, senza duplicarlo ai riavvii successivi.
@@ -150,6 +170,7 @@ def init_database(path: str | Path | None = None) -> None:
                    SELECT 1 FROM case_messages cm WHERE cm.case_id = rc.id
                )"""
         )
+        conn.execute("PRAGMA optimize")
 
 
 def _new_case_id() -> str:
@@ -196,6 +217,8 @@ def create_case(data: dict, path: str | Path | None = None) -> dict:
     }
     values["ai_classification"] = _json_value(values.get("ai_classification", {}))
     values["source_payload"] = _json_value(values.get("source_payload", {}))
+    values["case_facts"] = _json_value(values.get("case_facts", {}))
+    values["missing_information"] = _json_value(values.get("missing_information", []))
     values["customer_history"] = _json_value(values.get("customer_history", {}))
     values["evidence"] = _json_value(values.get("evidence", {}))
     values["integration_state"] = _json_value(values.get("integration_state", {}))
@@ -292,6 +315,8 @@ def _row_to_case(row: sqlite3.Row) -> dict:
     for field in (
         "ai_classification",
         "source_payload",
+        "case_facts",
+        "missing_information",
         "policy_decision",
         "customer_history",
         "evidence",
@@ -338,6 +363,7 @@ def list_cases(
     status: str | None = None,
     reason: str | None = None,
     query: str | None = None,
+    source_mode_prefix: str | None = None,
     limit: int = 100,
     path: str | Path | None = None,
 ) -> list[dict]:
@@ -349,13 +375,18 @@ def list_cases(
     if reason:
         where.append("return_reason = ?")
         params.append(reason)
+    if source_mode_prefix:
+        where.append("source_mode LIKE ?")
+        params.append(f"{source_mode_prefix}%")
     if query:
         where.append(
-            "(shopify_order_number LIKE ? OR customer_name LIKE ? "
+            "(id LIKE ? OR customer_message LIKE ? OR return_reason LIKE ? "
+            "OR actual_outcome LIKE ? OR policy_applied LIKE ? "
+            "OR shopify_order_number LIKE ? OR customer_name LIKE ? "
             "OR customer_email LIKE ? OR product_name LIKE ? OR sku LIKE ?)"
         )
         like = f"%{query}%"
-        params.extend([like] * 5)
+        params.extend([like] * 10)
     clause = f"WHERE {' AND '.join(where)}" if where else ""
     params.append(max(1, min(limit, 500)))
     with session(path) as conn:
@@ -521,6 +552,10 @@ def update_case(
         clean["ai_classification"] = _json_value(clean["ai_classification"])
     if "source_payload" in clean:
         clean["source_payload"] = _json_value(clean["source_payload"])
+    if "case_facts" in clean:
+        clean["case_facts"] = _json_value(clean["case_facts"])
+    if "missing_information" in clean:
+        clean["missing_information"] = _json_value(clean["missing_information"])
     for field in ("customer_history", "evidence", "integration_state"):
         if field in clean:
             clean[field] = _json_value(clean[field])
@@ -895,6 +930,209 @@ def performance_analytics(path: str | Path | None = None) -> dict:
         "reasons": [dict(item) for item in reason_rows],
         "daily": daily,
     }
+
+
+def copilot_analytics(path: str | Path | None = None) -> dict:
+    """Aggrega soltanto la memoria con redazione base creata dal nuovo Workbench."""
+    cases = list_cases(source_mode_prefix="policy_copilot", limit=500, path=path)
+    case_ids = {item["id"] for item in cases}
+    total = len(cases)
+    category_counts: dict[str, int] = {}
+    outcome_counts: dict[str, int] = {}
+    eligibility_counts: dict[str, int] = {}
+    rule_counts: dict[str, int] = {}
+    for item in cases:
+        category = item.get("return_reason") or "altro"
+        outcome = item.get("actual_outcome")
+        eligibility = item.get("eligibility_result") or "unknown"
+        rule_id = (item.get("policy_decision") or {}).get("rule_id") or "In raccolta"
+        category_counts[category] = category_counts.get(category, 0) + 1
+        eligibility_counts[eligibility] = eligibility_counts.get(eligibility, 0) + 1
+        rule_counts[rule_id] = rule_counts.get(rule_id, 0) + 1
+        if outcome:
+            outcome_counts[outcome] = outcome_counts.get(outcome, 0) + 1
+
+    context_fields: dict[str, int] = {}
+    feedback_counts: dict[str, int] = {}
+    if case_ids:
+        placeholders = ", ".join("?" for _ in case_ids)
+        params = list(case_ids)
+        with session(path) as conn:
+            context_rows = conn.execute(
+                f"""SELECT details FROM audit_events
+                    WHERE event_type = 'context_requested'
+                      AND case_id IN ({placeholders})""",
+                params,
+            ).fetchall()
+            feedback_rows = conn.execute(
+                f"""SELECT COALESCE(reason_tag, 'other') AS reason_tag,
+                           COUNT(*) AS count
+                    FROM operator_feedback
+                    WHERE case_id IN ({placeholders})
+                    GROUP BY COALESCE(reason_tag, 'other')""",
+                params,
+            ).fetchall()
+        for row in context_rows:
+            try:
+                missing = json.loads(row["details"] or "{}").get("missing") or []
+            except (json.JSONDecodeError, AttributeError):
+                missing = []
+            for field in missing:
+                context_fields[field] = context_fields.get(field, 0) + 1
+        feedback_counts = {row["reason_tag"]: row["count"] for row in feedback_rows}
+
+    modified = sum(item.get("human_decision") == "modified_and_approved" for item in cases)
+    reviewed = sum(item.get("human_decision") is not None for item in cases)
+    escalated = sum(
+        item.get("actual_outcome") == "escalation"
+        or item.get("status") == domain.CaseStatus.ESCALATED.value
+        for item in cases
+    )
+    closed = sum(item.get("status") == domain.CaseStatus.CLOSED.value for item in cases)
+    outcome_recorded = sum(bool(item.get("actual_outcome")) for item in cases)
+    messages = message_counts(list(case_ids), path) if case_ids else {}
+
+    def rows(values: dict[str, int]) -> list[dict]:
+        maximum = max(values.values(), default=1)
+        return [
+            {
+                "key": key,
+                "count": count,
+                "percentage": round(count * 100 / total) if total else 0,
+                "relative": round(count * 100 / maximum) if maximum else 0,
+            }
+            for key, count in sorted(values.items(), key=lambda pair: (-pair[1], pair[0]))
+        ]
+
+    categories = rows(category_counts)
+    outcomes = rows(outcome_counts)
+    context = rows(context_fields)
+    rules_used = rows(rule_counts)
+    insights = []
+    if categories:
+        top = categories[0]
+        insights.append(
+            {
+                "type": "volume",
+                "title": "Processo più frequente",
+                "value": top["key"],
+                "evidence": f"{top['count']} casi su {total} ({top['percentage']}%).",
+                "action": "Verifica che intake, policy e macro risposta coprano bene questo flusso.",
+            }
+        )
+    if context:
+        top = context[0]
+        insights.append(
+            {
+                "type": "friction",
+                "title": "Contesto richiesto più spesso",
+                "value": top["key"],
+                "evidence": f"Necessario in {top['count']} casi.",
+                "action": "Può diventare una domanda standard o un campo obbligatorio nell’intake.",
+            }
+        )
+    modification_rate = round(modified * 100 / reviewed) if reviewed else 0
+    insights.append(
+        {
+            "type": "quality",
+            "title": "Aderenza delle bozze",
+            "value": f"{modification_rate}% modificate",
+            "evidence": f"{modified} revisioni sostanziali su {reviewed} casi valutati.",
+            "action": "Analizza i motivi di modifica prima di cambiare prompt o policy." if modified else "Le bozze registrate non hanno ancora richiesto modifiche sostanziali.",
+        }
+    )
+    if escalated:
+        insights.append(
+            {
+                "type": "risk",
+                "title": "Casi fuori dal percorso standard",
+                "value": f"{escalated} escalation",
+                "evidence": "Questi casi hanno richiesto responsabilità o verifica aggiuntiva.",
+                "action": "Controlla se serve una nuova eccezione, senza automatizzare il rischio.",
+            }
+        )
+
+    return {
+        "total": total,
+        "open": total - closed,
+        "closed": closed,
+        "outcome_recorded": outcome_recorded,
+        "drafts": sum(bool(item.get("original_suggested_response")) for item in cases),
+        "reviewed": reviewed,
+        "modified": modified,
+        "modification_rate": modification_rate,
+        "escalated": escalated,
+        "message_total": sum(messages.values()),
+        "average_messages": round(sum(messages.values()) / total, 1) if total else 0,
+        "sample_count": sum(item.get("source_mode") == "policy_copilot_demo" for item in cases),
+        "categories": categories,
+        "outcomes": outcomes,
+        "eligibility": rows(eligibility_counts),
+        "context_fields": context,
+        "rules": rules_used,
+        "feedback": rows(feedback_counts),
+        "insights": insights,
+        "recent_cases": cases[:5],
+    }
+
+
+def publish_policy_document(
+    name: str,
+    rules: list[dict],
+    *,
+    source_label: str = "Testo operatore",
+    confirmations: list[str] | None = None,
+    normalized_document: list[dict] | None = None,
+    path: str | Path | None = None,
+) -> dict:
+    """Salva una policy revisionata, senza sostituire le regole di sistema."""
+    policy_id = f"POL-{uuid.uuid4().hex[:8].upper()}"
+    timestamp = utc_now()
+    with session(path) as conn:
+        conn.execute(
+            """INSERT INTO policy_documents
+               (id, name, source_label, rules, confirmations,
+                normalized_document, status, version, created_at, published_at)
+               VALUES (?, ?, ?, ?, ?, ?, 'published', 1, ?, ?)""",
+            (
+                policy_id,
+                name,
+                source_label,
+                json.dumps(rules, ensure_ascii=False),
+                json.dumps(confirmations or [], ensure_ascii=False),
+                json.dumps(normalized_document or [], ensure_ascii=False),
+                timestamp,
+                timestamp,
+            ),
+        )
+    return get_policy_document(policy_id, path)
+
+
+def _policy_row(row: sqlite3.Row) -> dict:
+    item = dict(row)
+    for field in ("rules", "confirmations", "normalized_document"):
+        try:
+            item[field] = json.loads(item.get(field) or "[]")
+        except json.JSONDecodeError:
+            item[field] = []
+    return item
+
+
+def get_policy_document(policy_id: str, path: str | Path | None = None) -> dict | None:
+    with session(path) as conn:
+        row = conn.execute(
+            "SELECT * FROM policy_documents WHERE id = ?", (policy_id,)
+        ).fetchone()
+    return _policy_row(row) if row else None
+
+
+def list_policy_documents(path: str | Path | None = None) -> list[dict]:
+    with session(path) as conn:
+        rows = conn.execute(
+            """SELECT * FROM policy_documents
+               ORDER BY published_at DESC, name"""
+        ).fetchall()
+    return [_policy_row(row) for row in rows]
 
 
 def recent_activity(

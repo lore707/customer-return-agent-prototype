@@ -250,8 +250,38 @@ def extract_structured_rules(text: str) -> dict:
             if item["needs_confirmation"]
         ]
 
+    by_id = {item["id"]: item["value"] for item in rules}
+    normalized_document = [
+        {
+            "title": "Recesso",
+            "items": [
+                f"Finestra: {by_id['return_window']}",
+                f"Decorrenza: {by_id['starts_from']}",
+                f"Condizione richiesta: {by_id['product_condition']}",
+                f"Costo del rientro: {by_id['return_shipping']}",
+            ],
+        },
+        {
+            "title": "Garanzia e difetti",
+            "items": [
+                f"Durata garanzia: {by_id['warranty_window']}",
+                f"Prove richieste: {by_id['doa_evidence']}",
+                f"Prodotti igienici: {by_id['hygiene_products']}",
+            ],
+        },
+        {
+            "title": "Controlli e responsabilità",
+            "items": [
+                f"Rimborso: {by_id['refund_timing']}",
+                f"Approvazione: {by_id['human_gate']}",
+                "Le regole ambigue restano sospese fino alla conferma umana.",
+            ],
+        },
+    ]
+
     return {
         "rules": rules,
+        "normalized_document": normalized_document,
         "confirmations": confirmations[:7],
         "rule_count": len(rules),
         "confirmation_count": min(len(confirmations), 7),

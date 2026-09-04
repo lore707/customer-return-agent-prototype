@@ -1,194 +1,215 @@
 {% extends "base.html" %}
 
-{% block title %}Workbench · {{ case.id }}{% endblock %}
-{% block workspace_header %}{% endblock %}
-{% block page_class %}console-page workbench-page{% endblock %}
+{% block title %}Workbench · Policy Copilot{% endblock %}
+{% block page_kicker %}Area operativa{% endblock %}
+{% block page_title %}Workbench{% endblock %}
+{% block page_subtitle %}Incolla una comunicazione, completa il contesto e prepara una risposta verificabile.{% endblock %}
+{% block header_actions %}
+  {% if case %}<a class="button ghost" href="{{ url_for('workbench') }}">+ Nuovo caso</a>{% endif %}
+  <a class="button ghost" href="{{ url_for('database_register') }}">Apri Casi</a>
+{% endblock %}
+{% block page_class %}copilot-workbench{% endblock %}
 
 {% block content %}
-  {% set delivery_days = case.policy_decision.get('giorni_dalla_consegna') %}
-  <header class="workbench-header">
-    <div>
-      <span class="eyebrow">Operations workspace</span>
-      <div class="case-title-row"><h1>Workbench</h1><span class="reason-pill">{{ case.return_reason.replace('_', ' ') }}</span></div>
-      <p><strong>{{ case.id.replace('DEMO-', 'RC-') }}</strong> · Ordine #{{ case.shopify_order_number or '—' }} · {{ case.customer_name or 'Cliente' }} · Aggiornato {{ case.updated_at[11:16] }}</p>
-    </div>
-    <div class="workbench-header-actions">
-      {% if case.scenario_slug in ['guided-doa', 'guided-recesso'] %}<a class="button ghost compact-button" href="{{ url_for('guided_demo_view', scenario_slug=case.scenario_slug.replace('guided-', '')) }}">Rivedi demo</a>{% endif %}
-      <span class="source-badge {% if case.source_mode == 'live_api' %}live{% elif case.source_mode == 'recorded_fixture' %}fixture{% endif %}">{% if case.source_mode == 'live_api' %}Shopify live{% elif case.source_mode == 'recorded_fixture' %}Shopify snapshot{% else %}Dati legacy{% endif %}</span>
-      <span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span>
-    </div>
-  </header>
+<div id="workbenchNotice" class="copilot-notice hidden" role="status"></div>
 
-  <div id="pageMessage" class="conversation-note hidden"></div>
+{% if not case %}
+  <section class="copilot-start" aria-labelledby="workbench-title">
+    <span class="sr-only">AI draft response</span>
+    <div class="copilot-start-icon" aria-hidden="true">✦</div>
+    <span class="section-label">Nuova analisi</span>
+    <h2 id="workbench-title">Come posso aiutarti con questo caso?</h2>
+    <p>Incolla il messaggio ricevuto. Email, telefono e riferimento dell’ordine vengono rimossi prima del salvataggio.</p>
+    <form id="analyzeForm" class="copilot-composer">
+      <textarea id="initialMessage" maxlength="5000" required placeholder="Incolla qui la comunicazione del cliente…"></textarea>
+      <div class="copilot-composer-foot">
+        <span><i></i> Redazione dati attiva</span>
+        <button class="button primary" type="submit">Analizza richiesta <span aria-hidden="true">→</span></button>
+      </div>
+    </form>
+    <div class="copilot-examples">
+      <span>Prova un esempio</span>
+      <button type="button" data-example="Il prodotto non si accende più e vorrei capire come usare la garanzia.">Prodotto difettoso</button>
+      <button type="button" data-example="Ho cambiato idea e vorrei restituire il prodotto che ho ricevuto.">Recesso</button>
+      <button type="button" data-example="Il tracking dice consegnato ma io non ho ricevuto il pacco.">Problema di spedizione</button>
+    </div>
+  </section>
 
-  <section class="workbench-grid">
-    <aside class="console-card case-browser" aria-label="Casi disponibili">
-      <div class="case-browser-head">
-        <div><span class="section-label">Coda di lavoro</span><h2>Casi disponibili</h2></div>
-        <strong>{{ case_counts.all }}</strong>
-      </div>
-      <label class="case-search"><span aria-hidden="true">⌕</span><input id="caseSearch" type="search" placeholder="Cerca caso, ordine o cliente…" autocomplete="off"></label>
-      <div class="case-quick-filters" aria-label="Filtra casi">
-        <button class="active" type="button" data-case-filter="all">Tutti <b>{{ case_counts.all }}</b></button>
-        <button type="button" data-case-filter="review">Da approvare <b>{{ case_counts.review }}</b></button>
-        <button type="button" data-case-filter="escalated">Escalati <b>{{ case_counts.escalated }}</b></button>
-        <button type="button" data-case-filter="closed">Chiusi <b>{{ case_counts.closed }}</b></button>
-      </div>
-      <nav class="case-browser-list" id="caseBrowserList">
-        {% for item in cases %}
-          {% if item.status == 'WAITING_HUMAN_APPROVAL' %}{% set queue = 'review' %}{% elif item.status == 'ESCALATED' %}{% set queue = 'escalated' %}{% elif item.status == 'CLOSED' %}{% set queue = 'closed' %}{% else %}{% set queue = 'all' %}{% endif %}
-          <a class="case-browser-item {% if item.id == case.id %}active{% endif %}" href="{{ url_for('workbench_case', case_id=item.id) }}" data-case-card data-queue="{{ queue }}" data-search="{{ item.id }} {{ item.shopify_order_number }} {{ item.customer_name }} {{ item.product_name }} {{ item.return_reason }}">
-            <div class="case-browser-top"><strong>{{ item.id.replace('DEMO-', 'RC-') }}</strong><span class="shopify-proof {% if not item.source_mode %}unavailable{% endif %}" title="{% if item.source_mode %}Dati Shopify disponibili{% else %}Snapshot non disponibile{% endif %}"><i></i> {% if item.source_mode %}Shopify{% else %}Legacy{% endif %}</span></div>
-            <p>#{{ item.shopify_order_number or '—' }} · {{ item.customer_name or 'Cliente' }}</p>
-            <small>{{ item.product_name or 'Prodotto non disponibile' }}</small>
-            <div class="case-browser-meta"><span class="reason-chip">{{ item.return_reason.replace('_', ' ') }}</span><span class="status status-{{ item.status|lower }}">{{ status_labels.get(item.status, item.status) }}</span></div>
+  {% if recent_cases %}
+    <section class="copilot-recent">
+      <div class="section-heading-inline"><div><span class="section-label">Memoria recente</span><h2>Riprendi un caso</h2></div><a href="{{ url_for('database_register') }}">Vedi tutti →</a></div>
+      <div class="copilot-recent-grid">
+        {% for item in recent_cases %}
+          <a href="{{ url_for('workbench_case', case_id=item.id) }}">
+            <span>{{ category_labels.get(item.return_reason, item.return_reason) }}</span>
+            <strong>{{ item.customer_message|truncate(82) }}</strong>
+            <small>{{ item.id }} · {{ status_labels.get(item.status, item.status) }}</small>
           </a>
         {% endfor %}
-        <p class="case-browser-empty hidden" id="caseBrowserEmpty">Nessun caso corrisponde ai filtri.</p>
-      </nav>
-    </aside>
-
-    <article class="console-card conversation-workspace">
-      <div class="workbench-panel-head"><span>Conversazione inviata</span><div><i class="live-dot"></i> Solo messaggi inviati</div><button class="tiny-button" type="button" data-open-context>↻ Timeline caso</button></div>
-      <div class="conversation-thread">
-        {% for message in messages %}
-          <div class="thread-message {% if message.role == 'cliente' %}customer{% else %}agent{% endif %}">
-            <span class="avatar {% if message.role == 'cliente' %}customer-avatar{% else %}agent-avatar{% endif %}">{{ (case.customer_name or 'C')[0] if message.role == 'cliente' else 'R' }}</span>
-            <div class="thread-content">
-              <div class="thread-meta"><strong>{% if message.role == 'cliente' %}{{ case.customer_name or 'Cliente' }}{% else %}Customer Return Agent{% endif %}</strong><time>{{ message.created_at[11:16] }}</time></div>
-              <p>{{ message.message }}</p>
-              {% if message.role == 'operatore' %}<small class="sent-marker">✓ {% if message.metadata.delivery_mode == 'portfolio_simulation' or message.metadata.demo %}Invio simulato · {% endif %}{% if case.human_decision == 'modified_and_approved' %}Modificata dall’operatore{% else %}Approvata dall’operatore{% endif %}</small>{% endif %}
-            </div>
-          </div>
-        {% else %}<p class="empty-state">Nessun messaggio nella conversazione.</p>{% endfor %}
       </div>
+    </section>
+  {% endif %}
+{% else %}
+  <div class="copilot-case-shell">
+    <header class="copilot-case-head">
+      <div>
+        <a href="{{ url_for('workbench') }}" class="back-link">← Nuova analisi</a>
+        <h2>{{ category_label }}</h2>
+        <p>{{ case.id }} · creato {{ case.created_at[8:10] }}/{{ case.created_at[5:7] }} alle {{ case.created_at[11:16] }}</p>
+      </div>
+      <div class="copilot-case-badges">
+        {% if (case.source_mode or '').startswith('policy_copilot') %}<span class="privacy-badge">● Identificatori comuni rimossi</span>{% else %}<span class="soft-badge">Scenario portfolio legacy</span>{% endif %}
+        <span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span>
+      </div>
+    </header>
 
-      {% if case.status != 'CLOSED' %}
-        <div class="customer-simulator">
-          <div><span>Simulatore cliente</span><small>Continua la conversazione e osserva la nuova bozza dell’agente.</small></div>
-          <div class="simulator-compose"><textarea id="customerMessage" rows="2" maxlength="5000" placeholder="Scrivi il prossimo messaggio come cliente…"></textarea><button class="button primary" id="sendCustomer" type="button">Invia come cliente <span>▷</span></button></div>
-          <small class="simulation-note">La bozza AI comparirà a destra e resterà fuori dalla chat fino all’approvazione.</small>
-        </div>
-      {% endif %}
-    </article>
-
-    <article class="console-card decision-workspace">
-      <div class="decision-tabs"><button class="active" type="button" data-tab="response">Risposta AI</button><button type="button" data-tab="context">Decisione</button><button type="button" data-tab="shopify">Dati Shopify</button><button type="button" data-tab="operations">Operatività</button><span class="draft-state">● {% if case.status == 'WAITING_HUMAN_APPROVAL' %}Da revisionare{% else %}{{ status_labels.get(case.status, case.status) }}{% endif %}</span></div>
-
-      <div class="decision-tab-panel active" data-panel="response">
-        <section class="decision-summary">
-          <span class="section-label">Esito proposto</span>
-          <div><span><small>Intent</small><strong>{{ case.return_reason.replace('_', ' ') }}</strong></span><span><small>Confidence</small><strong>{{ ((case.confidence or 0) * 100)|round|int }}%</strong></span><span><small>Outcome</small><strong class="eligibility eligibility-{{ case.eligibility_result }}">{{ case.eligibility_result.replace('_', ' ') }}</strong></span><span><small>Policy</small><strong>{{ case.policy_decision.rule_id or 'manual_review' }}</strong></span></div>
-          <div class="decision-rationale"><small>Motivazione</small><p>{{ case.policy_decision.motivazione or case.policy_applied or 'Revisione manuale richiesta.' }}</p></div>
-        </section>
-
-        <section class="decision-evidence">
-          <div class="evidence-heading"><div><span class="section-label">Dati Shopify usati nella decisione</span><p>Fatti recuperati dallo store test, separati dalla valutazione AI.</p></div><button class="tiny-button" type="button" data-open-shopify>Verifica snapshot →</button></div>
-          <div class="evidence-facts"><span><small>Ordine</small><strong>#{{ case.shopify_order_number or '—' }}</strong></span><span><small>Consegna</small><strong>{% if delivery_days is not none %}{{ delivery_days }} giorni fa{% else %}{{ case.delivery_date or '—' }}{% endif %}</strong></span><span><small>Pagamento</small><strong>{{ case.source_payload.financial_status or '—' }}</strong></span><span><small>Fulfillment</small><strong>{{ case.source_payload.fulfillment_status or '—' }}</strong></span></div>
-        </section>
-
-        <section class="draft-editor">
-          <div class="draft-editor-head"><span class="section-label">AI draft response · non ancora inviata</span><small>{{ (case.original_suggested_response or '')|length }} caratteri · {% if case.ai_mode == 'live_claude' %}Claude live{% else %}demo registrata{% endif %}</small></div>
-          <textarea id="finalResponse" {% if case.status != 'WAITING_HUMAN_APPROVAL' %}readonly{% endif %}>{{ case.original_suggested_response or case.final_response or '' }}</textarea>
-
-          {% if case.status == 'WAITING_HUMAN_APPROVAL' %}
-            <div class="draft-actions"><button class="button success" type="button" data-send="approve">✓ Approva e invia</button><button class="button primary" type="button" data-send="modify">✎ Modifica e invia</button><button class="button ghost" type="button" id="showRegenerate">↻ Rigenera</button><button class="button danger ghost" type="button" id="discardDraft">× Scarta</button></div>
-          {% elif case.status == 'NEEDS_INFORMATION' %}
-            <div class="checkpoint-box"><strong>Risposta inviata: siamo in attesa del cliente.</strong><p>Usa il simulatore a sinistra oppure registra direttamente l’informazione ricevuta.</p><div class="draft-actions">
-              {% if case.suggested_resolution == 'chiedi_foto_video' %}<button class="button primary" data-evidence="doa">Foto/video: difetto</button><button class="button ghost" data-evidence="arrivato_rotto">Foto/video: trasporto</button>{% endif %}
-              {% if case.suggested_resolution == 'chiedi_stato_sigillo' %}<button class="button primary" data-seal="true">Sigillo integro</button><button class="button danger ghost" data-seal="false">Prodotto aperto</button>{% endif %}
-              {% if case.suggested_resolution == 'offri_scelta_rimborso_o_swap' %}<button class="button primary" data-resolution="refund">Rimborso</button><button class="button ghost" data-resolution="swap">Sostituzione</button>{% endif %}
-            </div></div>
-          {% elif case.status in ['WAITING_FOR_RETURN','RETURN_IN_TRANSIT','RETURN_RECEIVED','RETURN_VALIDATED','REFUND_PENDING','REPLACEMENT_PENDING','REJECTED','ESCALATED'] %}
-            <div class="checkpoint-box operations-checkpoint"><strong>Checkpoint operativo</strong>
-              {% if case.status == 'RETURN_RECEIVED' %}<p>Il tracking conferma l’arrivo, non la conformità. Completa tutti i controlli prima di autorizzare rimborso o swap.</p><div class="inspection-checks compact-inspection"><label><input type="checkbox" data-inspection="product_condition"> Condizioni prodotto</label><label><input type="checkbox" data-inspection="serial_and_accessories"> Seriale e accessori</label><label><input type="checkbox" data-inspection="product_packaging"> Confezione</label></div><input id="inspectionNote" placeholder="Nota del controllo fisico (facoltativa)">{% else %}<p>Registra il prossimo passaggio verificato dall’operatore. Le azioni economiche restano simulate.</p>{% endif %}
-              <div class="draft-actions">
-                {% if case.status == 'WAITING_FOR_RETURN' %}<button class="button ghost" data-advance="in_transit">Segna in transito</button><button class="button primary" data-advance="received">Segna ricevuto</button>
-                {% elif case.status == 'RETURN_IN_TRANSIT' %}<button class="button primary" data-advance="received">Segna ricevuto</button>
-                {% elif case.status == 'RETURN_RECEIVED' %}<button class="button success" data-advance="validate_return">Controllato: reso valido</button><button class="button danger ghost" data-advance="reject_after_inspection">Anomalia: escala</button>
-                {% elif case.status == 'RETURN_VALIDATED' and case.suggested_resolution == 'procedi_swap' %}<button class="button primary" data-advance="start_resolution">Avvia sostituzione</button><button class="button ghost" data-advance="start_refund_no_stock">Stock assente: rimborso</button>
-                {% elif case.status == 'RETURN_VALIDATED' %}<button class="button primary" data-advance="start_resolution">Avvia rimborso</button>
-                {% elif case.status in ['REFUND_PENDING','REPLACEMENT_PENDING'] %}<button class="button success" data-advance="complete">Completa e chiudi</button>
-                {% elif case.status in ['REJECTED','ESCALATED'] %}<button class="button ghost" data-advance="close">Chiudi pratica</button>{% endif %}
+    <div class="copilot-layout">
+      <main class="copilot-conversation">
+        <div class="copilot-thread">
+          {% for message in messages %}
+            <article class="copilot-message {{ message.role }}">
+              <div class="copilot-avatar">{% if message.role == 'cliente' %}C{% else %}O{% endif %}</div>
+              <div>
+                <small>{% if message.role == 'cliente' %}Comunicazione cliente{% else %}Risposta operatore{% endif %} · {{ message.created_at[11:16] }}</small>
+                <p>{{ message.message }}</p>
               </div>
+            </article>
+          {% endfor %}
+
+          <article class="copilot-message assistant">
+            <div class="copilot-avatar">✦</div>
+            <div>
+              <small>Policy Copilot</small>
+              <div class="copilot-analysis-line">
+                <span>Intento <strong>{{ category_label }}</strong></span>
+                <span>Confidenza <strong>{{ ((case.confidence or 0) * 100)|round|int }}%</strong></span>
+                <span>Privacy <strong>attiva</strong></span>
+              </div>
+
+              {% if question %}
+                <section class="copilot-question">
+                  <span class="section-label">Prossimo controllo</span>
+                  <h3>{{ question.question }}</h3>
+                  <p>Serve all’operatore per applicare la regola corretta. Il sistema chiede un’informazione alla volta.</p>
+                  {% if question.type == 'choice' %}
+                    <div class="copilot-answer-buttons">
+                      {% for value, label in question.options %}<button type="button" data-fact="{{ question.id }}" data-value="{{ value }}">{{ label }}</button>{% endfor %}
+                    </div>
+                  {% else %}
+                    <form class="copilot-number-answer" data-number-form data-field="{{ question.id }}">
+                      <input type="number" min="0" max="3650" required placeholder="{{ question.placeholder }}">
+                      <button class="button primary" type="submit">Conferma</button>
+                    </form>
+                  {% endif %}
+                </section>
+              {% else %}
+                {% set decision = case.policy_decision %}
+                <section class="copilot-decision">
+                  <div class="copilot-decision-head">
+                    <div><span class="section-label">Decisione proposta</span><h3>{{ decision.next_action or 'Revisione dell’operatore' }}</h3></div>
+                    <span class="eligibility eligibility-{{ case.eligibility_result }}">{{ case.eligibility_result.replace('_', ' ') }}</span>
+                  </div>
+                  <p>{{ decision.motivation or case.policy_applied }}</p>
+                  <div class="copilot-rule-proof"><span>Regola applicata</span><strong>{{ decision.rule_id or 'Revisione manuale' }}</strong><a href="{{ url_for('policies') }}">Verifica policy →</a></div>
+                </section>
+
+                <section class="copilot-draft">
+                  <div><span class="section-label">Bozza pronta per l’operatore</span><small>Nessun invio automatico</small></div>
+                  <textarea id="draftResponse" maxlength="5000">{{ case.final_response or case.original_suggested_response or '' }}</textarea>
+                  <div class="copilot-draft-actions">
+                    <button class="button primary" id="copyDraft" type="button">Copia risposta</button>
+                    <button class="button ghost" id="openOutcome" type="button">Registra esito</button>
+                  </div>
+                </section>
+
+                <section class="copilot-outcome {% if not case.actual_outcome %}hidden{% endif %}" id="outcomePanel">
+                  <span class="section-label">Cosa è successo davvero?</span>
+                  <h3>Chiudi il ciclo e alimenta gli Analytics</h3>
+                  <p>Il sistema non invia email e non esegue operazioni: registra soltanto l’esito indicato dall’operatore.</p>
+                  <div class="copilot-outcome-grid">
+                    {% for value, label in outcome_labels.items() %}<button type="button" data-outcome="{{ value }}" class="{% if case.actual_outcome == value %}active{% endif %}">{{ label }}</button>{% endfor %}
+                  </div>
+                  <label class="copilot-check"><input id="draftModified" type="checkbox" {% if case.human_decision == 'modified_and_approved' %}checked{% endif %}> Ho modificato la bozza prima di usarla</label>
+                  <label class="copilot-field">Motivo della modifica <span>facoltativo, ma rende utili gli Analytics</span><select id="outcomeReason"><option value="">Nessun motivo</option><option value="tone_style" {% if case.human_reason == 'tone_style' %}selected{% endif %}>Tono e stile</option><option value="missing_information" {% if case.human_reason == 'missing_information' %}selected{% endif %}>Informazioni mancanti</option><option value="policy_interpretation" {% if case.human_reason == 'policy_interpretation' %}selected{% endif %}>Interpretazione policy</option><option value="too_verbose" {% if case.human_reason == 'too_verbose' %}selected{% endif %}>Troppo prolissa</option><option value="incorrect_action" {% if case.human_reason == 'incorrect_action' %}selected{% endif %}>Azione non corretta</option><option value="other" {% if case.human_reason == 'other' %}selected{% endif %}>Altro</option></select></label>
+                </section>
+              {% endif %}
             </div>
-          {% endif %}
-        </section>
+          </article>
+        </div>
 
-        {% if case.status == 'WAITING_HUMAN_APPROVAL' %}
-          <section class="feedback-box">
-            <div><span class="section-label">Feedback <em>(optional)</em></span><small>Perché modifichi questa risposta?</small></div>
-            <div class="feedback-tags" id="feedbackTags"><button type="button" data-feedback="policy_interpretation">Policy interpretation</button><button type="button" data-feedback="missing_information">Missing information</button><button type="button" data-feedback="tone_style">Tone / Style</button><button type="button" data-feedback="too_verbose">Too verbose</button><button type="button" data-feedback="incorrect_action">Incorrect action</button><button type="button" data-feedback="other">Other</button></div>
-            <textarea id="feedbackNote" rows="2" maxlength="500" placeholder="Aggiungi un commento utile per le generazioni successive…"></textarea>
-          </section>
-          <section class="regenerate-box hidden" id="regenerateBox"><strong>Rigenera con istruzioni</strong><p>La policy e l’esito restano bloccati: cambia solo il testo.</p><textarea id="regenerateInstructions" rows="2" maxlength="1000" placeholder="Es. più breve, tono più diretto, evidenzia il controllo fisico…"></textarea><div><button class="button primary" type="button" id="confirmRegenerate">Genera nuova versione</button><button class="button ghost" type="button" id="cancelRegenerate">Annulla</button></div></section>
+        {% if case.status != 'CLOSED' %}
+          <form id="followupForm" class="copilot-followup">
+            <textarea id="followupMessage" rows="2" maxlength="5000" placeholder="Incolla un nuovo messaggio dello stesso cliente…"></textarea>
+            <button type="submit" aria-label="Aggiungi messaggio">↑</button>
+          </form>
         {% endif %}
-      </div>
+      </main>
 
-      <div class="decision-tab-panel" data-panel="context">
-        <section class="context-section"><span class="section-label">Valutazione policy</span><h3>{{ case.suggested_resolution.replace('_', ' ') }}</h3><p>{{ case.policy_applied or 'Revisione manuale richiesta.' }}</p><dl><dt>Regola applicata</dt><dd>{{ case.policy_decision.rule_id or '—' }}</dd><dt>Sezioni policy</dt><dd>{{ case.policy_decision.policy_sections|join(', ') if case.policy_decision.policy_sections else '—' }}</dd><dt>Controllo fisico</dt><dd>{% if case.policy_decision.physical_validation_required %}Obbligatorio prima della risoluzione{% else %}Non richiesto in questa fase{% endif %}</dd><dt>Prossima azione</dt><dd>{{ case.policy_decision.prossima_azione or 'Revisione operatore' }}</dd></dl></section>
-        <section class="case-timeline"><span class="section-label">Timeline del caso</span><ol>{% for item in timeline %}<li><time>{{ item.created_at[11:16] }}</time><span>{{ item.event_type.replace('_', ' ') }}</span></li>{% endfor %}</ol></section>
-      </div>
-
-      <div class="decision-tab-panel" data-panel="shopify">
-        <section class="shopify-snapshot-head"><div><span class="section-label">Snapshot ordine verificabile</span><h3>Ordine #{{ case.shopify_order_number or '—' }}</h3><p>I valori sotto sono i fatti utilizzati dal motore di policy. L’AI non può modificarli.</p></div><span class="source-badge {% if case.source_mode == 'live_api' %}live{% elif case.source_mode == 'recorded_fixture' %}fixture{% endif %}">{% if case.source_mode == 'live_api' %}Live API{% elif case.source_mode == 'recorded_fixture' %}Snapshot registrato{% else %}Non disponibile{% endif %}</span></section>
-        <section class="shopify-fact-grid">
-          <article><small>Cliente</small><strong>{{ case.customer_name or '—' }}</strong><span>{{ case.customer_email or '—' }}</span></article>
-          <article><small>Pagamento</small><strong>{{ case.source_payload.financial_status or '—' }}</strong><span>Stato Shopify</span></article>
-          <article><small>Fulfillment</small><strong>{{ case.source_payload.fulfillment_status or '—' }}</strong><span>Stato ordine</span></article>
-          <article><small>Consegna</small><strong>{{ case.delivery_date or '—' }}</strong><span>{% if delivery_days is not none %}{{ delivery_days }} giorni prima della richiesta{% else %}Data non disponibile{% endif %}</span></article>
-          <article><small>Richieste precedenti</small><strong>{{ previous_return_count }}</strong><span>Sullo stesso ordine</span></article>
-          <article><small>Store</small><strong>{{ case.source_payload.store or '—' }}</strong><span>{% if case.source_payload.get('test_order') is sameas true %}Ordine di test{% elif case.source_payload.get('test_order') is sameas false %}Ordine store{% else %}Tipo non disponibile{% endif %}</span></article>
+      <aside class="copilot-context">
+        <section>
+          <span class="section-label">Stato del caso</span>
+          <h3>{% if question %}{{ (case.missing_information|length) }} informazioni mancanti{% else %}Contesto completo{% endif %}</h3>
+          <p>{% if question %}Completa i controlli guidati per ottenere una decisione.{% else %}La bozza è pronta per la revisione umana.{% endif %}</p>
         </section>
-        <section class="shopify-line-item"><div><span class="section-label">Line item</span><h3>{{ case.product_name or 'Prodotto non disponibile' }}</h3></div><dl><div><dt>SKU</dt><dd>{{ case.sku or '—' }}</dd></div><div><dt>Quantità</dt><dd>{{ case.quantity or 1 }}</dd></div><div><dt>Shopify order ID</dt><dd>{{ case.shopify_order_id or '—' }}</dd></div></dl></section>
-        <section class="shopify-provenance"><span class="section-label">Provenienza</span><dl><dt>Fonte</dt><dd>{{ case.data_source or 'Non disponibile' }}</dd><dt>Modalità</dt><dd>{{ (case.source_mode or 'non disponibile').replace('_', ' ') }}</dd><dt>Acquisito</dt><dd>{{ case.source_fetched_at or '—' }}</dd><dt>Batch</dt><dd>{{ case.source_payload.snapshot_batch or '—' }}</dd></dl></section>
-        <details class="payload-details shopify-raw"><summary>Mostra i campi Shopify usati dal sistema <span>⌄</span></summary><pre>{{ source_payload }}</pre></details>
-      </div>
-
-      <div class="decision-tab-panel" data-panel="operations">
-        <section class="operations-context-head"><div><span class="section-label">Customer &amp; return context</span><h3>Storico, prove e integrazioni</h3><p>Gli elementi operativi che completano la singola lettura dell’ordine.</p></div>{% if case.scenario_slug in ['guided-doa', 'guided-recesso'] %}<span class="source-badge fixture">Demo guidata</span>{% endif %}</section>
-        <section class="customer-history-panel">
-          <div class="operations-section-title"><div><span class="section-label">Customer 360</span><h3>Storico cliente</h3></div><span class="eligibility {% if case.customer_history %}eligibility-eligible{% endif %}">{{ case.customer_history.assessment or 'Non disponibile' }}</span></div>
-          {% if case.customer_history %}<div class="history-metric-grid"><span><strong>{{ case.customer_history.orders_total }}</strong><small>Ordini</small></span><span><strong>{{ case.customer_history.returns_total }}</strong><small>Resi</small></span><span><strong>{{ case.customer_history.swaps_total }}</strong><small>Swap</small></span><span><strong>{{ case.customer_history.same_sku_swaps }}</strong><small>Stesso SKU</small></span><span><strong>{{ case.customer_history.total_spent }}</strong><small>Spesa totale</small></span></div><p>{{ case.customer_history.note }}</p>{% else %}<p class="operations-empty">Lo storico completo è disponibile nei due workflow guidati.</p>{% endif %}
+        <section>
+          <div class="context-title"><span class="section-label">Fatti registrati</span><strong>{{ fact_rows|length }}/{{ fact_rows|length + (case.missing_information|length) }}</strong></div>
+          {% if fact_rows %}<dl class="copilot-facts">{% for fact in fact_rows %}<div><dt>{{ fact.label }}</dt><dd>{{ fact.value }}</dd></div>{% endfor %}</dl>{% else %}<p class="empty-copy">Nessun fatto operativo ancora registrato.</p>{% endif %}
         </section>
-        <section class="case-evidence-panel">
-          <div class="operations-section-title"><div><span class="section-label">Evidence center</span><h3>Prove e controllo fisico</h3></div><span>{{ case.evidence.assessment or 'In attesa' }}</span></div>
-          {% if case.evidence.files %}<div class="workbench-file-list">{% for file in case.evidence.files %}<article><span>{% if file.type == 'Video' %}▶{% else %}▧{% endif %}</span><div><strong>{{ file.name }}</strong><small>{{ file.type }} · {{ file.status }}</small></div></article>{% endfor %}</div>{% else %}<p class="operations-empty">Nessun allegato registrato per questa pratica.</p>{% endif %}
-          {% if case.evidence.physical_inspection %}<div class="workbench-inspection-result"><span>✓ Condizioni prodotto</span><span>✓ Seriale e accessori</span><span>✓ Confezione</span>{% if case.return_reason == 'doa' %}<span>✓ Difetto confermato</span>{% endif %}</div>{% endif %}
-        </section>
-        <section class="case-integrations-panel">
-          <div class="operations-section-title"><div><span class="section-label">Orchestration</span><h3>Stato integrazioni</h3></div><span>Nessuna azione reale</span></div>
-          {% if case.integration_state %}<div class="workbench-integration-list">{% for key, item in case.integration_state.items() %}<article class="{{ item.status }}"><i></i><div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div></article>{% endfor %}</div>{% else %}<p class="operations-empty">Le integrazioni esterne non sono state eseguite per questa pratica.</p>{% endif %}
-          {% if case.replacement_order_number %}<p class="replacement-proof"><span>Ordine sostitutivo Shopify</span><strong>#{{ case.replacement_order_number }}</strong></p>{% endif %}
-        </section>
-      </div>
-    </article>
-  </section>
+        {% if not (case.source_mode or '').startswith('policy_copilot') %}
+        <details class="legacy-case-proof">
+          <summary>Prove scenario precedente <span>+</span></summary>
+          <div>
+            <h3>Casi disponibili</h3>
+            <p>Solo messaggi inviati</p>
+            <strong>Dati Shopify usati nella decisione</strong>
+            <small>Snapshot ordine verificabile</small>
+            <dl class="copilot-facts">
+              <div><dt>Ordine</dt><dd>#{{ case.shopify_order_number or '—' }}</dd></div>
+              <div><dt>SKU</dt><dd>{{ case.sku or '—' }}</dd></div>
+            </dl>
+            {% if case.customer_history %}<strong>Customer 360</strong><p>{{ case.customer_history.orders_total }} ordini · {{ case.customer_history.returns_total }} resi</p>{% endif %}
+            {% if case.replacement_order_number %}<strong>Ordine sostitutivo Shopify</strong><p>#{{ case.replacement_order_number }}</p>{% endif %}
+          </div>
+        </details>
+        {% endif %}
+        <details>
+          <summary>Audit trail <span>{{ timeline|length }}</span></summary>
+          <ol class="copilot-audit">{% for event in timeline|reverse %}<li><i></i><div><strong>{{ event.event_type.replace('_', ' ') }}</strong><small>{{ event.created_at[11:16] }}</small></div></li>{% endfor %}</ol>
+        </details>
+        <div class="copilot-safety"><strong>Controllo umano obbligatorio</strong><p>Il copilot prepara. La persona verifica, usa la risposta e registra l’esito.</p></div>
+      </aside>
+    </div>
+  </div>
+{% endif %}
 {% endblock %}
 
 {% block scripts %}
 <script>
-  const caseId = {{ case.id|tojson }}, demoSource = {{ (case.source_mode == 'recorded_fixture')|tojson }};
-  const pageMessage = document.getElementById("pageMessage"); let feedbackTag = "";
-  function showError(error) { pageMessage.textContent = error.message; pageMessage.className = "conversation-note error-box"; window.scrollTo({top: 0, behavior: "smooth"}); }
-  async function post(url, body) { const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body || {})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore || "Operazione non riuscita"); window.location.reload(); }
-  document.querySelectorAll("[data-tab]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-tab]").forEach(x => x.classList.toggle("active", x === button)); document.querySelectorAll("[data-panel]").forEach(x => x.classList.toggle("active", x.dataset.panel === button.dataset.tab)); }));
-  document.querySelector("[data-open-context]")?.addEventListener("click", () => document.querySelector('[data-tab="context"]').click());
-  document.querySelector("[data-open-shopify]")?.addEventListener("click", () => document.querySelector('[data-tab="shopify"]').click());
-  const caseSearch = document.getElementById("caseSearch"), caseCards = [...document.querySelectorAll("[data-case-card]")], caseEmpty = document.getElementById("caseBrowserEmpty"); let caseFilter = "all";
-  function filterCases() { const query = (caseSearch?.value || "").trim().toLocaleLowerCase("it"); let visible = 0; caseCards.forEach(card => { const matchesQueue = caseFilter === "all" || card.dataset.queue === caseFilter, matchesSearch = !query || card.dataset.search.toLocaleLowerCase("it").includes(query), show = matchesQueue && matchesSearch; card.hidden = !show; if (show) visible += 1; }); caseEmpty?.classList.toggle("hidden", visible !== 0); }
-  caseSearch?.addEventListener("input", filterCases);
-  document.querySelectorAll("[data-case-filter]").forEach(button => button.addEventListener("click", () => { caseFilter = button.dataset.caseFilter; document.querySelectorAll("[data-case-filter]").forEach(item => item.classList.toggle("active", item === button)); filterCases(); }));
-  document.querySelectorAll("[data-feedback]").forEach(button => button.addEventListener("click", () => { feedbackTag = feedbackTag === button.dataset.feedback ? "" : button.dataset.feedback; document.querySelectorAll("[data-feedback]").forEach(x => x.classList.toggle("active", x.dataset.feedback === feedbackTag)); }));
-  document.querySelectorAll("[data-send]").forEach(button => button.addEventListener("click", async () => { try { await post("/conferma", {case_id: caseId, azione: "accetta", testo_finale: document.getElementById("finalResponse").value, feedback_tag: feedbackTag, motivazione: document.getElementById("feedbackNote")?.value || ""}); } catch (error) { showError(error); } }));
-  document.getElementById("showRegenerate")?.addEventListener("click", () => document.getElementById("regenerateBox").classList.remove("hidden"));
-  document.getElementById("cancelRegenerate")?.addEventListener("click", () => document.getElementById("regenerateBox").classList.add("hidden"));
-  document.getElementById("confirmRegenerate")?.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/draft-action`, {action: "regenerate", reason_tag: feedbackTag, instructions: document.getElementById("regenerateInstructions").value}); } catch (error) { showError(error); } });
-  document.getElementById("discardDraft")?.addEventListener("click", async () => { if (!confirm("Scartare la bozza e inviare il caso a revisione manuale?")) return; try { await post(`/cases/${encodeURIComponent(caseId)}/draft-action`, {action: "discard", reason_tag: feedbackTag, instructions: document.getElementById("feedbackNote")?.value || ""}); } catch (error) { showError(error); } });
-  document.getElementById("sendCustomer")?.addEventListener("click", async () => { const field = document.getElementById("customerMessage"), message = field.value.trim(); if (!message) return; try { const url = demoSource ? `/cases/${encodeURIComponent(caseId)}/simulate-message` : "/messaggio"; const body = demoSource ? {message} : {case_id: caseId, session_id: {{ (case.session_id or ('case-' ~ case.id))|tojson }}, messaggio: message}; await post(url, body); } catch (error) { showError(error); } });
-  document.querySelectorAll("[data-evidence]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/evidence`, {evidence_category: button.dataset.evidence}); } catch (error) { showError(error); } }));
-  document.querySelectorAll("[data-resolution]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/resolution-choice`, {choice: button.dataset.resolution}); } catch (error) { showError(error); } }));
-  document.querySelectorAll("[data-seal]").forEach(button => button.addEventListener("click", async () => { try { await post(`/cases/${encodeURIComponent(caseId)}/seal`, {intact: button.dataset.seal === "true"}); } catch (error) { showError(error); } }));
-  document.querySelectorAll("[data-advance]").forEach(button => button.addEventListener("click", async () => { const checks = {}; document.querySelectorAll("[data-inspection]").forEach(item => checks[item.dataset.inspection] = item.checked); try { await post(`/cases/${encodeURIComponent(caseId)}/advance`, {azione: button.dataset.advance, checks, note: document.getElementById("inspectionNote")?.value || ""}); } catch (error) { showError(error); } }));
+  const notice = document.getElementById("workbenchNotice");
+  function showNotice(message, error = false) { notice.textContent = message; notice.className = `copilot-notice ${error ? "error" : "success"}`; }
+  async function send(url, payload) {
+    const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
+    const data = await response.json(); if (!response.ok) throw new Error(data.errore || "Operazione non riuscita"); return data;
+  }
+  document.querySelectorAll("[data-example]").forEach(button => button.addEventListener("click", () => { const field = document.getElementById("initialMessage"); field.value = button.dataset.example; field.focus(); }));
+  document.getElementById("analyzeForm")?.addEventListener("submit", async event => {
+    event.preventDefault(); const button = event.currentTarget.querySelector("button[type=submit]"); button.disabled = true; button.textContent = "Analisi in corso…";
+    try { const data = await send("/api/workbench/analyze", {message: document.getElementById("initialMessage").value}); window.location.assign(data.redirect); }
+    catch (error) { showNotice(error.message, true); button.disabled = false; button.textContent = "Analizza richiesta →"; }
+  });
+  {% if case %}
+  const caseId = {{ case.id|tojson }};
+  async function saveFact(field, value) { try { await send(`/api/workbench/cases/${encodeURIComponent(caseId)}/facts`, {field, value}); window.location.reload(); } catch (error) { showNotice(error.message, true); } }
+  document.querySelectorAll("[data-fact]").forEach(button => button.addEventListener("click", () => saveFact(button.dataset.fact, button.dataset.value)));
+  document.querySelector("[data-number-form]")?.addEventListener("submit", event => { event.preventDefault(); saveFact(event.currentTarget.dataset.field, event.currentTarget.querySelector("input").value); });
+  document.getElementById("followupForm")?.addEventListener("submit", async event => { event.preventDefault(); const field = document.getElementById("followupMessage"); if (!field.value.trim()) return; try { await send(`/api/workbench/cases/${encodeURIComponent(caseId)}/messages`, {message: field.value}); window.location.reload(); } catch (error) { showNotice(error.message, true); } });
+  document.getElementById("openOutcome")?.addEventListener("click", () => document.getElementById("outcomePanel").classList.remove("hidden"));
+  document.getElementById("copyDraft")?.addEventListener("click", async event => { const response = document.getElementById("draftResponse"); try { await navigator.clipboard.writeText(response.value); } catch (_) { response.select(); document.execCommand("copy"); } event.currentTarget.textContent = "Copiata ✓"; document.getElementById("outcomePanel").classList.remove("hidden"); });
+  document.querySelectorAll("[data-outcome]").forEach(button => button.addEventListener("click", async () => {
+    document.querySelectorAll("[data-outcome]").forEach(item => item.disabled = true);
+    try { await send(`/api/workbench/cases/${encodeURIComponent(caseId)}/outcome`, {outcome: button.dataset.outcome, response: document.getElementById("draftResponse")?.value || "", modified: document.getElementById("draftModified")?.checked || false, reason: document.getElementById("outcomeReason")?.value || ""}); window.location.reload(); }
+    catch (error) { showNotice(error.message, true); document.querySelectorAll("[data-outcome]").forEach(item => item.disabled = false); }
+  }));
+  {% endif %}
 </script>
 {% endblock %}

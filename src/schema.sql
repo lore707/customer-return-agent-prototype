@@ -47,6 +47,12 @@ CREATE TABLE IF NOT EXISTS return_cases (
     source_mode TEXT,
     source_fetched_at TEXT,
     source_payload TEXT NOT NULL DEFAULT '{}',
+    case_facts TEXT NOT NULL DEFAULT '{}',
+    missing_information TEXT NOT NULL DEFAULT '[]',
+    actual_outcome TEXT,
+    outcome_recorded_at TEXT,
+    privacy_mode INTEGER NOT NULL DEFAULT 1,
+    product_category TEXT,
     customer_history TEXT NOT NULL DEFAULT '{}',
     evidence TEXT NOT NULL DEFAULT '{}',
     integration_state TEXT NOT NULL DEFAULT '{}',
@@ -120,3 +126,19 @@ CREATE INDEX IF NOT EXISTS idx_operator_feedback_case
     ON operator_feedback(case_id, created_at, id);
 CREATE INDEX IF NOT EXISTS idx_operator_feedback_category
     ON operator_feedback(category, reason_tag, created_at);
+
+CREATE TABLE IF NOT EXISTS policy_documents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    source_label TEXT NOT NULL,
+    rules TEXT NOT NULL DEFAULT '[]',
+    confirmations TEXT NOT NULL DEFAULT '[]',
+    normalized_document TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'published',
+    version INTEGER NOT NULL DEFAULT 1,
+    created_at TEXT NOT NULL,
+    published_at TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_policy_documents_status
+    ON policy_documents(status, published_at);

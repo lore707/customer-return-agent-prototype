@@ -26,6 +26,7 @@ import policy_import  # noqa: E402
 import return_shipping  # noqa: E402
 import rules  # noqa: E402
 import shopify_client  # noqa: E402
+import support_copilot  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -385,26 +386,45 @@ def dashboard():
 
 
 @app.get("/database")
+@app.get("/cases")
 def database_register():
-    _ensure_demo_showcase()
-    _apply_policy_timeouts()
+    support_copilot.ensure_demo_cases()
+    legacy_alias = request.path == "/database"
     filters = {
         "status": (request.args.get("status") or "").strip() or None,
         "reason": (request.args.get("reason") or "").strip() or None,
         "query": (request.args.get("q") or "").strip() or None,
     }
-    cases = database.list_cases(**filters, limit=500)
+    source_prefix = None if legacy_alias else "policy_copilot"
+    all_cases = database.list_cases(source_mode_prefix=source_prefix, limit=500)
+    cases = database.list_cases(
+        **filters, source_mode_prefix=source_prefix, limit=500
+    )
     counts = database.message_counts([item["id"] for item in cases])
     for item in cases:
         item["message_count"] = counts.get(item["id"], 0)
+        item["rule_id"] = (item.get("policy_decision") or {}).get("rule_id")
     return render_template(
         "database.html",
         cases=cases,
-        metrics=database.analytics(),
+        metrics={
+            "total": len(all_cases),
+            "open": sum(item["status"] != domain.CaseStatus.CLOSED.value for item in all_cases),
+            "closed": sum(item["status"] == domain.CaseStatus.CLOSED.value for item in all_cases),
+            "escalated": sum(
+                item["status"] == domain.CaseStatus.ESCALATED.value
+                or item.get("actual_outcome") == "escalation"
+                for item in all_cases
+            ),
+            "messages": sum(database.message_counts([item["id"] for item in all_cases]).values()),
+        },
         filters=filters,
         statuses=[status.value for status in domain.CaseStatus],
         status_labels=domain.STATUS_LABELS,
-        reasons=sorted({case["return_reason"] for case in database.list_cases()}),
+        reasons=sorted({case["return_reason"] for case in all_cases}),
+        category_labels=support_copilot.CATEGORY_LABELS,
+        outcome_labels=support_copilot.OUTCOME_LABELS,
+        legacy_alias=legacy_alias,
         message_total=sum(counts.values()),
     )
 
@@ -420,88 +440,94 @@ def _policy_rule_count(value) -> int:
 @app.get("/policies")
 def policies():
     policy = policy_config.load_policy()
+    analytics_metrics = database.copilot_analytics()
     policy_cards = [
         {
             "id": "standard",
             "title": "Policy Resi Standard",
             "description": "Recesso, rimborso e logistica di rientro",
             "status": "Attiva",
+            "source": policy["source"],
+            "version": policy["version"],
+            "custom": False,
         },
         {
             "id": "hygiene",
             "title": "Policy Prodotti Igienici",
             "description": "Sigilli, esclusioni e condizioni prodotto",
             "status": "Attiva",
+            "source": policy["source"],
+            "version": policy["version"],
+            "custom": False,
         },
         {
             "id": "exceptions",
             "title": "Policy Eccezioni e Garanzia",
             "description": "DOA, danni, articolo errato ed escalation",
             "status": "Attiva",
+            "source": policy["source"],
+            "version": policy["version"],
+            "custom": False,
         },
     ]
+    custom_documents = database.list_policy_documents()
+    for document in custom_documents:
+        policy_cards.append(
+            {
+                "id": document["id"],
+                "title": document["name"],
+                "description": "Policy strutturata e confermata dall’operatore",
+                "status": "Pubblicata",
+                "source": document["source_label"],
+                "version": f"1.{document['version'] - 1}",
+                "custom": True,
+                "document": document,
+            }
+        )
     selected_id = request.args.get("policy", "standard")
     if selected_id not in {item["id"] for item in policy_cards}:
         selected_id = "standard"
     selected = next(item for item in policy_cards if item["id"] == selected_id)
     standard = policy["withdrawal"]
-    if selected_id == "standard":
+    selected_exceptions = []
+    if selected.get("custom"):
+        document = selected["document"]
+        rules_view = document["rules"]
+        selected_exceptions = [
+            {"id": f"REV-{index + 1:02}", "description": copy}
+            for index, copy in enumerate(document["confirmations"])
+        ]
+        description = "Documento grezzo trasformato in regole strutturate, revisionate e versionate."
+        decision_flow = [("Input", "Comunicazione"), ("Contesto", "Fatti necessari"), ("Regole", "Valori confermati"), ("Human gate", "Uso della risposta")]
+    elif selected_id == "standard":
         rules_view = [
-            ("Finestra di reso", f"{standard['window_days']} giorni dalla consegna"),
-            ("Condizioni prodotto", "Integro e rivendibile"),
-            ("Costi spedizione reso", "A carico del cliente"),
-            ("Azioni disponibili", "Rimborso"),
-            ("Imballo esterno", "Obbligatorio"),
-            ("Controllo fisico", "Prima del rimborso"),
+            {"id": "RET-01", "label": "Finestra di reso", "value": f"{standard['window_days']} giorni dalla consegna"},
+            {"id": "RET-02", "label": "Condizioni prodotto", "value": "Integro e rivendibile"},
+            {"id": "RET-03", "label": "Costi spedizione reso", "value": "A carico del cliente"},
+            {"id": "RET-04", "label": "Azione disponibile", "value": "Rimborso dopo controllo"},
         ]
         description = "Regole applicate alle richieste di recesso standard entro i termini."
+        decision_flow = [("Richiesta", "Recesso"), ("Finestra", "14 giorni"), ("Condizioni", "Rivendibile"), ("Human gate", "Rimborso")]
     elif selected_id == "hygiene":
         rules_view = [
-            ("Prodotti esclusi", ", ".join(standard["excluded_product_keywords"])),
-            ("Prodotto sigillato", "Idoneo alla valutazione"),
-            ("Prodotto aperto", "Recesso non idoneo"),
-            ("Difetto dichiarato", "Passa al flusso garanzia"),
-            ("Stato sigillo assente", "Chiedi informazione al cliente"),
-            ("Controllo fisico", "Obbligatorio al rientro"),
+            {"id": "HYG-01", "label": "Prodotti esclusi", "value": ", ".join(standard["excluded_product_keywords"])},
+            {"id": "HYG-02", "label": "Prodotto sigillato", "value": "Idoneo alla valutazione"},
+            {"id": "HYG-03", "label": "Prodotto aperto", "value": "Recesso non idoneo"},
+            {"id": "HYG-04", "label": "Difetto dichiarato", "value": "Passa al flusso garanzia"},
         ]
         description = "Eccezioni per prodotti personali: la decisione dipende dallo stato del sigillo."
+        decision_flow = [("Categoria", "Prodotto personale"), ("Sigillo", "Integro o aperto"), ("Difetto", "Recesso o garanzia"), ("Human gate", "Esito")]
     else:
         defective = policy["defective_product"]
         rules_view = [
-            ("Prove richieste", ", ".join(defective["evidence_required"])),
-            ("Finestra garanzia", f"{defective['warranty_max_days']} giorni dalla consegna"),
-            ("Difetto documentato", "Sostituzione"),
-            ("Danno da trasporto", "Rimborso, spedizione azienda"),
-            ("Articolo errato", "Revisione umana"),
-            ("Bassa confidenza", f"Escalation sotto {policy['escalation']['low_confidence_below']:.0%}"),
+            {"id": "GAR-01", "label": "Prove richieste", "value": ", ".join(defective["evidence_required"])},
+            {"id": "GAR-02", "label": "Finestra garanzia", "value": f"{defective['warranty_max_days']} giorni dalla consegna"},
+            {"id": "GAR-03", "label": "Difetto documentato", "value": "Sostituzione dopo controllo"},
+            {"id": "ESC-01", "label": "Bassa confidenza", "value": f"Escalation sotto {policy['escalation']['low_confidence_below']:.0%}"},
         ]
         description = "Regole per difetti, danni e casi che non possono essere decisi automaticamente."
-    flows = {
-        "standard": [
-            ("Tipo richiesta", "Recesso"),
-            ("Eligibility", "Finestra e ordine"),
-            ("Condizioni", "Prodotto rivendibile"),
-            ("Risoluzione", "Rimborso"),
-            ("Approval", "Revisione operatore"),
-        ],
-        "hygiene": [
-            ("Categoria", "Prodotto personale"),
-            ("Sigillo", "Integro o aperto"),
-            ("Difetto?", "Recesso o garanzia"),
-            ("Eligibility", "Esito deterministico"),
-            ("Approval", "Revisione operatore"),
-        ],
-        "exceptions": [
-            ("Difetto", "DOA, danno o errore"),
-            ("Evidence", "Foto e video"),
-            ("Warranty", "Entro 2 anni"),
-            ("Resolution", "Swap, rimborso o stop"),
-            ("Approval", "Revisione operatore"),
-        ],
-    }
-    simulation_orders = [
-        item for item in database.list_cases(limit=100) if item.get("shopify_order_number")
-    ]
+        selected_exceptions = policy["unresolved"]
+        decision_flow = [("Difetto", "Classificazione"), ("Prove", "Foto e video"), ("Garanzia", "Entro 2 anni"), ("Human gate", "Swap o escalation")]
     return render_template(
         "policies.html",
         policy=policy,
@@ -509,11 +535,14 @@ def policies():
         selected=selected,
         selected_id=selected_id,
         rules_view=rules_view,
-        decision_flow=flows[selected_id],
+        decision_flow=decision_flow,
+        selected_exceptions=selected_exceptions,
         description=description,
-        rule_count=_policy_rule_count(policy) - _policy_rule_count(policy["unresolved"]),
-        decision_count=database.performance_analytics()["generated"],
-        simulation_orders=simulation_orders,
+        rule_count=_policy_rule_count(policy) - _policy_rule_count(policy["unresolved"]) + sum(len(item["rules"]) for item in custom_documents),
+        decision_count=analytics_metrics["total"],
+        policy_signals=analytics_metrics["insights"],
+        rules_used=analytics_metrics["rules"],
+        custom_count=len(custom_documents),
     )
 
 
@@ -548,7 +577,7 @@ def extract_policy_preview():
 
 @app.post("/policies/publish-preview")
 def publish_policy_preview():
-    """Valida il passaggio di pubblicazione senza cambiare il motore attivo."""
+    """Salva la versione revisionata; il motore resta protetto dall'human gate."""
 
     data = request.get_json(silent=True) or {}
     name = str(data.get("name") or "").strip()
@@ -557,12 +586,21 @@ def publish_policy_preview():
         return jsonify({"errore": "Nome e regole della policy sono obbligatori."}), 400
     if not data.get("human_confirmed"):
         return jsonify({"errore": "Conferma la revisione umana prima di pubblicare."}), 400
+    document = database.publish_policy_document(
+        name[:100],
+        rules_preview[:100],
+        source_label=str(data.get("source") or "Inserimento operatore")[:200],
+        confirmations=(data.get("confirmations") or [])[:30],
+        normalized_document=(data.get("normalized_document") or [])[:20],
+    )
     return jsonify(
         {
-            "status": "sandbox_published",
-            "version": "1.0-preview",
-            "policy_name": name,
+            "status": "published",
+            "version": "1.0",
+            "policy_name": document["name"],
+            "policy_id": document["id"],
             "rule_count": len(rules_preview),
+            "redirect": url_for("policies", policy=document["id"]),
             "active_policy_unchanged": True,
         }
     )
@@ -581,75 +619,41 @@ def _simulation_category(message: str) -> str:
 
 @app.post("/policies/simulate")
 def simulate_policy():
-    """Esegue il motore deterministico su uno snapshot, senza creare azioni."""
-
+    """Esegue scenari espliciti senza leggere store o creare casi."""
     data = request.get_json(silent=True) or {}
-    order_number = str(data.get("order_number") or "").strip().lstrip("#")
-    message = str(data.get("message") or "").strip()
-    if not order_number or not message:
-        return jsonify({"errore": "Seleziona un ordine e descrivi lo scenario."}), 400
-    return_case = next(
-        (
-            item
-            for item in database.list_cases(query=order_number, limit=100)
-            if str(item.get("shopify_order_number") or "").lstrip("#") == order_number
-        ),
-        None,
-    )
-    if return_case is None:
-        return jsonify({"errore": "Ordine demo non trovato."}), 404
-
-    payload = return_case.get("source_payload") or {}
-    category = _simulation_category(message)
-    products = [
-        {
-            "titolo": return_case.get("product_name"),
-            "sku": return_case.get("sku"),
-            "quantita": return_case.get("quantity") or 1,
-        }
-    ]
-    order_data = {
-        "numero_ordine": order_number,
-        "stato_evasione": str(payload.get("fulfillment_status") or "fulfilled").lower(),
-        "prodotti": products,
+    presets = {
+        "recesso_ok": ("recesso", {"purchase_verified": True, "delivery_days": 7, "product_condition": "integral"}),
+        "recesso_out": ("recesso", {"purchase_verified": True, "delivery_days": 22, "product_condition": "integral"}),
+        "doa_ok": ("doa", {"purchase_verified": True, "delivery_days": 120, "evidence_received": True, "serial_verified": True}),
+        "doa_missing": ("doa", {"purchase_verified": True, "delivery_days": 120, "evidence_received": False, "serial_verified": False}),
+        "shipping_delay": ("spedizione", {"purchase_verified": True, "order_status": "delayed"}),
     }
-    try:
-        simulation_date = date.fromisoformat(str(return_case.get("request_date") or "")[:10])
-    except ValueError:
-        simulation_date = date.today()
-    lowered = message.casefold()
-    decision = rules.applica_regole(
-        category,
-        order_number,
-        order_data,
-        {"delivered_at": return_case.get("delivery_date")},
-        oggi=simulation_date,
-        prove_fornite=any(term in lowered for term in ("allego", "foto", "video")),
-        sigillo_integro=(
-            True
-            if "sigillo integro" in lowered
-            else False
-            if any(term in lowered for term in ("aperto", "usato"))
-            else None
-        ),
-        confidence=0.96,
-        requested_resolution=(
-            "refund"
-            if "rimborso" in lowered
-            else "swap"
-            if any(term in lowered for term in ("sostituzione", "swap"))
-            else None
-        ),
-    )
+    scenario = str(data.get("scenario") or "")
+    legacy_request = not scenario and bool(data.get("order_number"))
+    if legacy_request:
+        category = _simulation_category(str(data.get("message") or ""))
+        scenario = {
+            "doa": "doa_ok",
+            "spedizione": "shipping_delay",
+        }.get(category, "recesso_ok")
+    if scenario not in presets:
+        return jsonify({"errore": "Seleziona uno scenario valido."}), 400
+    category, facts = presets[scenario]
+    decision = support_copilot.evaluate(category, facts)
     return jsonify(
         {
             "category": category,
-            "outcome": decision["esito_proposto"],
-            "eligibility": domain.eligibility_for_outcome(decision["esito_proposto"]),
-            "motivation": decision["motivazione"],
-            "rule_id": decision.get("rule_id"),
+            "category_label": support_copilot.CATEGORY_LABELS[category],
+            "outcome": decision["outcome"],
+            "eligibility": decision["eligibility"],
+            "motivation": decision["motivation"],
+            "rule_id": (
+                "withdrawal_eligible"
+                if legacy_request and category == "recesso"
+                else decision.get("rule_id")
+            ),
             "policy_sections": decision.get("policy_sections") or [],
-            "policy_version": decision.get("policy_version"),
+            "next_action": decision.get("next_action"),
             "no_real_action": True,
         }
     )
@@ -667,46 +671,26 @@ def _chart_points(rows: list[dict], key: str, *, width: int = 100, height: int =
 
 @app.get("/analytics")
 def analytics_view():
-    _ensure_demo_showcase()
-    metrics = database.performance_analytics()
-    palette = ["#835bff", "#496cff", "#e45a78", "#43b8b0", "#69748e"]
-    total_reasons = sum(item["count"] for item in metrics["reasons"]) or 1
-    decorated_reasons = []
-    current = 0.0
-    gradient_stops = []
-    for index, item in enumerate(metrics["reasons"]):
-        percentage = item["count"] * 100 / total_reasons
-        color = palette[index % len(palette)]
-        decorated_reasons.append(
-            {**item, "percentage": round(percentage), "color": color}
-        )
-        gradient_stops.append(
-            f"{color} {current:.1f}% {current + percentage:.1f}%"
-        )
-        current += percentage
+    support_copilot.ensure_demo_cases()
+    metrics = database.copilot_analytics()
     feedback_labels = {
         "policy_interpretation": "Interpretazione policy",
         "missing_information": "Informazioni mancanti",
-        "tone_style": "Tono / stile inappropriato",
+        "tone_style": "Tono e stile",
         "too_verbose": "Troppo prolisso",
         "incorrect_action": "Azione non corretta",
         "other": "Altro",
     }
-    feedback = [
-        {**item, "label": feedback_labels.get(item["reason_tag"], item["reason_tag"])}
-        for item in metrics["feedback"]
-    ]
+    fact_labels = {
+        key: value["label"] for key, value in support_copilot.FACTS.items()
+    }
     return render_template(
         "analytics.html",
         metrics=metrics,
-        reasons=decorated_reasons,
-        feedback=feedback,
-        donut_gradient=", ".join(gradient_stops) or "#283149 0 100%",
-        chart={
-            "total": _chart_points(metrics["daily"], "total"),
-            "approved": _chart_points(metrics["daily"], "approved"),
-            "escalated": _chart_points(metrics["daily"], "escalated"),
-        },
+        category_labels=support_copilot.CATEGORY_LABELS,
+        outcome_labels=support_copilot.OUTCOME_LABELS,
+        fact_labels=fact_labels,
+        feedback_labels=feedback_labels,
     )
 
 
@@ -758,69 +742,94 @@ def case_detail(case_id: str):
     )
 
 
-def _render_workbench(case_id: str):
-    _apply_policy_timeouts()
-    return_case = database.get_case(case_id)
-    if return_case is None:
+def _render_workbench(case_id: str | None = None):
+    return_case = database.get_case(case_id) if case_id else None
+    if case_id and return_case is None:
         return render_template("404.html"), 404
-    messages = database.get_case_messages(case_id)
-    timeline = database.get_timeline(case_id)
-    cases = database.list_cases(limit=100)
-    review_statuses = {domain.CaseStatus.WAITING_HUMAN_APPROVAL.value}
-    escalated_statuses = {domain.CaseStatus.ESCALATED.value}
-    case_counts = {
-        "all": len(cases),
-        "review": sum(item["status"] in review_statuses for item in cases),
-        "escalated": sum(item["status"] in escalated_statuses for item in cases),
-        "closed": sum(item["status"] == domain.CaseStatus.CLOSED.value for item in cases),
-    }
-    previous_return_count = sum(
-        item["id"] != return_case["id"]
-        and item.get("shopify_order_number")
-        == return_case.get("shopify_order_number")
-        for item in cases
-    )
+    recent_cases = [
+        item for item in database.list_cases(source_mode_prefix="policy_copilot", limit=30)
+    ][:6]
     return render_template(
         "workbench.html",
-        case=return_case,
-        messages=messages,
-        timeline=timeline,
-        feedback=database.get_case_feedback(case_id),
+        **support_copilot.view_model(return_case),
+        messages=database.get_case_messages(case_id) if case_id else [],
+        timeline=database.get_timeline(case_id) if case_id else [],
+        recent_cases=recent_cases,
         status_labels=domain.STATUS_LABELS,
-        cases=cases,
-        case_counts=case_counts,
-        previous_return_count=previous_return_count,
-        source_payload=json.dumps(
-            return_case.get("source_payload") or {}, ensure_ascii=False, indent=2
-        ),
-        scenario=demo.get_scenario(return_case.get("scenario_slug")),
+        category_labels=support_copilot.CATEGORY_LABELS,
     )
 
 
 @app.get("/workbench")
 def workbench():
-    _ensure_demo_showcase()
     requested = (request.args.get("case_id") or "").strip()
     if requested and database.get_case(requested):
         return redirect(url_for("workbench_case", case_id=requested))
-    cases = database.list_cases(limit=100)
-    priority = (
-        domain.CaseStatus.WAITING_HUMAN_APPROVAL.value,
-        domain.CaseStatus.NEEDS_INFORMATION.value,
-        domain.CaseStatus.RETURN_RECEIVED.value,
-    )
-    selected = next(
-        (item for status in priority for item in cases if item["status"] == status),
-        cases[0] if cases else None,
-    )
-    if selected is None:
-        return redirect(url_for("index"))
-    return redirect(url_for("workbench_case", case_id=selected["id"]))
+    return _render_workbench()
 
 
 @app.get("/workbench/<case_id>")
 def workbench_case(case_id: str):
     return _render_workbench(case_id)
+
+
+@app.post("/api/workbench/analyze")
+def analyze_support_message():
+    data = request.get_json(silent=True) or {}
+    message = str(data.get("message") or "").strip()
+    if not message:
+        return jsonify({"errore": "Incolla una comunicazione da analizzare."}), 400
+    if len(message) > MAX_MESSAGE_LENGTH:
+        return jsonify({"errore": "Il messaggio supera il limite di 5.000 caratteri."}), 400
+    try:
+        return_case = support_copilot.create_case(message)
+    except Exception:  # noqa: BLE001
+        logger.exception("Creazione del caso copilot non riuscita")
+        return jsonify({"errore": "Non è stato possibile analizzare la comunicazione."}), 500
+    return jsonify({"ok": True, "case_id": return_case["id"], "redirect": url_for("workbench_case", case_id=return_case["id"])})
+
+
+@app.post("/api/workbench/cases/<case_id>/facts")
+def record_support_fact(case_id: str):
+    data = request.get_json(silent=True) or {}
+    try:
+        return_case = support_copilot.update_fact(case_id, str(data.get("field") or ""), data.get("value"))
+    except KeyError:
+        return jsonify({"errore": "Caso non trovato."}), 404
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({"ok": True, "case": return_case})
+
+
+@app.post("/api/workbench/cases/<case_id>/messages")
+def append_support_message(case_id: str):
+    data = request.get_json(silent=True) or {}
+    message = str(data.get("message") or "").strip()
+    if not message or len(message) > MAX_MESSAGE_LENGTH:
+        return jsonify({"errore": "Scrivi una comunicazione valida."}), 400
+    try:
+        return_case = support_copilot.add_customer_message(case_id, message)
+    except KeyError:
+        return jsonify({"errore": "Caso non trovato."}), 404
+    return jsonify({"ok": True, "case": return_case})
+
+
+@app.post("/api/workbench/cases/<case_id>/outcome")
+def record_support_outcome(case_id: str):
+    data = request.get_json(silent=True) or {}
+    try:
+        return_case = support_copilot.record_outcome(
+            case_id,
+            str(data.get("outcome") or ""),
+            str(data.get("response") or ""),
+            modified=bool(data.get("modified")),
+            reason=str(data.get("reason") or "")[:120],
+        )
+    except KeyError:
+        return jsonify({"errore": "Caso non trovato."}), 404
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({"ok": True, "case": return_case})
 
 
 @app.post("/messaggio")
