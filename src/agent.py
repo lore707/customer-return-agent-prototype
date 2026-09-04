@@ -64,8 +64,8 @@ e verifica fisica quando physical_validation_required è true.
 - procedi_swap: e-mail che conferma la sostituzione (swap) del dispositivo; lo swap \
 parte dopo il rientro e la verifica del reso. Specifica il pagatore della \
 spedizione indicato nei VINCOLI POLICY e non promettere un modello non confermato.
-- offri_scelta_rimborso_o_swap: e-mail che chiede al cliente se preferisce il \
-rimborso oppure la sostituzione (swap).
+- per un difetto coperto dalla garanzia prepara una sostituzione (swap); il \
+rimborso è previsto solo quando non esiste un dispositivo sostitutivo.
 - rifiuta_recesso_prodotto_escluso: e-mail che spiega con garbo che rasoi e \
 spazzolini, una volta aperti, non sono ammessi al recesso perché non più \
 rivendibili; precisando che un eventuale difetto resta comunque coperto dalla garanzia.

@@ -13,6 +13,7 @@
       <p><strong>{{ case.id.replace('DEMO-', 'RC-') }}</strong> · Ordine #{{ case.shopify_order_number or '—' }} · {{ case.customer_name or 'Cliente' }} · Aggiornato {{ case.updated_at[11:16] }}</p>
     </div>
     <div class="workbench-header-actions">
+      {% if case.scenario_slug in ['guided-doa', 'guided-recesso'] %}<a class="button ghost compact-button" href="{{ url_for('guided_demo_view', scenario_slug=case.scenario_slug.replace('guided-', '')) }}">Rivedi demo</a>{% endif %}
       <span class="source-badge {% if case.source_mode == 'live_api' %}live{% elif case.source_mode == 'recorded_fixture' %}fixture{% endif %}">{% if case.source_mode == 'live_api' %}Shopify live{% elif case.source_mode == 'recorded_fixture' %}Shopify snapshot{% else %}Dati legacy{% endif %}</span>
       <span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span>
     </div>
@@ -72,7 +73,7 @@
     </article>
 
     <article class="console-card decision-workspace">
-      <div class="decision-tabs"><button class="active" type="button" data-tab="response">Risposta AI</button><button type="button" data-tab="context">Decisione</button><button type="button" data-tab="shopify">Dati Shopify</button><span class="draft-state">● {% if case.status == 'WAITING_HUMAN_APPROVAL' %}Da revisionare{% else %}{{ status_labels.get(case.status, case.status) }}{% endif %}</span></div>
+      <div class="decision-tabs"><button class="active" type="button" data-tab="response">Risposta AI</button><button type="button" data-tab="context">Decisione</button><button type="button" data-tab="shopify">Dati Shopify</button><button type="button" data-tab="operations">Operatività</button><span class="draft-state">● {% if case.status == 'WAITING_HUMAN_APPROVAL' %}Da revisionare{% else %}{{ status_labels.get(case.status, case.status) }}{% endif %}</span></div>
 
       <div class="decision-tab-panel active" data-panel="response">
         <section class="decision-summary">
@@ -142,6 +143,24 @@
         <section class="shopify-line-item"><div><span class="section-label">Line item</span><h3>{{ case.product_name or 'Prodotto non disponibile' }}</h3></div><dl><div><dt>SKU</dt><dd>{{ case.sku or '—' }}</dd></div><div><dt>Quantità</dt><dd>{{ case.quantity or 1 }}</dd></div><div><dt>Shopify order ID</dt><dd>{{ case.shopify_order_id or '—' }}</dd></div></dl></section>
         <section class="shopify-provenance"><span class="section-label">Provenienza</span><dl><dt>Fonte</dt><dd>{{ case.data_source or 'Non disponibile' }}</dd><dt>Modalità</dt><dd>{{ (case.source_mode or 'non disponibile').replace('_', ' ') }}</dd><dt>Acquisito</dt><dd>{{ case.source_fetched_at or '—' }}</dd><dt>Batch</dt><dd>{{ case.source_payload.snapshot_batch or '—' }}</dd></dl></section>
         <details class="payload-details shopify-raw"><summary>Mostra i campi Shopify usati dal sistema <span>⌄</span></summary><pre>{{ source_payload }}</pre></details>
+      </div>
+
+      <div class="decision-tab-panel" data-panel="operations">
+        <section class="operations-context-head"><div><span class="section-label">Customer &amp; return context</span><h3>Storico, prove e integrazioni</h3><p>Gli elementi operativi che completano la singola lettura dell’ordine.</p></div>{% if case.scenario_slug in ['guided-doa', 'guided-recesso'] %}<span class="source-badge fixture">Demo guidata</span>{% endif %}</section>
+        <section class="customer-history-panel">
+          <div class="operations-section-title"><div><span class="section-label">Customer 360</span><h3>Storico cliente</h3></div><span class="eligibility {% if case.customer_history %}eligibility-eligible{% endif %}">{{ case.customer_history.assessment or 'Non disponibile' }}</span></div>
+          {% if case.customer_history %}<div class="history-metric-grid"><span><strong>{{ case.customer_history.orders_total }}</strong><small>Ordini</small></span><span><strong>{{ case.customer_history.returns_total }}</strong><small>Resi</small></span><span><strong>{{ case.customer_history.swaps_total }}</strong><small>Swap</small></span><span><strong>{{ case.customer_history.same_sku_swaps }}</strong><small>Stesso SKU</small></span><span><strong>{{ case.customer_history.total_spent }}</strong><small>Spesa totale</small></span></div><p>{{ case.customer_history.note }}</p>{% else %}<p class="operations-empty">Lo storico completo è disponibile nei due workflow guidati.</p>{% endif %}
+        </section>
+        <section class="case-evidence-panel">
+          <div class="operations-section-title"><div><span class="section-label">Evidence center</span><h3>Prove e controllo fisico</h3></div><span>{{ case.evidence.assessment or 'In attesa' }}</span></div>
+          {% if case.evidence.files %}<div class="workbench-file-list">{% for file in case.evidence.files %}<article><span>{% if file.type == 'Video' %}▶{% else %}▧{% endif %}</span><div><strong>{{ file.name }}</strong><small>{{ file.type }} · {{ file.status }}</small></div></article>{% endfor %}</div>{% else %}<p class="operations-empty">Nessun allegato registrato per questa pratica.</p>{% endif %}
+          {% if case.evidence.physical_inspection %}<div class="workbench-inspection-result"><span>✓ Condizioni prodotto</span><span>✓ Seriale e accessori</span><span>✓ Confezione</span>{% if case.return_reason == 'doa' %}<span>✓ Difetto confermato</span>{% endif %}</div>{% endif %}
+        </section>
+        <section class="case-integrations-panel">
+          <div class="operations-section-title"><div><span class="section-label">Orchestration</span><h3>Stato integrazioni</h3></div><span>Nessuna azione reale</span></div>
+          {% if case.integration_state %}<div class="workbench-integration-list">{% for key, item in case.integration_state.items() %}<article class="{{ item.status }}"><i></i><div><strong>{{ item.label }}</strong><small>{{ item.detail }}</small></div></article>{% endfor %}</div>{% else %}<p class="operations-empty">Le integrazioni esterne non sono state eseguite per questa pratica.</p>{% endif %}
+          {% if case.replacement_order_number %}<p class="replacement-proof"><span>Ordine sostitutivo Shopify</span><strong>#{{ case.replacement_order_number }}</strong></p>{% endif %}
+        </section>
       </div>
     </article>
   </section>

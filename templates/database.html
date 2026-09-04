@@ -5,7 +5,7 @@
 {% block page_class %}console-page database-page{% endblock %}
 
 {% block content %}
-  <header class="console-header database-console-header"><div><h1>Database resi</h1><p>Registro persistente di pratiche, conversazioni e risoluzioni.</p></div><div class="header-actions"><span class="connection-chip"><span class="connection-dot live-dot"></span>SQLite live view</span></div></header>
+  <header class="console-header database-console-header"><div><h1>Database resi</h1><p>Registro persistente di pratiche, conversazioni, integrazioni e risoluzioni.</p></div><div class="header-actions"><a class="button ghost compact-button" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">Avvia demo</a><span class="connection-chip"><span class="connection-dot live-dot"></span>SQLite live view</span></div></header>
   <section class="kpi-grid database-summary" aria-label="Riepilogo database">
     <article class="kpi accent-violet"><span class="kpi-icon">▦</span><div><small>Pratiche salvate</small><strong>{{ metrics.total }}</strong></div></article>
     <article class="kpi accent-blue"><span class="kpi-icon">✦</span><div><small>Messaggi archiviati</small><strong>{{ message_total }}</strong></div></article>
@@ -27,7 +27,7 @@
     </form>
     <div class="table-wrap database-table-wrap">
       <table class="database-table">
-        <thead><tr><th>Creata</th><th>Pratica / ordine</th><th>Cliente</th><th>Prodotto</th><th>Motivo</th><th>Messaggi</th><th>Fonte</th><th>Stato</th><th>Chiusura</th><th>Aggiornata</th></tr></thead>
+        <thead><tr><th>Creata</th><th>Pratica / ordine</th><th>Cliente</th><th>Prodotto</th><th>Motivo</th><th>Messaggi</th><th>Fonte</th><th>Stato</th><th>Chiusura</th><th>Automazione</th><th>Aggiornata</th></tr></thead>
         <tbody>
           {% for case in cases %}
             <tr>
@@ -37,7 +37,7 @@
               <td>{{ case.product_name or '—' }}<small>{{ case.sku or 'SKU non disponibile' }} · Q.tà {{ case.quantity or '—' }}</small></td>
               <td><span class="reason-chip">{{ case.return_reason.replace('_', ' ') }}</span></td>
               <td><span class="message-count">{{ case.message_count }}</span></td>
-              <td>{% if case.source_mode == 'recorded_fixture' %}<span class="source-badge fixture">Snapshot</span>{% elif case.source_mode == 'live_api' %}<span class="source-badge live">Live API</span>{% else %}<span class="muted">—</span>{% endif %}</td>
+              <td>{% if case.scenario_slug in ['guided-doa','guided-recesso'] %}<span class="source-badge fixture">Demo guidata</span>{% elif case.source_mode == 'recorded_fixture' %}<span class="source-badge fixture">Snapshot</span>{% elif case.source_mode == 'live_api' %}<span class="source-badge live">Live API</span>{% else %}<span class="muted">—</span>{% endif %}</td>
               <td><span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span></td>
               <td>
                 {% if case.refund_status == 'completed' %}<span class="resolution resolution-refund">Rimborso</span>
@@ -47,9 +47,10 @@
                 {% elif case.status == 'REJECTED' %}<span class="resolution resolution-rejected">Respinto</span>
                 {% else %}<span class="muted">—</span>{% endif %}
               </td>
+              <td>{% if case.integration_state.make %}<span class="automation-state automation-{{ case.integration_state.make.status }}"><i></i>{{ case.integration_state.make.detail }}</span>{% else %}<span class="muted">—</span>{% endif %}</td>
               <td class="nowrap">{{ case.updated_at[:16].replace('T', ' ') }}</td>
             </tr>
-          {% else %}<tr><td colspan="10" class="empty-state">Nessuna pratica trovata.</td></tr>{% endfor %}
+          {% else %}<tr><td colspan="11" class="empty-state">Nessuna pratica trovata.</td></tr>{% endfor %}
         </tbody>
       </table>
     </div>

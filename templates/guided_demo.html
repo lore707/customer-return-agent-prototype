@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>{{ scenario.title }} · Return Agent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="guided-body guided-{{ scenario.slug }}">
+  <div class="guided-glow guided-glow-one"></div><div class="guided-glow guided-glow-two"></div>
+  <header class="guided-nav">
+    <a class="landing-brand" href="{{ url_for('index') }}"><span>R</span><strong>Return Agent</strong></a>
+    <div class="guided-nav-center"><span class="guided-live"><i></i> Demo guidata</span><b>{{ scenario.eyebrow }}</b></div>
+    <a class="button ghost" href="{{ url_for('dashboard') }}">Esplora la sandbox <span>→</span></a>
+  </header>
+
+  <main class="guided-main">
+    <section class="guided-intro">
+      <div>
+        <span class="landing-eyebrow">{{ scenario.eyebrow }}</span>
+        <h1>{{ scenario.title }}</h1>
+        <p>{{ scenario.description }}</p>
+      </div>
+      <div class="guided-controls" aria-label="Controlli demo">
+        <button type="button" id="restartDemo" aria-label="Ricomincia demo">↻ <span>Ricomincia</span></button>
+        <button type="button" class="primary" id="toggleDemo" aria-label="Metti in pausa">Ⅱ <span>Pausa</span></button>
+        <button type="button" id="nextDemo">Passaggio successivo <span>→</span></button>
+      </div>
+    </section>
+
+    <section class="guided-progress-card">
+      <div class="guided-progress-meta"><span id="progressCounter">Preparazione della demo…</span><strong id="progressPercent">0%</strong></div>
+      <div class="guided-progress-track"><i id="progressBar"></i></div>
+      <div class="guided-progress-steps" id="progressSteps">
+        {% for step in scenario.steps %}<span title="{{ step.title }}"><i>{{ loop.index }}</i><small>{{ step.system }}</small></span>{% endfor %}
+      </div>
+    </section>
+
+    <section class="guided-stage-grid">
+      <article class="guided-focus-card">
+        <div class="guided-focus-top"><span class="guided-actor" id="activeActor">Sistema</span><span class="guided-system" id="activeSystem">Preparazione</span></div>
+        <div class="guided-focus-copy">
+          <span class="guided-step-number" id="activeNumber">00</span>
+          <h2 id="activeTitle">Preparazione del workflow</h2>
+          <p id="activeDescription">Stiamo creando una pratica verificabile nel database.</p>
+          <div class="guided-proof" id="activeProof">Demo sicura</div>
+        </div>
+        <div class="guided-case-state">
+          <span>Stato pratica</span>
+          <strong id="caseStatus">Preparazione</strong>
+          <small id="caseResolution">Esito previsto · {{ scenario.resolution }}</small>
+        </div>
+      </article>
+
+      <article class="guided-flow-card">
+        <div class="guided-card-head"><div><span class="section-label">Live workflow</span><h2>Passaggi operativi</h2></div><span class="guided-auto-status" id="autoStatus"><i></i> Autoplay attivo</span></div>
+        <div class="guided-step-list" id="guidedStepList">
+          {% for step in scenario.steps %}<div data-step-index="{{ loop.index0 }}"><span>{{ '%02d'|format(loop.index) }}</span><div><strong>{{ step.title }}</strong><small>{{ step.actor }} · {{ step.system }}</small></div><i></i></div>{% endfor %}
+        </div>
+      </article>
+    </section>
+
+    <section class="guided-evidence-grid">
+      <article class="guided-data-card">
+        <div class="guided-card-head"><div><span class="section-label">Shopify context</span><h2>Cliente e ordine</h2></div><span class="integration-pill pending" id="shopifyPill">In attesa</span></div>
+        <div class="guided-customer">
+          <span class="guided-avatar" id="customerAvatar">?</span>
+          <div><strong id="customerName">Cliente da identificare</strong><small id="customerEmail">Numero ordine o email richiesti</small></div>
+        </div>
+        <dl class="guided-facts"><div><dt>Ordine</dt><dd id="orderNumber">—</dd></div><div><dt>Prodotto</dt><dd id="productName">—</dd></div><div><dt>SKU</dt><dd id="productSku">—</dd></div><div><dt>Consegna</dt><dd id="deliveryDate">—</dd></div></dl>
+      </article>
+
+      <article class="guided-data-card">
+        <div class="guided-card-head"><div><span class="section-label">Customer 360</span><h2>Storico cliente</h2></div><span class="integration-pill" id="historyAssessment">Non verificato</span></div>
+        <div class="guided-history locked" id="historyGrid"><div><strong>—</strong><span>Ordini</span></div><div><strong>—</strong><span>Resi</span></div><div><strong>—</strong><span>Swap</span></div><div><strong>—</strong><span>Stesso SKU</span></div></div>
+        <p class="guided-data-note" id="historyNote">Lo storico apparirà dopo l’identificazione del cliente.</p>
+      </article>
+
+      <article class="guided-data-card">
+        <div class="guided-card-head"><div><span class="section-label">Evidence &amp; inspection</span><h2>Prove e controllo fisico</h2></div><span class="integration-pill" id="evidenceAssessment">In attesa</span></div>
+        <div class="guided-files" id="evidenceFiles"><p>Nessuna prova ancora disponibile.</p></div>
+        <div class="guided-checks" id="inspectionChecks"><span>Condizioni prodotto</span><span>Seriale e accessori</span><span>Confezione</span></div>
+      </article>
+
+      <article class="guided-data-card integrations-card">
+        <div class="guided-card-head"><div><span class="section-label">Orchestration</span><h2>Stato integrazioni</h2></div><span class="demo-safe-chip">Solo mock</span></div>
+        <div class="guided-integrations" id="integrationList"></div>
+      </article>
+    </section>
+
+    <section class="guided-audit-card">
+      <div class="guided-card-head"><div><span class="section-label">Audit trail</span><h2>Ogni azione lascia una prova</h2></div><span id="auditCount">0 eventi</span></div>
+      <div class="guided-audit-list" id="auditList"><p>Gli eventi compariranno durante l’esecuzione.</p></div>
+    </section>
+
+    <section class="guided-complete hidden" id="completeCard">
+      <div class="guided-complete-mark">✓</div>
+      <div><span class="landing-eyebrow">Workflow completato</span><h2>La pratica è stata chiusa con esito {{ scenario.resolution }}.</h2><p>Il percorso ha usato la macchina a stati reale, registrando decisioni, passaggi umani e integrazioni simulate nel database.</p></div>
+      <div class="guided-result-metrics"><span><strong>{{ scenario.steps|length }}</strong><small>passaggi</small></span><span><strong>5</strong><small>sistemi coordinati</small></span><span><strong>1</strong><small>human gate</small></span><span><strong>0</strong><small>azioni reali</small></span></div>
+      <div class="guided-complete-actions"><a class="button primary large" id="openWorkbench" href="#">Apri nel Workbench</a><a class="button ghost large" href="{{ url_for('database_register') }}">Consulta il database</a></div>
+    </section>
+  </main>
+
+  <footer class="guided-footer"><span>Dati sintetici · Shopify snapshot · Sendcloud e Make mock</span><span>Puoi mettere in pausa e ispezionare ogni passaggio.</span></footer>
+
+  <script>
+    const scenarioSlug = {{ scenario.slug|tojson }};
+    let demoState = null;
+    let playing = true;
+    let timer = null;
+    let advancing = false;
+
+    const $ = id => document.getElementById(id);
+    const label = value => String(value || "—").replaceAll("_", " ").replace(/\b\w/g, char => char.toUpperCase());
+    const delay = () => demoState?.step_index === 0 ? 1800 : 1250;
+
+    async function request(url) {
+      const response = await fetch(url, {method: "POST", headers: {"Accept": "application/json"}});
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.errore || "Demo non disponibile");
+      return data;
+    }
+
+    function text(id, value) { $(id).textContent = value ?? "—"; }
+
+    function renderIntegrations(items) {
+      const container = $("integrationList");
+      container.replaceChildren();
+      Object.values(items || {}).forEach(item => {
+        const row = document.createElement("div");
+        row.className = `integration-row ${item.status || "pending"}`;
+        const mark = document.createElement("i");
+        const copy = document.createElement("div");
+        const title = document.createElement("strong");
+        const detail = document.createElement("small");
+        title.textContent = item.label;
+        detail.textContent = item.detail;
+        copy.append(title, detail);
+        row.append(mark, copy);
+        container.append(row);
+      });
+    }
+
+    function renderAudit(events) {
+      const container = $("auditList");
+      container.replaceChildren();
+      (events || []).forEach(event => {
+        const row = document.createElement("div");
+        const mark = document.createElement("i");
+        const copy = document.createElement("div");
+        const title = document.createElement("strong");
+        const detail = document.createElement("small");
+        title.textContent = label(event.event_type);
+        detail.textContent = event.to_status ? `${label(event.from_status)} → ${label(event.to_status)}` : "Evento registrato";
+        copy.append(title, detail);
+        const time = document.createElement("time");
+        time.textContent = String(event.created_at || "").slice(11, 19);
+        row.append(mark, copy, time);
+        container.append(row);
+      });
+      text("auditCount", `${events?.length || 0} eventi recenti`);
+    }
+
+    function renderEvidence(state) {
+      const container = $("evidenceFiles");
+      container.replaceChildren();
+      const files = state.evidence?.files || [];
+      if (!files.length) {
+        const empty = document.createElement("p");
+        empty.textContent = state.evidence?.assessment || "Nessuna prova ancora disponibile.";
+        container.append(empty);
+      } else {
+        files.forEach(file => {
+          const row = document.createElement("div");
+          const icon = document.createElement("span");
+          icon.textContent = file.type === "Video" ? "▶" : "▧";
+          const copy = document.createElement("div");
+          const title = document.createElement("strong");
+          const detail = document.createElement("small");
+          title.textContent = file.name;
+          detail.textContent = `${file.type} · ${file.status}`;
+          copy.append(title, detail);
+          row.append(icon, copy);
+          container.append(row);
+        });
+      }
+      text("evidenceAssessment", state.evidence?.assessment || "In attesa");
+      $("evidenceAssessment").classList.toggle("complete", Boolean(files.length || state.evidence?.physical_inspection));
+      const inspection = state.evidence?.physical_inspection || {};
+      $("inspectionChecks").querySelectorAll("span").forEach((item, index) => {
+        const keys = ["product_condition", "serial_and_accessories", "product_packaging"];
+        item.classList.toggle("complete", Boolean(inspection[keys[index]]));
+      });
+    }
+
+    function renderHistory(history) {
+      const values = [history.orders_total, history.returns_total, history.swaps_total, history.same_sku_swaps];
+      $("historyGrid").classList.toggle("locked", !history.orders_total);
+      $("historyGrid").querySelectorAll("strong").forEach((item, index) => item.textContent = values[index] ?? "—");
+      text("historyAssessment", history.assessment || "Non verificato");
+      $("historyAssessment").classList.toggle("complete", Boolean(history.assessment));
+      text("historyNote", history.note || "Lo storico apparirà dopo l’identificazione del cliente.");
+    }
+
+    function render(state) {
+      demoState = state;
+      const identified = state.step_index >= 1;
+      text("progressCounter", `Passaggio ${state.step_number} di ${state.step_total}`);
+      text("progressPercent", `${state.progress}%`);
+      $("progressBar").style.width = `${state.progress}%`;
+      text("activeActor", state.step.actor);
+      text("activeSystem", state.step.system);
+      text("activeNumber", String(state.step_number).padStart(2, "0"));
+      text("activeTitle", state.step.title);
+      text("activeDescription", state.step.description);
+      text("activeProof", state.step.proof);
+      text("caseStatus", state.case.status_label);
+      $("caseStatus").className = `state-${String(state.case.status).toLowerCase()}`;
+
+      document.querySelectorAll("[data-step-index]").forEach(item => {
+        const index = Number(item.dataset.stepIndex);
+        item.classList.toggle("complete", index < state.step_index);
+        item.classList.toggle("active", index === state.step_index);
+      });
+      $("progressSteps").querySelectorAll("span").forEach((item, index) => {
+        item.classList.toggle("complete", index < state.step_index);
+        item.classList.toggle("active", index === state.step_index);
+      });
+      document.querySelector(`[data-step-index="${state.step_index}"]`)?.scrollIntoView({block: "nearest", behavior: "smooth"});
+
+      text("customerName", identified ? state.case.customer_name : "Cliente da identificare");
+      text("customerEmail", identified ? state.case.customer_email : "Numero ordine o email richiesti");
+      text("customerAvatar", identified ? String(state.case.customer_name || "C").charAt(0) : "?");
+      text("orderNumber", identified ? `#${state.case.order_number}` : "—");
+      text("productName", identified ? state.case.product_name : "—");
+      text("productSku", identified ? state.case.sku : "—");
+      text("deliveryDate", identified ? state.case.delivery_date : "—");
+      const shopify = state.integrations?.shopify || {};
+      text("shopifyPill", shopify.detail || "In attesa");
+      $("shopifyPill").className = `integration-pill ${shopify.status || "pending"}`;
+
+      renderHistory(state.customer_history || {});
+      renderEvidence(state);
+      renderIntegrations(state.integrations);
+      renderAudit(state.events);
+      $("openWorkbench").href = `/workbench/${encodeURIComponent(state.case_id)}`;
+      $("completeCard").classList.toggle("hidden", !state.completed);
+      $("nextDemo").disabled = state.completed;
+      if (state.completed) {
+        playing = false;
+        clearTimeout(timer);
+        updateControls();
+        setTimeout(() => $("completeCard").scrollIntoView({behavior: "smooth", block: "center"}), 350);
+      }
+    }
+
+    function updateControls() {
+      $("toggleDemo").innerHTML = playing ? "Ⅱ <span>Pausa</span>" : "▶ <span>Riprendi</span>";
+      $("toggleDemo").setAttribute("aria-label", playing ? "Metti in pausa" : "Riprendi demo");
+      $("autoStatus").innerHTML = playing ? "<i></i> Autoplay attivo" : "<i></i> Demo in pausa";
+      $("autoStatus").classList.toggle("paused", !playing);
+    }
+
+    function schedule() {
+      clearTimeout(timer);
+      if (playing && demoState && !demoState.completed) timer = setTimeout(next, delay());
+    }
+
+    async function next() {
+      if (advancing || !demoState || demoState.completed) return;
+      advancing = true;
+      try {
+        render(await request(`/api/guided-demo/cases/${encodeURIComponent(demoState.case_id)}/next`));
+      } catch (error) {
+        playing = false;
+        text("activeTitle", "La demo si è interrotta");
+        text("activeDescription", error.message);
+        updateControls();
+      } finally {
+        advancing = false;
+        schedule();
+      }
+    }
+
+    async function start() {
+      clearTimeout(timer);
+      advancing = true;
+      $("completeCard").classList.add("hidden");
+      try {
+        render(await request(`/api/guided-demo/${encodeURIComponent(scenarioSlug)}/start`));
+        playing = true;
+        updateControls();
+      } catch (error) {
+        text("activeTitle", "Demo non disponibile");
+        text("activeDescription", error.message);
+        playing = false;
+        updateControls();
+      } finally {
+        advancing = false;
+        schedule();
+      }
+    }
+
+    $("toggleDemo").addEventListener("click", () => { playing = !playing; updateControls(); schedule(); });
+    $("nextDemo").addEventListener("click", next);
+    $("restartDemo").addEventListener("click", start);
+    start();
+  </script>
+</body>
+</html>

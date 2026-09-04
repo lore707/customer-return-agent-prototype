@@ -1,20 +1,24 @@
 # Customer Return Agent
 
-Prototipo portfolio di Return Operations per Shopify. Riceve una richiesta
-cliente, usa l'AI per strutturarla, applica regole deterministiche, crea una
-pratica persistente e richiede l'approvazione dell'operatore prima di produrre
-un'etichetta di reso mock.
+Prototipo portfolio di Return Operations per Shopify. Due demo automatiche
+mostrano dall'inizio alla fine il workflow realmente usato dall'e-commerce:
+identificazione del cliente, storico ordini, policy, prove, approvazione umana,
+Sendcloud, rientro in magazzino e chiusura con swap o rimborso.
 
 Il progetto è un prototipo demo-safe: non emette rimborsi, non modifica ordini
-o inventario e non chiama Sendcloud reale. La modalità portfolio include sei
-scenari guidati che funzionano anche senza credenziali Shopify o Anthropic.
+o inventario e non chiama Sendcloud o Make reali. Le due storie principali e i
+sei casi della sandbox funzionano anche senza credenziali Shopify o Anthropic.
 
 ## Cosa dimostra
 
 - intake conversazionale e memoria dei messaggi per pratica;
 - recupero dei dati ordine tramite Shopify Admin API;
+- identificazione tramite ordine o email e Customer 360 dimostrativo;
 - separazione tra estrazione AI e decisioni deterministiche;
+- garanzia di 2 anni per i difetti e recesso di 14 giorni;
+- Evidence Center per foto, video e controllo fisico;
 - approvazione umana e checkpoint fisico in magazzino;
+- orchestrazione verificabile di Shopify, Sendcloud, logistica e Make in mock;
 - state machine, audit trail e database operativo SQLite;
 - importazione policy in regole strutturate con conferma umana;
 - esecuzione pubblica sicura tramite snapshot anonimizzati dello store test.
@@ -23,21 +27,23 @@ scenari guidati che funzionano anche senza credenziali Shopify o Anthropic.
 
 ```mermaid
 flowchart LR
-    Shopify[Shopify live o snapshot test] --> Intake[Customer request]
-    Intake --> AI[AI classification]
-    AI --> Rules[Rule engine]
-    Rules --> DB[(SQLite ReturnCase)]
-    DB --> Human[Human approval]
-    Human --> Mock[Mock shipping provider]
-    Mock --> DB
-    DB --> Dashboard[Dashboard + timeline]
+    Intake[Richiesta cliente] --> Shopify[Ordine + storico Shopify]
+    Shopify --> AI[AI: intento + bozza]
+    AI --> Rules[Policy: 14 giorni / 2 anni]
+    Rules --> Evidence[Foto + video]
+    Evidence --> Human[Approvazione umana]
+    Human --> Sendcloud[Etichetta Sendcloud mock]
+    Sendcloud --> Warehouse[Tracking + magazzino]
+    Warehouse --> Resolution[Swap o rimborso]
+    Resolution --> DB[(SQLite + audit)]
+    Resolution --> Make[Make mock]
 ```
 
 - **LLM:** comprende il testo e genera la bozza;
 - **Rule engine:** decide secondo `policies.md`;
 - **Human:** approva, modifica o escala;
 - **SQLite:** mantiene pratica, stato, metriche e timeline;
-- **Mock provider:** simula return ID, tracking ed etichetta.
+- **Mock integrations:** simulano etichetta, tracking, azioni Shopify, Make e logistica.
 
 L'audit tecnico dettagliato è in
 [`docs/return-agent-architecture.md`](docs/return-agent-architecture.md).
@@ -70,6 +76,8 @@ e Claude live.
 ## Sezioni del prototipo
 
 - `/`: landing portfolio e percorso di verifica;
+- `/demo/doa`: demo automatica dal difetto allo swap;
+- `/demo/recesso`: demo automatica dal recesso al rimborso;
 - `/dashboard`: panoramica operativa e coda prioritaria;
 - `/workbench`: conversazione, bozza AI, revisione umana e feedback;
 - `/policies`: importazione documenti, regole strutturate, eccezioni, simulazione e versioning sandbox;
@@ -90,11 +98,17 @@ Non usare credenziali o dati di produzione.
 
 ## Portfolio demo verificabile
 
-La sezione **Guided demo** prepara sei casi con stati differenti: recesso nei
-termini, DOA con richiesta prove, prodotto igienico aperto, controllo di
-magazzino, escalation e rimborso completato. I record derivano dal manifest
-`data/shopify_experiment_return-agent-20260901.json`, prodotto durante il seed
-del vero store Shopify test.
+Il percorso principale contiene due workflow automatici. **DOA / Garanzia**
+parte dalla richiesta, identifica il cliente tramite email, controlla lo
+storico e i 730 giorni, acquisisce foto e video, crea l'etichetta, simula il
+rientro, chiude il reso senza rimborso, crea l'ordine sostitutivo e registra il
+passaggio a Make. **Recesso** verifica i 14 giorni, simula etichetta e rientro,
+controlla le condizioni e chiude con rimborso.
+
+Ogni avanzamento usa la vera state machine e viene scritto in SQLite. I sei
+scenari precedenti restano nella sandbox per provare liberamente casi aperti,
+richieste di informazioni, esclusioni ed escalation. I dati ordine derivano
+dal manifest `data/shopify_experiment_return-agent-20260901.json`.
 
 Nel dettaglio pratica sono visibili:
 
@@ -104,8 +118,9 @@ Nel dettaglio pratica sono visibili:
 - risultato atteso dello scenario e risultato del motore;
 - policy applicata, modalità AI, conversazione e audit trail.
 
-**Ripristina demo** elimina e ricrea soltanto le sei pratiche portfolio; le
-pratiche inserite manualmente non vengono toccate.
+Riavviare una demo guidata ripristina soltanto la relativa pratica. Il comando
+**Ripristina demo** ricrea invece i sei casi della sandbox senza toccare le
+pratiche inserite manualmente.
 
 ## Mock mode e dati demo
 
@@ -133,16 +148,13 @@ cliente già pronti da copiare nella dashboard.
 
 ## Demo workflow
 
-1. Aprire la dashboard e scegliere una pratica nella coda prioritaria.
-2. Nel Workbench leggere soltanto i messaggi già inviati a sinistra.
-3. Controllare a destra contesto Shopify, confidence, policy e bozza.
-4. Approvare, modificare, rigenerare con feedback oppure escalare.
-5. Usare il simulatore cliente per continuare il botta e risposta.
-6. Per un reso eleggibile viene creata l'etichetta mock.
-7. Segnare il pacco in transito e ricevuto; il rimborso resta bloccato fino
-   al controllo fisico esplicito dell'operatore.
-8. Consultare Database, timeline e Analytics per verificare ciò che è stato
-   salvato.
+1. Dalla landing scegliere **Guarda il caso DOA** oppure **Guarda il recesso**.
+2. La pratica parte automaticamente; è possibile mettere in pausa o avanzare.
+3. Durante il percorso osservare Shopify, storico cliente, prove, stato delle
+   integrazioni e audit trail.
+4. Alla chiusura aprire la stessa pratica nel Workbench o nel Database.
+5. Usare la dashboard e il Workbench come sandbox libera per modificare bozze,
+   continuare conversazioni o provare gli altri casi.
 
 La sezione **Database resi** (`/database`) mostra il registro SQLite completo
 in forma tabellare. Ogni e-mail o messaggio aggiunto alla pratica viene salvato
@@ -178,9 +190,9 @@ parametri applicabili al codice e `src/rules.py` è l'unico motore decisionale,
 usato sia dall'intake live sia dagli scenari portfolio. Ogni pratica salva
 versione, regola, sezioni e vincoli applicati in `policy_decision`.
 
-Sono operative anche le scadenze a 15 giorni, la scelta rimborso/swap per DOA,
-il controllo del sigillo, il pagatore della spedizione, la verifica fisica e il
-fallback a rimborso quando manca lo stock sostitutivo. Le voci marcate
+Sono operative anche la garanzia di 730 giorni, le scadenze a 15 giorni, lo
+swap per DOA, il controllo del sigillo, il pagatore della spedizione, la
+verifica fisica e il fallback a rimborso quando manca lo stock sostitutivo. Le voci marcate
 `[DA CONFERMARE]` non vengono inventate: compaiono in dashboard e richiedono
 una decisione umana.
 
@@ -197,8 +209,9 @@ Shopify senza creare pratiche o azioni esterne.
   soltanto dallo script demo lanciato esplicitamente;
 - tracking: `deliveries.json` è il mock corrente;
 - spedizione reso: `MockReturnShippingProvider`;
-- Sendcloud reale: non implementato finché non esiste un ambiente test
-  esplicitamente autorizzato.
+- le demo guidate registrano azioni mock per chiusura reso Shopify, ordine
+  sostitutivo, rimborso, Sendcloud, Make e logistica;
+- Sendcloud e Make reali non sono implementati.
 
 ## Testing
 
@@ -208,10 +221,9 @@ I test non richiedono API o credenziali:
 python -m unittest discover -s tests -v
 ```
 
-I 36 test coprono regole, sigillo, prove, confidence, scadenze, persistenza,
+I 41 test coprono regole, sigillo, prove, garanzia, confidence, scadenze, persistenza,
 scenari portfolio, pagine separate, feedback, conversazione simulata,
-transizioni, ispezione, importazione policy, simulazione e workflow completo
-con etichetta mock.
+transizioni, ispezione, importazione policy e i due workflow guidati completi.
 
 ## Deploy portfolio su Render
 
@@ -226,12 +238,14 @@ lo stato tecnico non sensibile.
 - un solo prodotto principale salvato per pratica; gli ordini multiprodotto
   richiedono ancora un modello line-item più completo;
 - nessun upload reale di foto/video;
+- lo storico Customer 360 delle demo guidate è un dataset sintetico;
 - nessun invio reale della risposta al cliente;
 - sul piano Shopify Basic nome ed e-mail sono oscurati all'API; per gli ordini
   sintetici la dashboard usa esclusivamente i dati demo salvati nel manifest;
 - Shopify REST dovrà essere migrato a GraphQL;
 - SQLite e processo Flask singolo sono adatti alla demo, non alla produzione;
 - le policy importate vengono pubblicate solo nella sandbox e non modificano il motore attivo;
+- azioni Shopify, Sendcloud, Make, logistica, rimborso e swap sono simulate;
 - il return rate non è calcolabile senza il totale degli ordini venduti.
 
 ## Future improvements

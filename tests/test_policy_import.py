@@ -50,6 +50,17 @@ class PolicyImportTests(unittest.TestCase):
         window = next(item for item in result["rules"] if item["id"] == "return_window")
         self.assertEqual("30 giorni", window["value"])
 
+    def test_two_year_warranty_is_structured_separately(self):
+        result = policy_import.extract_structured_rules(
+            "Il recesso è ammesso entro 14 giorni dalla consegna. "
+            "Un prodotto difettoso è coperto dalla garanzia per 2 anni. "
+            "Foto e video sono obbligatori prima dello swap."
+        )
+        warranty = next(
+            item for item in result["rules"] if item["id"] == "warranty_window"
+        )
+        self.assertEqual("2 anni (730 giorni)", warranty["value"])
+
 
 if __name__ == "__main__":
     unittest.main()

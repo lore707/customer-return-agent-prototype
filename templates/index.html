@@ -4,53 +4,78 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
+  <meta name="description" content="Prototipo di Return Operations che coordina Shopify, policy, operatore, Sendcloud, magazzino e Make.">
   <title>Customer Return Agent</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="landing-body">
+<body class="landing-body landing-guided-first">
   <div class="landing-glow landing-glow-one"></div><div class="landing-glow landing-glow-two"></div>
   <header class="landing-nav">
     <a class="landing-brand" href="{{ url_for('index') }}"><span>R</span><strong>Return Agent</strong></a>
-    <nav><a href="#workflow">Workflow</a><a href="{{ url_for('policies') }}">Policies</a><a href="{{ url_for('analytics_view') }}">Analytics</a></nav>
-    <a class="button ghost" href="{{ url_for('dashboard') }}">Apri la dashboard <span>→</span></a>
+    <nav><a href="#guided-demos">Demo guidate</a><a href="#workflow">Workflow</a><a href="{{ url_for('dashboard') }}">Sandbox</a></nav>
+    <a class="button ghost" href="{{ url_for('dashboard') }}">Esplora liberamente <span>→</span></a>
   </header>
 
   <main class="landing-main">
-    <section class="landing-hero">
+    <section class="landing-hero guided-first-hero">
       <div class="landing-hero-copy">
-        <span class="landing-eyebrow"><i></i> AI-assisted returns operations</span>
-        <h1>L’AI prepara ogni caso di reso.<br><em>Le regole decidono.<br>L’operatore approva.</em></h1>
-        <p>Un prototipo end-to-end per Shopify che legge la richiesta del cliente, recupera i dati dell’ordine, applica le policy di reso e prepara una risposta pronta per la revisione umana.</p>
-        <div class="landing-actions"><a class="button primary large" href="{{ url_for('dashboard') }}">Esplora la dashboard <span>→</span></a><a class="button ghost large" href="{{ url_for('workbench') }}">Prova il Workbench</a></div>
-        <div class="landing-trust"><span>Shopify test store</span><b>·</b><span>Policy deterministiche</span><b>·</b><span>Human approval</span><b>·</b><span>Nessuna azione reale</span></div>
+        <span class="landing-eyebrow"><i></i> AI-assisted returns orchestration</span>
+        <h1>Dal messaggio del cliente<br><em>alla chiusura del reso.</em></h1>
+        <p>Un prototipo end-to-end che aiuta l’operatore a verificare il cliente, applicare le policy e coordinare Shopify, Sendcloud, magazzino e Make.</p>
+        <div class="landing-actions"><a class="button primary large" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">Guarda il caso DOA <span>→</span></a><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}">Guarda il recesso</a></div>
+        <div class="landing-trust"><span>Avvio automatico</span><b>·</b><span>Dati sintetici</span><b>·</b><span>Human approval</span><b>·</b><span>Nessuna azione reale</span></div>
       </div>
 
-      <div class="landing-product-preview">
-        <div class="preview-top"><div><span class="preview-logo">R</span><strong>Operations overview</strong></div><span class="preview-live"><i></i> Demo sicura</span></div>
-        <div class="preview-metrics"><article><small>Pratiche</small><strong>{{ metrics.total }}</strong></article><article><small>Aperte</small><strong>{{ metrics.open }}</strong></article><article><small>In attesa</small><strong>{{ metrics.waiting }}</strong></article></div>
-        <div class="preview-flow"><div><span class="preview-node customer-node">1</span><strong>Cliente</strong><small>richiesta</small></div><b>→</b><div><span class="preview-node ai-node">2</span><strong>AI</strong><small>analisi + draft</small></div><b>→</b><div><span class="preview-node human-node">3</span><strong>Operatore</strong><small>approva</small></div></div>
-        <div class="preview-cases"><div class="preview-cases-head"><span>Casi dimostrativi</span><small>Apri nel Workbench</small></div>{% for case in cases[:3] %}<a href="{{ url_for('workbench_case', case_id=case.id) }}"><span>{{ case.id.replace('DEMO-', 'RC-') }}</span><strong>{{ case.return_reason.replace('_', ' ') }}</strong><em class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</em></a>{% endfor %}</div>
+      <div class="landing-product-preview guided-preview">
+        <div class="preview-top"><div><span class="preview-logo">R</span><strong>Workflow operativo</strong></div><span class="preview-live"><i></i> Demo sicura</span></div>
+        <div class="guided-preview-case"><span>01</span><div><small>DOA / Garanzia</small><strong>Difetto → prove → swap</strong></div><em>15 passaggi</em></div>
+        <div class="guided-preview-track"><i class="complete"></i><b></b><i class="complete"></i><b></b><i class="active"></i><b></b><i></i><b></b><i></i></div>
+        <div class="guided-preview-systems"><span>Shopify</span><span>Policy</span><span>Sendcloud</span><span>Magazzino</span><span>Make</span></div>
+        <div class="guided-preview-event"><span>Human gate</span><p>L’operatore verifica le prove e approva la presa in carico.</p><strong>Approvato ✓</strong></div>
+        <div class="guided-preview-footer"><span><i></i> Esecuzione automatica</span><small>Puoi mettere in pausa in ogni momento</small></div>
       </div>
     </section>
 
-    <section class="landing-proof-strip"><div><strong>{{ scenarios|length }}</strong><span>casi dimostrativi</span></div><div><strong>30/30</strong><span>test automatici</span></div><div><strong>100%</strong><span>risposte con human gate</span></div><div><strong>0</strong><span>azioni reali nella demo</span></div></section>
+    <section class="landing-proof-strip guided-proof-strip"><div><strong>2</strong><span>workflow completi</span></div><div><strong>5</strong><span>sistemi coordinati</span></div><div><strong>100%</strong><span>risposte con human gate</span></div><div><strong>0</strong><span>azioni reali nella demo</span></div></section>
+
+    <section class="landing-section guided-demo-section" id="guided-demos">
+      <div class="landing-section-head"><span class="landing-eyebrow">Scegli una storia</span><h2>Due casi. Dall’inizio alla fine.</h2><p>Non servono ordini da conoscere o messaggi da inventare. Scegli un caso: il sistema esegue automaticamente il workflow e mostra ogni decisione.</p></div>
+      <div class="guided-demo-cards">
+        <a class="guided-demo-card doa-card" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">
+          <div class="demo-card-top"><span class="demo-index">01</span><span class="demo-time"><i></i> Demo automatica</span></div>
+          <span class="landing-eyebrow">DOA / Garanzia</span>
+          <h3>Dal problema alla sostituzione</h3>
+          <p>Il sistema identifica il cliente, controlla storico e garanzia, raccoglie le prove e coordina lo swap fino alla logistica.</p>
+          <div class="demo-route"><span>Cliente</span><b>→</b><span>Prove</span><b>→</b><span>Reso</span><b>→</b><span>Swap</span></div>
+          <strong class="demo-card-cta">Avvia il caso DOA <span>→</span></strong>
+        </a>
+        <a class="guided-demo-card withdrawal-card" href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}">
+          <div class="demo-card-top"><span class="demo-index">02</span><span class="demo-time"><i></i> Demo automatica</span></div>
+          <span class="landing-eyebrow">Diritto di recesso</span>
+          <h3>Dalla richiesta al rimborso</h3>
+          <p>Il sistema verifica la finestra di 14 giorni, gestisce etichetta e rientro e abilita il rimborso solo dopo il controllo.</p>
+          <div class="demo-route"><span>Cliente</span><b>→</b><span>Policy</span><b>→</b><span>Controllo</span><b>→</b><span>Rimborso</span></div>
+          <strong class="demo-card-cta">Avvia il recesso <span>→</span></strong>
+        </a>
+      </div>
+    </section>
 
     <section class="landing-section" id="workflow">
-      <div class="landing-section-head"><span class="landing-eyebrow">Workflow</span><h2>Una sola storia, dall’email alla risoluzione.</h2><p>Ogni richiesta attraversa lo stesso workflow: l’AI comprende il caso, Shopify fornisce i fatti, le regole determinano ciò che è consentito e l’operatore mantiene il controllo finale.</p></div>
-      <div class="landing-workflow">{% set steps=[('01','Cliente','Invia una richiesta o continua la conversazione.'),('02','AI','Comprende intento e contesto e prepara una risposta.'),('03','Policy','Verifica condizioni, eccezioni e azioni consentite.'),('04','Operatore','Approva, modifica, rigenera o escala.'),('05','Database','Conserva conversazione, decisioni, feedback e audit trail.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Workflow reale</span><h2>Un’unica regia per tutto il reso.</h2><p>L’AI comprende e prepara. I dati Shopify e le policy determinano cosa è consentito. L’operatore mantiene il controllo sui passaggi irreversibili.</p></div>
+      <div class="landing-workflow operations-workflow">{% set steps=[('01','Identifica','Ordine o email collegano il cliente al suo storico Shopify.'),('02','Verifica','Garanzia, recesso, foto e video diventano controlli espliciti.'),('03','Prende in carico','L’operatore approva la risposta e apre la pratica.'),('04','Coordina','Sendcloud, tracking, magazzino e Make aggiornano il percorso.'),('05','Risolve','Controllo fisico, swap o rimborso e audit finale.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
     </section>
 
     <section class="landing-section landing-verification">
-      <div class="landing-section-head"><span class="landing-eyebrow">Design principles</span><h2>Tre principi alla base del sistema.</h2></div>
-      <div class="verification-grid"><a href="{{ url_for('workbench') }}"><span>01</span><h3>Conversazione con human gate</h3><p>Le risposte generate dall’AI restano in bozza finché un operatore non le approva, modifica o rigenera.</p><b>Prova il Workbench →</b></a><a href="{{ url_for('policies') }}"><span>02</span><h3>Decisioni basate sulle policy</h3><p>L’AI interpreta la richiesta, ma non decide autonomamente l’idoneità: l’esito deriva da regole aziendali esplicite e verificabili.</p><b>Esplora le policy →</b></a><a href="{{ url_for('database_register') }}"><span>03</span><h3>Memoria e audit trail</h3><p>Messaggi, decisioni, modifiche e feedback degli operatori vengono salvati e rimangono consultabili nel tempo.</p><b>Apri il database →</b></a></div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Cosa puoi verificare</span><h2>La demo racconta. La sandbox dimostra.</h2><p>Dopo il percorso guidato puoi aprire la stessa pratica nelle aree operative e controllare i dati salvati.</p></div>
+      <div class="verification-grid"><a href="{{ url_for('workbench') }}"><span>01</span><h3>Workbench</h3><p>Conversazione, storico cliente, decisione, prove e risposta approvata dall’operatore.</p><b>Esplora il Workbench →</b></a><a href="{{ url_for('policies') }}"><span>02</span><h3>Policy</h3><p>Regole deterministiche per recesso, garanzia di due anni, evidenze ed escalation.</p><b>Controlla le policy →</b></a><a href="{{ url_for('database_register') }}"><span>03</span><h3>Database e audit</h3><p>Stato, integrazioni simulate, messaggi e cronologia completa della pratica.</p><b>Apri il database →</b></a></div>
     </section>
 
-    <section class="landing-cta"><div><span class="landing-eyebrow">Interactive sandbox</span><h2>Prova il workflow dall’inizio alla fine.</h2><p>Usa uno dei casi dimostrativi, continua la conversazione come cliente e controlla la risposta dell’agente come operatore.</p></div><div><a class="button primary large" href="{{ url_for('workbench') }}">Apri il Workbench</a><a class="button ghost large" href="{{ url_for('dashboard') }}">Esplora la dashboard</a></div></section>
+    <section class="landing-cta sandbox-cta"><div><span class="landing-eyebrow">Sandbox libera</span><h2>Vuoi andare oltre la storia guidata?</h2><p>Apri l’ambiente operativo, scegli uno dei casi disponibili e prova in autonomia risposte, policy, stati e filtri.</p></div><div><a class="button primary large" href="{{ url_for('dashboard') }}">Esplora la dashboard</a><a class="button ghost large" href="{{ url_for('workbench') }}">Apri il Workbench</a></div></section>
   </main>
 
-  <footer class="landing-footer"><span>Customer Return Agent · Portfolio prototype</span><span>Shopify test data · Shipping mock · Human approval</span></footer>
+  <footer class="landing-footer"><span>Customer Return Agent · Portfolio prototype</span><span>Shopify test data · Integrazioni mock · Human approval</span></footer>
 </body>
 </html>

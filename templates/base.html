@@ -17,6 +17,9 @@
     <aside class="sidebar" aria-label="Navigazione principale">
       <a class="brand-mark" href="{{ url_for('index') }}" aria-label="Return Operations home"><span>R</span></a>
       <nav class="side-nav">
+        <a class="nav-item {% if request.path.startswith('/demo/') %}active{% endif %}" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">
+          <span class="nav-play-icon">▶</span><span>Demo guidate</span>
+        </a>
         <a class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}" href="{{ url_for('dashboard') }}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 13h6V4H4v9Zm0 7h6v-4H4v4Zm10 0h6v-9h-6v9Zm0-16v4h6V4h-6Z"/></svg><span>Dashboard</span>
         </a>

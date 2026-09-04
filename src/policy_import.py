@@ -200,6 +200,19 @@ def extract_structured_rules(text: str) -> dict:
         and _contains(lowered, "approva", "non invia mai", "revisione umana")
         else "Da confermare"
     )
+    warranty_years = re.search(
+        r"(?:garanzia|difett\w*)[^.\n]{0,80}?\b(\d{1,2})\s*ann[oi]\b", lowered
+    )
+    warranty_days = re.search(
+        r"(?:garanzia|difett\w*)[^.\n]{0,80}?\b(\d{2,4})\s*(?:giorni|gg)\b", lowered
+    )
+    if warranty_years:
+        years = int(warranty_years.group(1))
+        warranty = f"{years} anni ({years * 365} giorni)"
+    elif warranty_days:
+        warranty = f"{warranty_days.group(1)} giorni"
+    else:
+        warranty = "Da confermare"
 
     values = [
         ("return_window", "Finestra recesso", window),
@@ -208,6 +221,7 @@ def extract_structured_rules(text: str) -> dict:
         ("return_shipping", "Spedizione di ritorno", shipping),
         ("hygiene_products", "Prodotti igienici aperti", hygiene),
         ("doa_evidence", "Prove DOA", evidence),
+        ("warranty_window", "Finestra garanzia", warranty),
         ("refund_timing", "Avvio rimborso", refund),
         ("human_gate", "Approvazione finale", approval),
     ]

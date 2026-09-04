@@ -6,9 +6,9 @@ Regole valide per tutti gli store (Laifen Italia, Xiaomi Store Italia, Yimiki, D
 
 - I 14 giorni per il recesso decorrono dalla **data di consegna risultante dal tracking**. Il tracking fa fede, non è contestabile dal cliente.
 - **Entro 14 giorni dalla consegna** → il caso è tipicamente un RECESSO (rimborso).
-- **Oltre 14 giorni dalla consegna**, in presenza di problematica riscontrabile → GARANZIA/DOA, gestita con SWAP, mai con rimborso, salvo indisponibilità di dispositivi con cui swappare (in quel caso rimborso).
-- `[DA CONFERMARE]` Limite superiore della finestra garanzia (es. 24 mesi garanzia legale UE). Fino a quando si accetta un DOA?
-- **DOA entro i 14 giorni**: il cliente sceglie tra rimborso e swap. L'agente deve chiederlo esplicitamente nella risposta se il cliente non l'ha già indicato.
+- **Difetto entro 2 anni dalla consegna** → GARANZIA/DOA, gestita con SWAP, mai con rimborso, salvo indisponibilità di dispositivi con cui effettuare la sostituzione.
+- **Difetto oltre 2 anni dalla consegna** → richiesta fuori garanzia; l’operatore comunica il mancato accoglimento o gestisce un’eventuale eccezione.
+- Il recesso resta un flusso distinto: entro 14 giorni porta al rimborso, non allo swap.
 
 ## 2. Categorie di richiesta
 
@@ -66,5 +66,5 @@ Regole valide per tutti gli store (Laifen Italia, Xiaomi Store Italia, Yimiki, D
 - Per ogni ticket produce un pacchetto per l'operatore:
   1. **Contesto**: riepilogo caso (ordine, prodotti, data consegna, giorni trascorsi, categoria richiesta, regole applicabili).
   2. **Bozza di risposta** al cliente, pronta da inviare o modificare.
-  3. **Azione proposta**: genera etichetta / chiedi numero ordine / chiedi foto-video / rifiuta con motivazione / escalation.
+    3. **Azione proposta**: genera etichetta / chiedi numero ordine o email acquisto / chiedi foto-video / rifiuta con motivazione / escalation.
 - L'operatore approva, modifica o scarta. Ogni modifica dell'operatore è segnale per raffinare policy o prompt.

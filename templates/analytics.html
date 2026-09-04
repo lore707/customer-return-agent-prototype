@@ -7,7 +7,7 @@
 {% block content %}
   <header class="console-header analytics-header">
     <div><h1>Analytics</h1><p>Panoramica delle performance del sistema e dell’agente.</p></div>
-    <div class="header-actions"><span class="mode-chip">Ultimi 14 giorni</span><span class="connection-chip">Dati reali del prototipo</span></div>
+    <div class="header-actions"><a class="button ghost compact-button" href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}">Avvia demo recesso</a><span class="mode-chip">Ultimi 14 giorni</span><span class="connection-chip">Dati generati dalle pratiche</span></div>
   </header>
 
   <section class="analytics-kpis">

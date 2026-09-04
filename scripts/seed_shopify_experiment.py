@@ -161,7 +161,7 @@ def _scenarios() -> list[dict]:
             "delivery_days": 3,
             "message": "L'asciugacapelli dell'ordine #{order} non si accende fin dal primo utilizzo.",
             "expected": "chiedi_foto_video",
-            "after_evidence": "offri_scelta_rimborso_o_swap",
+            "after_evidence": "procedi_swap",
         },
         {
             "code": "difettoso_oltre_termini",
@@ -242,7 +242,7 @@ def _scenarios() -> list[dict]:
             "delivery_days": 6,
             "message": "Il bollitore dell'ordine #{order} perde acqua dalla base. Chiedo il rimborso.",
             "expected": "chiedi_foto_video",
-            "after_evidence": "offri_scelta_rimborso_o_swap",
+            "after_evidence": "procedi_swap",
         },
         {
             "code": "minaccia_chargeback",

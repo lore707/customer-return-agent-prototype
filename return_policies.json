@@ -1,5 +1,5 @@
 {
-  "version": "2026-09-02",
+  "version": "2026-09-04",
   "source": "policies.md",
   "stores": ["Laifen Italia", "Xiaomi Store Italia", "Yimiki", "Dreo"],
   "withdrawal": {
@@ -16,13 +16,13 @@
   },
   "defective_product": {
     "evidence_required": ["photo", "video"],
-    "within_withdrawal_window": ["refund", "swap"],
+    "within_withdrawal_window": "swap",
     "after_withdrawal_window": "swap",
     "return_shipping_payer": "company",
     "replacement_value": "equal_or_higher",
     "refund_if_no_replacement_stock": true,
     "resolution_requires_physical_validation": true,
-    "warranty_max_days": null
+    "warranty_max_days": 730
   },
   "damaged_in_transit": {
     "evidence_required": ["photo", "video"],
@@ -57,7 +57,6 @@
     "high_value_threshold_eur": null
   },
   "unresolved": [
-    {"id": "warranty_max_days", "section": "§1", "description": "Limite superiore della garanzia non confermato"},
     {"id": "excluded_skus_by_store", "section": "§3", "description": "Lista SKU esclusi per store non confermata"},
     {"id": "devalued_return_outcome", "section": "§4", "description": "Rimborso parziale o rifiuto per prodotto svalutato"},
     {"id": "replacement_model_choice", "section": "§6", "description": "Scelta del modello sostitutivo in assenza dello stesso SKU"},

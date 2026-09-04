@@ -6,9 +6,11 @@
 
 {% block content %}
   <header class="console-header">
-    <div><span class="eyebrow">Operations overview</span><h1>Dashboard resi</h1><p>Panoramica operativa delle pratiche, degli outcome e del lavoro in coda.</p></div>
-    <div class="header-actions"><span class="connection-chip"><span class="connection-dot live-dot"></span>{{ integration_status.shopify }}</span><span class="mode-chip lock-chip">▣ Demo sicura</span></div>
+    <div><span class="eyebrow">Sandbox operativa</span><h1>Dashboard resi</h1><p>Esplora liberamente pratiche, outcome e attività dopo la demo guidata.</p></div>
+    <div class="header-actions"><a class="button primary compact-button" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">Avvia demo guidata</a><span class="connection-chip"><span class="connection-dot live-dot"></span>{{ integration_status.shopify }}</span><span class="mode-chip lock-chip">▣ Demo sicura</span></div>
   </header>
+
+  <section class="sandbox-guide-banner"><div><span class="section-label">Prima visita?</span><h2>Guarda un workflow completo, poi torna qui per esplorarlo.</h2><p>Le demo non richiedono ordini da conoscere e salvano il risultato nelle stesse aree operative.</p></div><div><a href="{{ url_for('guided_demo_view', scenario_slug='doa') }}"><span>01</span><strong>DOA → Swap</strong><small>15 passaggi</small></a><a href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}"><span>02</span><strong>Recesso → Rimborso</strong><small>12 passaggi</small></a></div></section>
 
   <section class="dashboard-stats">
     <article><span class="metric-symbol violet">▤</span><div><small>Pratiche totali</small><strong>{{ stats.total }}</strong><p>Totale pratiche aperte</p></div></article>

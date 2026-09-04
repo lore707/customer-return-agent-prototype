@@ -60,7 +60,7 @@ Esito iniziale atteso: `chiedi_foto_video`
 
 > L'asciugacapelli dell'ordine #1014 non si accende fin dal primo utilizzo.
 
-Dopo **Conferma prove ricevute**: `offri_scelta_rimborso_o_swap`.
+Dopo **Conferma prove ricevute**: `procedi_swap`.
 
 ## 08. difettoso_oltre_termini - ordine #1015
 
@@ -124,7 +124,7 @@ Esito iniziale atteso: `chiedi_foto_video`
 
 > Il bollitore dell'ordine #1021 perde acqua dalla base. Chiedo il rimborso.
 
-Dopo **Conferma prove ricevute**: `offri_scelta_rimborso_o_swap`.
+Dopo **Conferma prove ricevute**: `procedi_swap`.
 
 ## 15. minaccia_chargeback - ordine #1022
 

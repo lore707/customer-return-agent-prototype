@@ -145,6 +145,13 @@ def applica_regole(
         "prodotto_escluso_recesso": prodotto_escluso,
         "prodotto_soggetto_esclusione": prodotto_soggetto_esclusione,
         "policy_version": POLICY["version"],
+        "warranty_max_days": POLICY["defective_product"].get("warranty_max_days"),
+        "within_warranty": (
+            giorni <= POLICY["defective_product"]["warranty_max_days"]
+            if giorni is not None
+            and POLICY["defective_product"].get("warranty_max_days")
+            else None
+        ),
         "review_level": (
             "unknown"
             if confidence is None
@@ -391,39 +398,22 @@ def applica_regole(
                 )
             )
             return risultato
-        if entro_finestra and requested_resolution in {"refund", "swap"}:
-            outcome = "procedi_rimborso" if requested_resolution == "refund" else "procedi_swap"
+        warranty_max_days = POLICY["defective_product"].get("warranty_max_days")
+        if warranty_max_days is not None and giorni > warranty_max_days:
             risultato.update(
                 _decisione(
-                    outcome,
-                    f"DOA entro {FINESTRA_RECESSO_GIORNI} giorni: rispettata la preferenza '{requested_resolution}' già espressa dal cliente (policy §1).",
-                    "Preparare la risoluzione scelta; spedizione a carico azienda e controllo fisico obbligatorio.",
-                    rule_id=f"doa_within_window_customer_{requested_resolution}",
-                    sections=("§1", "§2", "§5", "§6"),
-                    shipping_payer="company",
-                    evidence_status="received",
-                    physical_validation_required=True,
-                )
-            )
-            return risultato
-        if entro_finestra:
-            risultato.update(
-                _decisione(
-                    "offri_scelta_rimborso_o_swap",
-                    f"DOA entro {FINESTRA_RECESSO_GIORNI} giorni: il cliente sceglie tra rimborso e swap (policy §1).",
-                    "Chiedere esplicitamente la preferenza del cliente.",
-                    rule_id="doa_within_window_choice_required",
-                    sections=("§1", "§5"),
-                    missing_information=["requested_resolution"],
-                    shipping_payer="company",
-                    evidence_status="received",
+                    "rifiuta_fuori_garanzia",
+                    f"Sono trascorsi {giorni} giorni dalla consegna, oltre i {warranty_max_days} previsti per la garanzia (policy §1).",
+                    "Comunicare che la garanzia è scaduta o valutare manualmente un’eccezione.",
+                    rule_id="warranty_window_expired",
+                    sections=("§1", "§8"),
                 )
             )
             return risultato
         risultato.update(
             _decisione(
                 "procedi_swap",
-                f"DOA oltre {FINESTRA_RECESSO_GIORNI} giorni: swap di pari o superiore valore; rimborso solo senza disponibilità (policy §1, §2, §6).",
+                f"Difetto documentato entro la garanzia di {warranty_max_days} giorni: è previsto lo swap; rimborso solo senza disponibilità (policy §1, §2, §6).",
                 "Verificare disponibilità del sostitutivo; spedizione a carico azienda e controllo fisico obbligatorio.",
                 rule_id="doa_warranty_swap",
                 sections=("§1", "§2", "§5", "§6"),
@@ -432,7 +422,6 @@ def applica_regole(
                 replacement_value="equal_or_higher",
                 refund_if_no_replacement_stock=True,
                 physical_validation_required=True,
-                unresolved_policy="warranty_max_days",
             )
         )
         return risultato
@@ -516,7 +505,7 @@ def _run_scenari() -> None:
             ),
         ),
         (
-            "DOA con prove, entro 14 gg -> offri_scelta_rimborso_o_swap",
+            "DOA con prove, entro 2 anni -> procedi_swap",
             dict(
                 categoria="doa",
                 numero_ordine="#1001",

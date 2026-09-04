@@ -63,7 +63,7 @@ class RuleEngineTests(unittest.TestCase):
         missing = self.decide("doa", confidence=0.95, prove_fornite=False)
         received = self.decide("doa", confidence=0.95, prove_fornite=True)
         self.assertEqual("chiedi_foto_video", missing["esito_proposto"])
-        self.assertEqual("offri_scelta_rimborso_o_swap", received["esito_proposto"])
+        self.assertEqual("procedi_swap", received["esito_proposto"])
 
     def test_low_confidence_escalates(self):
         result = self.decide("recesso", confidence=0.60)
@@ -74,12 +74,12 @@ class RuleEngineTests(unittest.TestCase):
         self.assertEqual("procedi_rimborso", result["esito_proposto"])
         self.assertEqual("attention", result["review_level"])
 
-    def test_doa_respects_explicit_refund_choice(self):
+    def test_doa_uses_swap_even_when_customer_asks_for_refund(self):
         result = self.decide(
             "doa", confidence=0.95, prove_fornite=True,
             requested_resolution="refund",
         )
-        self.assertEqual("procedi_rimborso", result["esito_proposto"])
+        self.assertEqual("procedi_swap", result["esito_proposto"])
 
     def test_doa_respects_explicit_swap_choice(self):
         result = self.decide(
@@ -87,6 +87,16 @@ class RuleEngineTests(unittest.TestCase):
             requested_resolution="swap",
         )
         self.assertEqual("procedi_swap", result["esito_proposto"])
+
+    def test_doa_outside_two_year_warranty_is_rejected(self):
+        result = self.decide(
+            "doa",
+            confidence=0.95,
+            prove_fornite=True,
+            delivery={"tracking": "TEST", "delivered_at": "2024-07-20"},
+        )
+        self.assertEqual("rifiuta_fuori_garanzia", result["esito_proposto"])
+        self.assertFalse(result["within_warranty"])
 
     def test_withdrawal_exposes_shipping_and_inspection_rules(self):
         result = self.decide("recesso", confidence=0.95)

@@ -110,6 +110,7 @@ NEEDS_INFORMATION_OUTCOMES = {
 REJECTION_OUTCOMES = {
     "rifiuta_recesso_prodotto_escluso",
     "rifiuta_fuori_finestra",
+    "rifiuta_fuori_garanzia",
 }
 
 LABEL_OUTCOMES = {"procedi_rimborso", "procedi_swap"}

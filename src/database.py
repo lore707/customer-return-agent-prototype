@@ -59,6 +59,11 @@ CASE_FIELDS = {
     "source_mode",
     "source_fetched_at",
     "source_payload",
+    "customer_history",
+    "evidence",
+    "integration_state",
+    "replacement_order_number",
+    "guided_step",
     "ai_mode",
     "scenario_slug",
 }
@@ -72,6 +77,11 @@ MIGRATION_COLUMNS = {
     "source_mode": "TEXT",
     "source_fetched_at": "TEXT",
     "source_payload": "TEXT NOT NULL DEFAULT '{}'",
+    "customer_history": "TEXT NOT NULL DEFAULT '{}'",
+    "evidence": "TEXT NOT NULL DEFAULT '{}'",
+    "integration_state": "TEXT NOT NULL DEFAULT '{}'",
+    "replacement_order_number": "TEXT",
+    "guided_step": "INTEGER NOT NULL DEFAULT 0",
     "ai_mode": "TEXT",
     "scenario_slug": "TEXT",
     "policy_decision": "TEXT NOT NULL DEFAULT '{}'",
@@ -186,6 +196,9 @@ def create_case(data: dict, path: str | Path | None = None) -> dict:
     }
     values["ai_classification"] = _json_value(values.get("ai_classification", {}))
     values["source_payload"] = _json_value(values.get("source_payload", {}))
+    values["customer_history"] = _json_value(values.get("customer_history", {}))
+    values["evidence"] = _json_value(values.get("evidence", {}))
+    values["integration_state"] = _json_value(values.get("integration_state", {}))
     values["policy_decision"] = _json_value(values.get("policy_decision", {}))
     columns = [
         "id",
@@ -276,7 +289,14 @@ def find_open_case(
 
 def _row_to_case(row: sqlite3.Row) -> dict:
     result = dict(row)
-    for field in ("ai_classification", "source_payload", "policy_decision"):
+    for field in (
+        "ai_classification",
+        "source_payload",
+        "policy_decision",
+        "customer_history",
+        "evidence",
+        "integration_state",
+    ):
         try:
             result[field] = json.loads(result.get(field) or "{}")
         except json.JSONDecodeError:
@@ -304,6 +324,13 @@ def clear_demo_cases(path: str | Path | None = None) -> int:
             "DELETE FROM return_cases WHERE scenario_slug IS NOT NULL"
         )
         return cursor.rowcount
+
+
+def delete_case(case_id: str, path: str | Path | None = None) -> bool:
+    """Elimina una singola pratica demo e i record collegati in cascata."""
+    with session(path) as conn:
+        cursor = conn.execute("DELETE FROM return_cases WHERE id = ?", (case_id,))
+        return cursor.rowcount > 0
 
 
 def list_cases(
@@ -494,6 +521,9 @@ def update_case(
         clean["ai_classification"] = _json_value(clean["ai_classification"])
     if "source_payload" in clean:
         clean["source_payload"] = _json_value(clean["source_payload"])
+    for field in ("customer_history", "evidence", "integration_state"):
+        if field in clean:
+            clean[field] = _json_value(clean[field])
     if "policy_decision" in clean:
         clean["policy_decision"] = _json_value(clean["policy_decision"])
     clean["updated_at"] = utc_now()

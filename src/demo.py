@@ -374,6 +374,11 @@ def ensure_showcase(*, path=None) -> list[dict]:
     cases = []
     for scenario in SCENARIOS:
         existing = database.get_case_by_scenario(scenario["slug"], path)
+        if existing and (existing.get("policy_decision") or {}).get(
+            "policy_version"
+        ) != rules.POLICY["version"]:
+            database.delete_case(existing["id"], path)
+            existing = None
         cases.append(existing or create_scenario(scenario, path=path))
     return cases
 

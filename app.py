@@ -20,6 +20,7 @@ import conversation  # noqa: E402
 import database  # noqa: E402
 import demo  # noqa: E402
 import domain  # noqa: E402
+import guided_demo  # noqa: E402
 import policy_config  # noqa: E402
 import policy_import  # noqa: E402
 import return_shipping  # noqa: E402
@@ -274,28 +275,42 @@ def _case_or_404(case_id: str):
 def index():
     _ensure_demo_showcase()
     _apply_policy_timeouts()
-    filters = {
-        "status": (request.args.get("status") or "").strip() or None,
-        "reason": (request.args.get("reason") or "").strip() or None,
-        "query": (request.args.get("q") or "").strip() or None,
-    }
-    cases = database.list_cases(**filters)
-    scenario_cards = []
-    if DEMO_MODE:
-        for scenario in demo.SCENARIOS:
-            scenario_cards.append(
-                {**scenario, "case": database.get_case_by_scenario(scenario["slug"])}
-            )
-    return render_template(
-        "index.html",
-        cases=cases,
-        metrics=database.analytics(),
-        filters=filters,
-        statuses=[status.value for status in domain.CaseStatus],
-        status_labels=domain.STATUS_LABELS,
-        reasons=sorted({case["return_reason"] for case in database.list_cases()}),
-        scenarios=scenario_cards,
-    )
+    return render_template("index.html")
+
+
+@app.get("/demo/<scenario_slug>")
+def guided_demo_view(scenario_slug: str):
+    """Presenta uno dei due workflow guidati principali."""
+    scenario = guided_demo.get_scenario(scenario_slug)
+    if scenario is None:
+        return render_template("404.html"), 404
+    return render_template("guided_demo.html", scenario=scenario)
+
+
+@app.post("/api/guided-demo/<scenario_slug>/start")
+def start_guided_demo(scenario_slug: str):
+    try:
+        return_case = guided_demo.start(scenario_slug)
+    except KeyError:
+        return jsonify({"errore": "Demo guidata non trovata."}), 404
+    except Exception:  # noqa: BLE001 - non esporre dettagli interni nella demo pubblica
+        logger.exception("Impossibile avviare la demo guidata")
+        return jsonify({"errore": "Impossibile preparare la demo guidata."}), 500
+    return jsonify(guided_demo.payload(return_case))
+
+
+@app.post("/api/guided-demo/cases/<case_id>/next")
+def advance_guided_demo(case_id: str):
+    try:
+        return_case = guided_demo.advance(case_id)
+    except KeyError:
+        return jsonify({"errore": "Pratica guidata non trovata."}), 404
+    except (ValueError, domain.InvalidTransition) as exc:
+        return jsonify({"errore": str(exc)}), 409
+    except Exception:  # noqa: BLE001
+        logger.exception("Impossibile avanzare la demo guidata")
+        return jsonify({"errore": "Impossibile avanzare la demo guidata."}), 500
+    return jsonify(guided_demo.payload(return_case))
 
 
 @app.get("/dashboard")
@@ -454,8 +469,8 @@ def policies():
         defective = policy["defective_product"]
         rules_view = [
             ("Prove richieste", ", ".join(defective["evidence_required"])),
-            ("Difetto nei 14 giorni", "Rimborso o sostituzione"),
-            ("Difetto oltre 14 giorni", "Sostituzione"),
+            ("Finestra garanzia", f"{defective['warranty_max_days']} giorni dalla consegna"),
+            ("Difetto documentato", "Sostituzione"),
             ("Danno da trasporto", "Rimborso, spedizione azienda"),
             ("Articolo errato", "Revisione umana"),
             ("Bassa confidenza", f"Escalation sotto {policy['escalation']['low_confidence_below']:.0%}"),
@@ -479,7 +494,7 @@ def policies():
         "exceptions": [
             ("Difetto", "DOA, danno o errore"),
             ("Evidence", "Foto e video"),
-            ("Warranty", "Finestra applicabile"),
+            ("Warranty", "Entro 2 anni"),
             ("Resolution", "Swap, rimborso o stop"),
             ("Approval", "Revisione operatore"),
         ],

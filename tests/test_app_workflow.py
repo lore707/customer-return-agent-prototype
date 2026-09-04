@@ -150,12 +150,13 @@ class AppWorkflowTests(unittest.TestCase):
 
         timeline = database.get_timeline(case_id)
         self.assertGreaterEqual(len(timeline), 10)
-        dashboard = self.client.get("/")
-        self.assertEqual(200, dashboard.status_code)
-        self.assertIn(case_id.encode(), dashboard.data)
+        landing = self.client.get("/")
+        self.assertEqual(200, landing.status_code)
+        self.assertIn(b"Guarda il caso DOA", landing.data)
         register = self.client.get("/database")
         self.assertEqual(200, register.status_code)
         self.assertIn(b"Database resi", register.data)
+        self.assertIn(case_id.encode(), register.data)
         self.assertGreaterEqual(len(database.get_case_messages(case_id)), 2)
 
     def test_confirmation_requires_server_side_case(self):
@@ -248,7 +249,9 @@ class AppWorkflowTests(unittest.TestCase):
     def test_separate_portfolio_sections_render(self):
         app.demo.ensure_showcase()
         expectations = {
-            "/": b"L\xe2\x80\x99AI prepara ogni caso di reso",
+            "/": b"Dal messaggio del cliente",
+            "/demo/doa": b"Dal problema alla sostituzione",
+            "/demo/recesso": b"Dalla richiesta al rimborso",
             "/dashboard": b"Dashboard resi",
             "/workbench": b"AI draft response",
             "/policies": b"Flusso decisionale",

@@ -4,28 +4,37 @@
 
 ```mermaid
 flowchart LR
-    C[Messaggio cliente] --> AI[Claude: estrazione]
-    AI --> SH[Shopify Admin API]
-    SH --> RE[Rule engine Python]
-    RE --> DB[(ReturnCase SQLite)]
-    RE --> DR[Claude: bozza]
-    DR --> H[Approvazione umana]
-    H --> MS[Spedizione mock]
-    MS --> WH[Controllo fisico]
-    WH --> DB
-    DB --> UI[Dashboard + audit trail]
+    C[Messaggio cliente] --> SH[Shopify: ordine + storico]
+    SH --> AI[Claude: estrazione + bozza]
+    AI --> RE[Policy: 14 giorni / 730 giorni]
+    RE --> EV[Foto e video]
+    EV --> H[Approvazione umana]
+    H --> SC[Sendcloud mock]
+    SC --> WH[Tracking + controllo fisico]
+    WH --> RS[Swap o rimborso]
+    RS --> MK[Make + logistica mock]
+    RS --> DB[(ReturnCase + audit SQLite)]
+    DB --> UI[Demo guidata + sandbox]
 ```
 
 Responsabilità separate:
 
 - **Claude** struttura il linguaggio naturale e prepara il testo;
 - **Shopify** è la fonte dei dati di ordine, cliente e prodotto;
+- **Customer 360** raccoglie ordini, resi e sostituzioni precedenti;
 - **Rule engine** decide l'idoneità secondo `policies.md`;
+- **Evidence Center** separa allegati dichiarati e controllo fisico;
 - **Operatore** approva il messaggio e valida fisicamente il reso;
 - **SQLite** conserva pratica, conversazione, stato e audit trail;
-- **Mock shipping provider** simula etichetta e tracking senza azioni esterne.
+- **Mock integrations** simulano etichetta, tracking, azioni Shopify, Make e logistica.
 
 ## Modalità portfolio
+
+Le route `/demo/doa` e `/demo/recesso` avviano due pratiche dedicate. Il
+browser richiama un endpoint di avanzamento; il server applica le transizioni,
+aggiorna Customer 360, Evidence Center e stato delle integrazioni e registra
+ogni evento. La conclusione è quindi ispezionabile nel Workbench e nel Database,
+non è una semplice animazione frontend.
 
 La dashboard può essere aperta senza credenziali. Sei scenari riproducibili
 usano il manifest creato durante l'esperimento sullo store Shopify test:
@@ -73,9 +82,9 @@ transizione manuale `RETURN_VALIDATED`.
 
 ## Verifica
 
-La suite contiene 28 test automatici per regole, confidence, scadenze,
-persistenza, memoria conversazionale, reset selettivo degli scenari, ispezione
-fisica e workflow completo.
+La suite contiene 41 test automatici per regole, garanzia, confidence, scadenze,
+persistenza, memoria conversazionale, reset selettivo, ispezione fisica e i due
+workflow guidati completi.
 
 ```powershell
 python -m unittest discover -s tests -v
