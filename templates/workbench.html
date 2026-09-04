@@ -19,14 +19,23 @@
     <div class="copilot-start-icon" aria-hidden="true">✦</div>
     <span class="section-label">Nuova analisi</span>
     <h2 id="workbench-title">Quale richiesta vuoi trasformare in un caso?</h2>
-    <p>Scegli il workflow e incolla una comunicazione o una nota. Il sistema raccoglierà solo il contesto necessario per quel processo.</p>
-    <div class="workflow-picker" role="group" aria-label="Seleziona il workflow">
+    {% if configured_operation %}
+      <p>Incolla una comunicazione o una nota. Verrà analizzata usando l’operazione e il playbook configurati dalla tua azienda.</p>
+      <div class="configured-operation-card">
+        <span>PLAYBOOK ATTIVO</span>
+        <div><strong>{{ workflows[selected_workflow].label }}</strong><small>{{ workflows[selected_workflow].description }}</small></div>
+        <a href="{{ url_for('playbooks') }}">Review →</a>
+      </div>
+    {% else %}
+      <p>Questa è la sandbox dimostrativa. Scegli un workflow e incolla una comunicazione o una nota.</p>
+    <div class="workflow-picker" role="group" aria-label="Seleziona il workflow demo">
       {% for key, item in workflows.items() %}
         <button type="button" data-workflow="{{ key }}" class="{% if key == selected_workflow %}active{% endif %}">
           <span>0{{ loop.index }}</span><strong>{{ item.label }}</strong><small>{{ item.short }}</small>
         </button>
       {% endfor %}
     </div>
+    {% endif %}
     <form id="analyzeForm" class="copilot-composer">
       <textarea id="initialMessage" maxlength="5000" required placeholder="Incolla una richiesta, un’email o una nota operativa…"></textarea>
       <div class="copilot-composer-foot">
@@ -34,7 +43,7 @@
         <button class="button primary" type="submit">Crea caso <span aria-hidden="true">→</span></button>
       </div>
     </form>
-    <div class="copilot-examples"><span>Prova un esempio</span>{% for workflow_key, item in workflows.items() %}{% for label, copy in item.examples %}<button type="button" data-example="{{ copy }}" data-example-workflow="{{ workflow_key }}" {% if workflow_key != selected_workflow %}class="hidden"{% endif %}>{{ label }}</button>{% endfor %}{% endfor %}</div>
+    {% if not configured_operation %}<div class="copilot-examples"><span>Prova un esempio</span>{% for workflow_key, item in workflows.items() %}{% for label, copy in item.examples %}<button type="button" data-example="{{ copy }}" data-example-workflow="{{ workflow_key }}" {% if workflow_key != selected_workflow %}class="hidden"{% endif %}>{{ label }}</button>{% endfor %}{% endfor %}</div>{% endif %}
   </section>
 
   {% if recent_cases %}
@@ -43,7 +52,7 @@
       <div class="copilot-recent-grid">
         {% for item in recent_cases %}
           <a href="{{ url_for('workbench_case', case_id=item.id) }}">
-            <span>{{ workflows.get(item.workflow_key or 'customer_care').label }} · {{ category_labels.get(item.return_reason, item.return_reason) }}</span>
+            <span>{{ workflow_labels.get(item.workflow_key or 'customer_care', 'Operational workflow') }} · {{ category_labels.get(item.return_reason, item.return_reason.replace('_', ' ')|title) }}</span>
             <strong>{{ item.customer_message|truncate(82) }}</strong>
             <small>{{ item.id }} · {{ status_labels.get(item.status, item.status) }}</small>
           </a>

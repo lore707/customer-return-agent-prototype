@@ -1,125 +1,96 @@
 # Ops Copilot
 
-Portfolio prototype di un copilot per workflow operativi guidati da procedure.
-Trasforma una richiesta non strutturata in un caso, raccoglie il contesto
-mancante, applica un playbook deterministico e prepara la prossima azione per
-la revisione umana.
-
-Non è legato a Shopify e non è un chatbot generico. Il suo perimetro è:
-
-```text
-Richiesta → Contesto → Playbook → Proposta → Human gate → Esito → Insight
-```
-
-Il prototipo funziona senza collegare caselle email, CRM, store o strumenti
-aziendali e non esegue azioni esterne.
-
-## Quattro sezioni, una memoria
-
-- **Workbench** crea e aggiorna i casi operativi;
-- **Casi** conserva richiesta, fatti, decisione, feedback ed esito;
-- **Analytics** aggrega esclusivamente i dati salvati nei casi;
-- **Playbooks** organizza policy, SOP e procedure in regole revisionabili.
-
-## Workflow inclusi
-
-Il motore è orizzontale, ma viene dimostrato attraverso tre template verticali.
-
-### Customer care
-
-Classifica e gestisce recesso, garanzia, danni, articoli errati, spedizioni,
-pagamenti, informazioni prodotto e reclami. Può preparare una risposta da
-revisionare e registrare esiti come rimborso, sostituzione o escalation.
-
-### Agenzia & delivery
-
-Gestisce nuovi progetti, cambi di scope, approvazioni e blocchi di delivery.
-Verifica brief, scadenza, budget, impatto e responsabilità; produce una risposta,
-un brief o il prossimo handoff operativo.
-
-### Operations interne
-
-Gestisce richieste di acquisto, accessi, incidenti ed eccezioni di processo.
-Verifica motivazione, approvazione, priorità, impatto e owner; propone
-assegnazione, escalation o avvio del processo.
-
-## Workbench
-
-L’operatore seleziona il workflow e incolla una richiesta, un’email o una nota.
-Il sistema:
-
-1. rimuove email, telefono e riferimenti comuni prima del salvataggio;
-2. classifica il tipo di richiesta all’interno del workflow scelto;
-3. chiede un solo fatto operativo alla volta;
-4. applica una regola deterministica del playbook;
-5. prepara un output modificabile e copiabile;
-6. richiede all’operatore di registrare l’esito realmente avvenuto.
-
-La classificazione e la redazione sono dimostrative e locali. Non viene
-effettuato alcun invio o aggiornamento esterno.
-
-## Casi e Analytics
-
-Ogni caso collega:
-
-- workflow e tipo di richiesta;
-- testo con redazione base;
-- fatti verificati e informazioni mancanti;
-- regola applicata e motivazione;
-- output usato, modifiche ed esito;
-- audit trail degli eventi.
-
-Un dataset di 12 casi sintetici, distribuiti sui tre workflow, viene creato in
-modo idempotente ed è sempre marcato come demo. Analytics calcola dai casi:
-
-- utilizzo per workflow;
-- tipi di richiesta più frequenti;
-- esiti reali;
-- informazioni richieste più spesso;
-- modifiche alle proposte;
-- escalation e regole applicate;
-- suggerimenti da valutare nei Playbooks.
-
-## Playbook Builder
-
-Accetta appunti liberi, TXT/MD, PDF, DOCX o un URL HTTPS. Distingue procedure
-customer care, agency delivery e operations interne, poi produce una bozza
-strutturata:
+Prototipo di Operational Decision Intelligence configurato sulle procedure di
+una singola azienda. Non impone un workflow di customer care, agenzia o back
+office: l’azienda descrive il proprio contesto, l’operazione da migliorare e la
+conoscenza disponibile; il sistema costruisce un primo modello operativo
+esplicito e verificabile.
 
 ```text
-documento grezzo
-→ estrazione di regole, responsabilità ed eccezioni
-→ documento operativo ordinato
-→ valori modificabili
-→ conferma delle ambiguità
-→ versione pubblicata in libreria
+Company context + operation + knowledge
+→ context/privacy layer
+→ structured operational model
+→ smart clarifications
+→ synthetic tests
+→ active human-guided workspace
 ```
 
-I tre playbook inclusi nel codice alimentano il motore. Le versioni create dal
-builder vengono salvate e versionate, ma non sostituiscono automaticamente le
-regole attive.
+Non sono necessarie integrazioni, credenziali Shopify o chiavi AI. Il prototipo
+non esegue azioni esterne.
+
+## Onboarding 0–8
+
+Il percorso `/onboarding` salva progressivamente ogni passaggio in SQLite:
+
+0. benvenuto e creazione del workspace;
+1. contesto aziendale;
+2. prima operazione e obiettivo;
+3. documenti o note operative facoltativi;
+4. strutturazione del modello;
+5. chiarimenti generati soltanto sui punti non univoci;
+6. review manageriale di case type, campi, regole ed escalation;
+7. valutazione di tre scenari sintetici;
+8. attivazione del workspace con un livello di completezza non forzato al 100%.
+
+Gli upload supportano PDF, DOCX, TXT e MD. Il contenuto resta server-side; il
+browser riceve soltanto metadati e stato dell’elaborazione.
+
+## Modello operativo generico
+
+Gli oggetti principali sono:
+
+- `Workspace` e relativo contesto aziendale;
+- `Operation` e modello operativo attivo;
+- `KnowledgeSource`;
+- `CaseType`, `RequiredField`, `Rule` ed `Escalation`;
+- `Clarification` e `TestScenario`;
+- casi, messaggi, feedback e audit trail già presenti nel prodotto.
+
+Il motore locale produce una configurazione deterministica e coerente. È
+incapsulato dietro `operational_model_service.py`, così un provider AI futuro
+può sostituirlo senza spostare logica nelle pagine o nei controller.
+
+Prima della strutturazione, `context_privacy.py` minimizza il payload, limita la
+quantità di testo e rimuove email, telefoni e segreti comuni. Il confine è:
+
+```text
+raw data → context/privacy layer → model service → structured response → app
+```
+
+## Workspace
+
+- **Workbench** usa l’operazione configurata, raccoglie i campi richiesti dal
+  suo modello e prepara la prossima azione per la conferma umana.
+- **Casi** conserva richiesta minimizzata, fatti, decisione, feedback ed esito.
+- **Analytics** aggrega soltanto i casi appartenenti all’operazione attiva.
+- **Playbooks** mostra scopo, regole, escalation, ambiguità e scenari del
+  modello generato.
+
+Se il setup non è completo al 100%, un indicatore discreto resta disponibile
+nella shell senza bloccare il Workbench. Le decisioni conservano già una
+struttura che in futuro potrà diventare “trasforma questa decisione in regola”.
+
+## Sandbox separata
+
+I precedenti workflow dimostrativi restano disponibili solo come sandbox:
+
+- `/workbench?demo=1`
+- `/cases?demo=1`
+- `/analytics?demo=1`
+- `/playbooks?demo=1`
+- `/demo/doa` e `/demo/recesso`
+
+Non rappresentano più la configurazione di default del prodotto.
 
 ## Architettura
 
-```mermaid
-flowchart LR
-    Request[Richiesta] --> Workflow[Workflow selezionato]
-    Workflow --> Redaction[Redazione identificatori]
-    Redaction --> Intent[Classificazione]
-    Intent --> Facts[Controlli guidati]
-    Facts --> Playbook[Regole deterministiche]
-    Playbook --> Proposal[Proposta operativa]
-    Proposal --> Human[Revisione umana]
-    Human --> Cases[(Casi + audit)]
-    Cases --> Analytics[Analytics interni]
-    Analytics --> Playbooks[Segnali per i playbook]
-```
-
 - Flask serve UI e API;
-- SQLite conserva casi, messaggi, audit, feedback e playbook pubblicati;
-- HTML, CSS e JavaScript non richiedono un frontend framework;
-- il percorso principale non richiede chiavi AI o integrazioni;
-- la demo Shopify/Sendcloud/Make rimane un caso verticale separato e mock.
+- Jinja, CSS e JavaScript implementano il prodotto senza framework frontend;
+- SQLite conserva onboarding, knowledge metadata, modello, test e memoria
+  operativa;
+- il parser documentale gestisce PDF, DOCX, TXT e MD;
+- il cookie `ops_workspace_id` mantiene il workspace demo sullo stesso browser
+  e non costituisce un sistema di autenticazione.
 
 ## Avvio locale
 
@@ -130,60 +101,38 @@ pip install -r requirements.txt
 python app.py
 ```
 
-Apri `http://127.0.0.1:5000/workbench`.
-
-Sezioni principali:
-
-- `/workbench`
-- `/cases`
-- `/analytics`
-- `/playbooks`
-
-Gli endpoint `/policies` e `/database` rimangono come alias compatibili. Le
-demo resi approfondite sono disponibili in `/demo/doa` e `/demo/recesso`.
-
-## Configurazione
-
-Il percorso principale funziona senza variabili segrete. Sono opzionali:
-
-- `DATABASE_PATH`: percorso del database SQLite, default `data/returns.db`;
-- `DEMO_MODE=true`: abilita gli scenari portfolio precedenti;
-- `RETURN_SHIPPING_PROVIDER=mock`: mantiene le spedizioni in simulazione;
-- `ANTHROPIC_API_KEY`, `SHOPIFY_STORE`, `SHOPIFY_TOKEN`: usate soltanto dal
-  precedente esperimento integrato.
-
-Non inserire credenziali o dati personali reali nel prototipo pubblico.
+Apri `http://127.0.0.1:5000` e scegli **Configura la prima operazione**.
 
 ## Test
 
 ```powershell
-python -m unittest discover -s tests -v
+.\venv\Scripts\python.exe -m unittest discover -s tests -v
 ```
 
-La suite copre i tre workflow, il ciclo Workbench–Casi–Analytics–Playbooks,
-redazione, decisioni deterministiche, persistenza, versionamento, state
-machine, simulazioni e compatibilità con le demo resi esistenti.
+La suite copre onboarding end-to-end, persistenza, privacy layer, modello
+generico, Workbench configurato e tutte le regressioni della sandbox.
 
 ## Deploy su Render
 
-`render.yaml` configura un Web Service Flask con Gunicorn:
+`render.yaml` usa:
 
 ```text
 Build: pip install -r requirements.txt
 Start: gunicorn --bind 0.0.0.0:$PORT app:app
 ```
 
-Il piano demo usa un database effimero. Una versione multi-tenant richiederebbe
-autenticazione, PostgreSQL, backup, ruoli e una politica formale di retention.
+Nel piano demo il database può essere effimero. Un SaaS reale richiederebbe
+autenticazione, isolamento tenant, PostgreSQL, object storage, backup, ruoli,
+retention e controlli privacy formali.
 
 ## Limiti dichiarati
 
-- tre workflow preconfigurati, non ancora un builder universale di workflow;
-- nessuna autenticazione o separazione tra organizzazioni;
-- redazione limitata agli identificatori più comuni;
-- nessun invio, upload di allegati o integrazione con strumenti esterni;
-- i nuovi playbook pubblicati non vengono attivati automaticamente;
-- classificazione locale dimostrativa, non un modello addestrato;
-- SQLite e filesystem effimero sono adatti al portfolio, non alla produzione.
+- un solo workspace e una sola operazione per browser nel prototipo;
+- nessuna autenticazione o autorizzazione multi-tenant;
+- motore di strutturazione locale, non un LLM esterno;
+- redazione euristica, non sufficiente per dati reali sensibili;
+- nessuna integrazione o azione esterna;
+- SQLite e filesystem adatti a demo/portfolio, non a produzione distribuita.
 
-Academy e Radar restano volutamente fuori da questa iterazione.
+Academy, Radar e la promozione assistita delle decisioni in nuove regole restano
+estensioni successive.

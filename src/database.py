@@ -943,9 +943,18 @@ def performance_analytics(path: str | Path | None = None) -> dict:
     }
 
 
-def copilot_analytics(path: str | Path | None = None) -> dict:
+def copilot_analytics(
+    path: str | Path | None = None,
+    *,
+    workflow_key: str | None = None,
+) -> dict:
     """Aggrega soltanto la memoria con redazione base creata dal nuovo Workbench."""
-    cases = list_cases(source_mode_prefix="policy_copilot", limit=500, path=path)
+    cases = list_cases(
+        source_mode_prefix="policy_copilot",
+        workflow_key=workflow_key,
+        limit=500,
+        path=path,
+    )
     case_ids = {item["id"] for item in cases}
     total = len(cases)
     category_counts: dict[str, int] = {}

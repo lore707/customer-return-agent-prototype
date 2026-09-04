@@ -30,6 +30,14 @@
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Playbooks</span>
         </a>
       </nav>
+      {% if active_workspace and active_workspace.status == 'completed' and active_workspace.completeness < 100 %}
+      <a class="workspace-setup-card" href="{{ url_for('onboarding', edit=1) }}">
+        <span>SETUP {{ active_workspace.completeness }}%</span>
+        <div><i style="width: {{ active_workspace.completeness }}%"></i></div>
+        <strong>{{ active_operation.name or 'Workspace' }}</strong>
+        <small>Review remaining knowledge gaps →</small>
+      </a>
+      {% endif %}
       <div class="sidebar-foot"><a href="{{ url_for('index') }}">Panoramica</a><span><i class="pulse-dot"></i> Demo safe</span></div>
     </aside>
 

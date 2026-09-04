@@ -143,3 +143,95 @@ CREATE TABLE IF NOT EXISTS policy_documents (
 
 CREATE INDEX IF NOT EXISTS idx_policy_documents_status
     ON policy_documents(status, published_at);
+
+-- Generic tenant configuration. These tables are deliberately independent
+-- from the legacy return demo so the product can model any operation.
+CREATE TABLE IF NOT EXISTS workspaces (
+    id TEXT PRIMARY KEY,
+    company_name TEXT,
+    company_description TEXT,
+    industry TEXT,
+    markets TEXT NOT NULL DEFAULT '[]',
+    business_model TEXT,
+    team_size TEXT,
+    derived_context TEXT NOT NULL DEFAULT '{}',
+    status TEXT NOT NULL DEFAULT 'draft',
+    current_step INTEGER NOT NULL DEFAULT 0,
+    completeness INTEGER NOT NULL DEFAULT 0,
+    active_operation_id TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    completed_at TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_workspaces_status
+    ON workspaces(status, updated_at);
+
+CREATE TABLE IF NOT EXISTS operations (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    name TEXT,
+    description TEXT NOT NULL,
+    objective TEXT NOT NULL,
+    current_process TEXT,
+    status TEXT NOT NULL DEFAULT 'draft',
+    operational_model TEXT NOT NULL DEFAULT '{}',
+    completeness INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_operations_workspace
+    ON operations(workspace_id, updated_at);
+
+CREATE TABLE IF NOT EXISTS knowledge_sources (
+    id TEXT PRIMARY KEY,
+    workspace_id TEXT NOT NULL,
+    operation_id TEXT NOT NULL,
+    name TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    content TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'ready',
+    metadata TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    FOREIGN KEY(workspace_id) REFERENCES workspaces(id) ON DELETE CASCADE,
+    FOREIGN KEY(operation_id) REFERENCES operations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_knowledge_sources_operation
+    ON knowledge_sources(operation_id, created_at);
+
+CREATE TABLE IF NOT EXISTS clarifications (
+    id TEXT PRIMARY KEY,
+    operation_id TEXT NOT NULL,
+    issue_type TEXT NOT NULL,
+    question TEXT NOT NULL,
+    options TEXT NOT NULL DEFAULT '[]',
+    status TEXT NOT NULL DEFAULT 'open',
+    answer TEXT,
+    details TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    resolved_at TEXT,
+    FOREIGN KEY(operation_id) REFERENCES operations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_clarifications_operation_status
+    ON clarifications(operation_id, status);
+
+CREATE TABLE IF NOT EXISTS test_scenarios (
+    id TEXT PRIMARY KEY,
+    operation_id TEXT NOT NULL,
+    title TEXT NOT NULL,
+    input_summary TEXT NOT NULL,
+    recommendation TEXT NOT NULL,
+    rationale TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending',
+    feedback TEXT,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    FOREIGN KEY(operation_id) REFERENCES operations(id) ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_test_scenarios_operation
+    ON test_scenarios(operation_id, status);

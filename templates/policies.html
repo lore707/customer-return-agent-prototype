@@ -4,7 +4,7 @@
 {% block page_kicker %}Procedure & governance{% endblock %}
 {% block page_title %}Playbooks{% endblock %}
 {% block page_subtitle %}Policy, SOP e procedure trasformate in controlli operativi chiari e verificabili.{% endblock %}
-{% block header_actions %}<button class="button primary" id="openPolicyImport" type="button">+ Nuovo playbook</button>{% endblock %}
+{% block header_actions %}{% if configured_operation %}<a class="button primary" href="{{ url_for('onboarding', edit=1) }}">Refine workspace</a>{% else %}<button class="button primary" id="openPolicyImport" type="button">+ Nuovo playbook</button>{% endif %}{% endblock %}
 {% block page_class %}copilot-policies{% endblock %}
 
 {% block content %}
@@ -15,10 +15,18 @@
   <div><span>04</span><strong>Execute</strong><small>il Workbench applica le regole</small></div>
 </section>
 
+{% if configured_operation and configured_operation.completeness < 100 %}
+<section class="playbook-setup-progress">
+  <div><span class="section-label">Workspace setup</span><h2>{{ configured_operation.completeness }}% complete</h2><p>Il Workbench è già utilizzabile. Questi elementi migliorano la qualità del playbook senza bloccare il team.</p></div>
+  <ul>{% for item in configured_operation.operational_model.remaining_setup[:3] %}<li><i></i>{{ item }}</li>{% else %}<li><i></i>Aggiungi nuove fonti quando il processo evolve.</li>{% endfor %}</ul>
+  <a class="button ghost" href="{{ url_for('onboarding', edit=1) }}">Continue setup</a>
+</section>
+{% endif %}
+
 <section class="policy-kpis">
-  <article><span>Playbook attivi</span><strong>3</strong><small>tre workflow già utilizzabili</small></article>
+  <article><span>Playbook attivi</span><strong>{{ active_count }}</strong><small>configurati per questo workspace</small></article>
   <article><span>Regole operative</span><strong>{{ rule_count }}</strong><small>campi espliciti e verificabili</small></article>
-  <article><span>Versioni personalizzate</span><strong>{{ custom_count }}</strong><small>pubblicate con revisione umana</small></article>
+  <article><span>Completamento setup</span><strong>{% if configured_operation %}{{ configured_operation.completeness }}%{% else %}—{% endif %}</strong><small>migliorabile senza bloccare il lavoro</small></article>
   <article><span>Casi valutati</span><strong>{{ decision_count }}</strong><small>evidenze disponibili negli Analytics</small></article>
 </section>
 
@@ -80,7 +88,7 @@
     <div class="policy-simple-panel" data-policy-panel="simulation">
       <section class="policy-simulator-simple">
         <div><span class="section-label">Test senza effetti</span><h3>Simula uno scenario</h3><p>La simulazione usa le stesse regole del Workbench e non salva alcun caso.</p></div>
-        <label>Scenario<select id="simulationScenario"><optgroup label="Customer care"><option value="recesso_ok">Recesso · entro 14 giorni</option><option value="doa_missing">Garanzia · prove mancanti</option></optgroup><optgroup label="Agenzia & delivery"><option value="agency_project_ready">Nuovo progetto · pronto per il brief</option><option value="agency_change_high">Cambio scope · impatto alto</option></optgroup><optgroup label="Operations interne"><option value="internal_purchase">Acquisto · approvato</option><option value="internal_incident">Incidente · attività bloccata</option></optgroup></select></label>
+        <label>Scenario<select id="simulationScenario">{% if configured_operation %}{% for scenario in configured_scenarios %}<option value="{{ scenario.id }}">{{ scenario.title }}</option>{% endfor %}{% else %}<optgroup label="Customer care"><option value="recesso_ok">Recesso · entro 14 giorni</option><option value="doa_missing">Garanzia · prove mancanti</option></optgroup><optgroup label="Agenzia & delivery"><option value="agency_project_ready">Nuovo progetto · pronto per il brief</option><option value="agency_change_high">Cambio scope · impatto alto</option></optgroup><optgroup label="Operations interne"><option value="internal_purchase">Acquisto · approvato</option><option value="internal_incident">Incidente · attività bloccata</option></optgroup>{% endif %}</select></label>
         <button class="button primary" id="runPolicySimulation" type="button">Esegui simulazione</button>
         <div class="policy-simulation-result hidden" id="simulationResult"></div>
       </section>

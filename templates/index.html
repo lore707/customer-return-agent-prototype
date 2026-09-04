@@ -17,28 +17,28 @@
   <header class="landing-nav">
     <a class="landing-brand" href="{{ url_for('index') }}"><span>O</span><strong>Ops Copilot</strong></a>
     <nav><a href="#workflow">Come funziona</a><a href="#use-cases">Workflow</a><a href="#product">Prodotto</a></nav>
-    <a class="button primary" href="{{ url_for('workbench') }}">Prova il Workbench <span>→</span></a>
+    <a class="button primary" href="{{ url_for('workspace_entry') }}">Configura il workspace <span>→</span></a>
   </header>
 
   <main class="landing-main">
     <section class="landing-hero">
       <div class="landing-hero-copy">
         <span class="landing-eyebrow"><i></i> AI-assisted operational workflows</span>
-        <h1>Dalla richiesta<br><em>alla prossima azione.</em></h1>
-        <p>Un copilot che trasforma comunicazioni e note disordinate in casi strutturati, applica i playbook aziendali e prepara il prossimo passo per l’approvazione umana.</p>
-        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workbench') }}">Analizza una richiesta <span>→</span></a><a class="button ghost large" href="{{ url_for('playbooks') }}">Esplora i playbook</a></div>
-        <div class="landing-trust"><span>Nessuna integrazione richiesta</span><b>·</b><span>Tre workflow pronti</span><b>·</b><span>Human approval</span><b>·</b><span>Demo sicura</span></div>
+        <h1>Le tue procedure.<br><em>Un sistema operativo.</em></h1>
+        <p>Descrivi come lavora la tua azienda. Il sistema struttura procedure, regole, informazioni necessarie ed escalation in un playbook verificabile dagli operatori.</p>
+        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workspace_entry') }}">Configura la prima operazione <span>→</span></a><a class="button ghost large" href="{{ url_for('workbench', demo=1) }}">Esplora la demo</a></div>
+        <div class="landing-trust"><span>Nessuna integrazione richiesta</span><b>·</b><span>Configurazione aziendale</span><b>·</b><span>Human approval</span><b>·</b><span>Dati minimizzati</span></div>
       </div>
 
       <div class="landing-product-preview">
-        <div class="preview-top"><div><span class="preview-logo">O</span><strong>Nuovo caso · Agenzia</strong></div><span class="preview-live"><i></i> Playbook attivo</span></div>
-        <div class="customer-bubble"><small>RICHIESTA</small><p>Vorremmo aggiungere una seconda lingua al sito senza spostare la consegna.</p></div>
-        <div class="preview-flow"><div><span class="preview-node">01</span><strong>Tipo</strong><small>Cambio scope</small></div><b>→</b><div><span class="preview-node">02</span><strong>Contesto</strong><small>3 controlli</small></div><b>→</b><div><span class="preview-node">03</span><strong>Regola</strong><small>CHG-02</small></div></div>
-        <div class="decision-card"><small>PROSSIMA AZIONE</small><strong>Valutare impatto su tempi e costi</strong><p>La modifica supera il percorso standard.</p><span>Bozza pronta · approvazione umana</span></div>
+        <div class="preview-top"><div><span class="preview-logo">O</span><strong>Workspace configuration</strong></div><span class="preview-live"><i></i> Draft model</span></div>
+        <div class="customer-bubble"><small>COME LAVORIAMO</small><p>Le richieste arrivano via email, un coordinatore raccoglie i dati mancanti e assegna il lavoro al responsabile.</p></div>
+        <div class="preview-flow"><div><span class="preview-node">01</span><strong>Casi</strong><small>3 percorsi</small></div><b>→</b><div><span class="preview-node">02</span><strong>Contesto</strong><small>5 campi</small></div><b>→</b><div><span class="preview-node">03</span><strong>Regole</strong><small>7 controlli</small></div></div>
+        <div class="decision-card"><small>MODELLO GENERATO</small><strong>Gestione richieste operative</strong><p>Standard, incompleto ed eccezione con ownership esplicita.</p><span>Pronto per test e revisione umana</span></div>
       </div>
     </section>
 
-    <section class="landing-proof-strip"><div><strong>3</strong><span>workflow operativi</span></div><div><strong>12</strong><span>casi dimostrativi</span></div><div><strong>100%</strong><span>decisioni con human gate</span></div><div><strong>0</strong><span>azioni esterne automatiche</span></div></section>
+    <section class="landing-proof-strip"><div><strong>1</strong><span>operazione per iniziare</span></div><div><strong>0</strong><span>template imposti</span></div><div><strong>100%</strong><span>decisioni con human gate</span></div><div><strong>0</strong><span>azioni esterne automatiche</span></div></section>
 
     <section class="landing-section" id="workflow">
       <div class="landing-section-head"><span class="landing-eyebrow">Un motore, non un chatbot</span><h2>La richiesta entra. Il processo diventa visibile.</h2><p>Il sistema non si limita a scrivere: individua il workflow, raccoglie i fatti necessari e rende verificabile la regola che guida la proposta.</p></div>
@@ -46,11 +46,11 @@
     </section>
 
     <section class="landing-section landing-use-cases" id="use-cases">
-      <div class="landing-section-head"><span class="landing-eyebrow">Template verticali</span><h2>La stessa grammatica, processi diversi.</h2><p>Il nucleo resta stabile; cambiano intenti, informazioni richieste, regole ed esiti.</p></div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Configurazione, non template</span><h2>Il software parte dalla tua azienda.</h2><p>Non scegli un settore preconfezionato: descrivi obiettivo e processo reale, aggiungi le fonti disponibili e confermi solo le ambiguità che cambiano una decisione.</p></div>
       <div class="verification-grid three-workflow-cards">
-        <a href="{{ url_for('workbench', workflow='customer_care') }}"><span>01</span><h3>Customer care</h3><p>Assistenza, garanzia, recesso, spedizioni e pagamenti.</p><b>Prova il workflow →</b></a>
-        <a href="{{ url_for('workbench', workflow='agency_ops') }}"><span>02</span><h3>Agenzia & delivery</h3><p>Nuovi progetti, change request, approvazioni e blocchi.</p><b>Prova il workflow →</b></a>
-        <a href="{{ url_for('workbench', workflow='internal_ops') }}"><span>03</span><h3>Operations interne</h3><p>Acquisti, accessi, incidenti ed eccezioni aziendali.</p><b>Prova il workflow →</b></a>
+        <a href="{{ url_for('workspace_entry') }}"><span>01</span><h3>Company context</h3><p>Business, mercato e obiettivo operativo danno significato alle procedure.</p><b>Inizia il setup →</b></a>
+        <a href="{{ url_for('workspace_entry') }}"><span>02</span><h3>Knowledge structure</h3><p>SOP, note e policy diventano campi, regole, eccezioni ed escalation.</p><b>Vedi il flusso →</b></a>
+        <a href="{{ url_for('workspace_entry') }}"><span>03</span><h3>Playbook test</h3><p>Casi sintetici rendono visibile ciò che il sistema consiglierebbe prima dell’uso.</p><b>Configura un’operazione →</b></a>
       </div>
     </section>
 

@@ -1,4 +1,4 @@
-"""Return Operations MVP: intake, pratiche persistenti e approvazione umana."""
+"""Ops Copilot: configurable operational decisions with human approval."""
 
 import json
 import logging
@@ -8,7 +8,7 @@ import time
 from datetime import date, datetime, timezone
 from pathlib import Path
 
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, jsonify, make_response, redirect, render_template, request, url_for
 from dotenv import load_dotenv
 
 ROOT = Path(__file__).resolve().parent
@@ -17,10 +17,14 @@ load_dotenv(ROOT / ".env")
 
 import agent  # noqa: E402
 import conversation  # noqa: E402
+import configured_workflow  # noqa: E402
 import database  # noqa: E402
 import demo  # noqa: E402
 import domain  # noqa: E402
 import guided_demo  # noqa: E402
+import context_privacy  # noqa: E402
+import onboarding_store  # noqa: E402
+import operational_model_service  # noqa: E402
 import policy_config  # noqa: E402
 import policy_import  # noqa: E402
 import return_shipping  # noqa: E402
@@ -36,6 +40,7 @@ database.init_database()
 
 MAX_MESSAGE_LENGTH = 5_000
 DEMO_MODE = os.getenv("DEMO_MODE", "true").strip().lower() in {"1", "true", "yes", "on"}
+WORKSPACE_COOKIE = "ops_workspace_id"
 
 
 def _has_live_credentials() -> bool:
@@ -65,6 +70,8 @@ def _apply_policy_timeouts() -> None:
 @app.context_processor
 def inject_app_shell():
     live_available = _has_live_credentials()
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    operation = onboarding_store.active_operation(workspace["id"]) if workspace else None
     return {
         "demo_mode": DEMO_MODE,
         "live_intake_available": live_available,
@@ -74,7 +81,31 @@ def inject_app_shell():
             "shipping": "Provider mock",
         },
         "policy_status": policy_config.summary(),
+        "active_workspace": workspace,
+        "active_operation": operation,
     }
+
+
+def _onboarding_state() -> dict:
+    return onboarding_store.onboarding_state(request.cookies.get(WORKSPACE_COOKIE))
+
+
+def _public_onboarding_state(state: dict) -> dict:
+    """Keep document bodies server-side while exposing useful upload metadata."""
+    return {
+        **state,
+        "sources": [
+            {key: source.get(key) for key in ("id", "name", "source_type", "status", "metadata", "created_at")}
+            for source in state.get("sources") or []
+        ],
+    }
+
+
+def _workspace_or_error() -> tuple[dict | None, tuple | None]:
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    if not workspace:
+        return None, (jsonify({"errore": "Start the workspace setup first."}), 404)
+    return workspace, None
 
 
 def _first_product(order: dict | None) -> dict:
@@ -279,6 +310,206 @@ def index():
     return render_template("index.html")
 
 
+@app.get("/workspace")
+def workspace_entry():
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    if workspace and workspace.get("status") == "completed":
+        return redirect(url_for("workbench"))
+    return redirect(url_for("onboarding"))
+
+
+@app.get("/onboarding")
+def onboarding():
+    state = _onboarding_state()
+    workspace = state.get("workspace")
+    if workspace and workspace.get("status") == "completed" and request.args.get("edit") != "1":
+        return redirect(url_for("workbench"))
+    public_state = _public_onboarding_state(state)
+    if workspace and workspace.get("status") == "completed" and request.args.get("edit") == "1":
+        public_state["workspace"]["current_step"] = 6
+    return render_template("onboarding.html", onboarding_state=public_state)
+
+
+@app.post("/api/onboarding/start")
+def onboarding_start():
+    workspace = onboarding_store.create_workspace()
+    response = make_response(jsonify({"ok": True, "workspace": workspace, "step": 1}))
+    response.set_cookie(
+        WORKSPACE_COOKIE,
+        workspace["id"],
+        max_age=60 * 60 * 24 * 365,
+        httponly=True,
+        samesite="Lax",
+        secure=request.is_secure,
+    )
+    return response
+
+
+@app.post("/api/onboarding/company")
+def onboarding_company():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    try:
+        updated = onboarding_store.save_company(workspace["id"], request.get_json(silent=True) or {})
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({"ok": True, "workspace": updated, "step": 2})
+
+
+@app.post("/api/onboarding/operation")
+def onboarding_operation():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    try:
+        operation = onboarding_store.save_operation(workspace["id"], request.get_json(silent=True) or {})
+    except (KeyError, ValueError) as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({"ok": True, "operation": operation, "step": 3})
+
+
+@app.post("/api/onboarding/knowledge")
+def onboarding_knowledge():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "Describe the operation before adding knowledge."}), 400
+    added = []
+    try:
+        pasted = str(request.form.get("pasted_text") or "").strip()
+        if pasted:
+            added.append(
+                onboarding_store.add_knowledge_source(
+                    workspace["id"], operation["id"], name="Pasted operating notes",
+                    source_type="text", content=pasted,
+                )
+            )
+        for upload in request.files.getlist("files"):
+            if not upload or not upload.filename:
+                continue
+            payload = upload.read(policy_import.MAX_DOCUMENT_BYTES + 1)
+            content = policy_import.document_text(upload.filename, payload, upload.mimetype or "")
+            added.append(
+                onboarding_store.add_knowledge_source(
+                    workspace["id"], operation["id"], name=upload.filename,
+                    source_type=Path(upload.filename).suffix.lower().lstrip(".") or "document",
+                    content=content,
+                    metadata={"bytes": len(payload), "content_type": upload.mimetype or ""},
+                )
+            )
+        if not added:
+            onboarding_store.update_workspace(workspace["id"], {"current_step": 4, "completeness": 36})
+    except (ValueError, policy_import.PolicyImportError) as exc:
+        return jsonify({"errore": str(exc)}), 400
+    state = _public_onboarding_state(onboarding_store.onboarding_state(workspace["id"]))
+    return jsonify({"ok": True, "sources": state["sources"], "step": 4})
+
+
+@app.post("/api/onboarding/knowledge/<source_id>/remove")
+def onboarding_remove_knowledge(source_id: str):
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    removed = onboarding_store.remove_knowledge_source(source_id, workspace["id"])
+    return jsonify({"ok": removed})
+
+
+@app.post("/api/onboarding/analyze")
+def onboarding_analyze():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "The operation has not been configured yet."}), 400
+    try:
+        sources = onboarding_store.list_knowledge_sources(operation["id"])
+        prepared = context_privacy.prepare_operational_context(workspace, operation, sources)
+        service = operational_model_service.get_operational_model_service()
+        result = service.build(prepared)
+        operation = onboarding_store.save_generated_model(workspace["id"], operation["id"], result)
+    except Exception:  # noqa: BLE001
+        logger.exception("Operational model generation failed")
+        return jsonify({"errore": "The operational model could not be generated."}), 500
+    clarifications = onboarding_store.list_clarifications(operation["id"])
+    return jsonify(
+        {
+            "ok": True,
+            "model": operation["operational_model"],
+            "clarifications": clarifications,
+            "step": 5 if clarifications else 6,
+        }
+    )
+
+
+@app.post("/api/onboarding/clarifications")
+def onboarding_clarifications():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "Operation not found."}), 404
+    clarifications = onboarding_store.list_clarifications(operation["id"])
+    answers = (request.get_json(silent=True) or {}).get("answers") or {}
+    answer_rows = [
+        {"issue_type": item["issue_type"], "answer": answers.get(item["id"])}
+        for item in clarifications
+    ]
+    updated_model = operational_model_service.get_operational_model_service().resolve(
+        operation.get("operational_model") or {}, answer_rows
+    )
+    onboarding_store.resolve_clarifications(
+        workspace["id"], operation["id"], answers, updated_model
+    )
+    return jsonify({"ok": True, "model": updated_model, "step": 6})
+
+
+@app.post("/api/onboarding/model-reviewed")
+def onboarding_model_reviewed():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "Operation not found."}), 404
+    scenarios = operational_model_service.get_operational_model_service().scenarios(
+        operation.get("operational_model") or {}
+    )
+    stored = onboarding_store.replace_test_scenarios(workspace["id"], operation["id"], scenarios)
+    return jsonify({"ok": True, "scenarios": stored, "step": 7})
+
+
+@app.post("/api/onboarding/tests")
+def onboarding_tests():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "Operation not found."}), 404
+    feedback = (request.get_json(silent=True) or {}).get("feedback") or []
+    scenarios = onboarding_store.save_scenario_feedback(
+        workspace["id"], operation["id"], feedback
+    )
+    return jsonify({"ok": True, "scenarios": scenarios, "step": 8})
+
+
+@app.post("/api/onboarding/complete")
+def onboarding_complete():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    try:
+        completed = onboarding_store.complete_workspace(workspace["id"])
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({"ok": True, "workspace": completed, "redirect": url_for("workbench")})
+
+
 @app.get("/demo/<scenario_slug>")
 def guided_demo_view(scenario_slug: str):
     """Presenta uno dei due workflow guidati principali."""
@@ -388,16 +619,23 @@ def dashboard():
 @app.get("/database")
 @app.get("/cases")
 def database_register():
-    support_copilot.ensure_demo_cases()
     legacy_alias = request.path == "/database"
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    operation = onboarding_store.active_operation(workspace["id"]) if workspace and workspace.get("status") == "completed" else None
+    legacy_demo = legacy_alias or request.args.get("demo") == "1" or (bool(app.config.get("TESTING")) and not operation)
+    if not operation and not legacy_demo:
+        return redirect(url_for("onboarding"))
+    if legacy_demo:
+        support_copilot.ensure_demo_cases()
+    configured_key = configured_workflow.workflow_key(operation["id"]) if operation and not legacy_demo else None
     filters = {
         "status": (request.args.get("status") or "").strip() or None,
         "reason": (request.args.get("reason") or "").strip() or None,
-        "workflow_key": (request.args.get("workflow") or "").strip() or None,
+        "workflow_key": configured_key or (request.args.get("workflow") or "").strip() or None,
         "query": (request.args.get("q") or "").strip() or None,
     }
     source_prefix = None if legacy_alias else "policy_copilot"
-    all_cases = database.list_cases(source_mode_prefix=source_prefix, limit=500)
+    all_cases = database.list_cases(source_mode_prefix=source_prefix, workflow_key=configured_key, limit=500)
     cases = database.list_cases(
         **filters, source_mode_prefix=source_prefix, limit=500
     )
@@ -405,6 +643,14 @@ def database_register():
     for item in cases:
         item["message_count"] = counts.get(item["id"], 0)
         item["rule_id"] = (item.get("policy_decision") or {}).get("rule_id")
+    workflow_labels = {key: value["label"] for key, value in support_copilot.WORKFLOWS.items()}
+    workflow_labels.update(configured_workflow.operation_labels())
+    category_labels = dict(support_copilot.CATEGORY_LABELS)
+    if operation:
+        category_labels.update(
+            {item["id"]: item["name"] for item in (operation.get("operational_model") or {}).get("case_types", [])}
+        )
+    workflow_options = support_copilot.WORKFLOWS if legacy_demo else ({configured_key: {"label": workflow_labels[configured_key]}} if configured_key else {})
     return render_template(
         "database.html",
         cases=cases,
@@ -423,10 +669,10 @@ def database_register():
         statuses=[status.value for status in domain.CaseStatus],
         status_labels=domain.STATUS_LABELS,
         reasons=sorted({case["return_reason"] for case in all_cases}),
-        category_labels=support_copilot.CATEGORY_LABELS,
-        workflow_labels={key: value["label"] for key, value in support_copilot.WORKFLOWS.items()},
-        outcome_labels=support_copilot.OUTCOME_LABELS,
-        workflows=support_copilot.WORKFLOWS,
+        category_labels=category_labels,
+        workflow_labels=workflow_labels,
+        outcome_labels={**support_copilot.OUTCOME_LABELS, **configured_workflow.GENERIC_OUTCOMES},
+        workflows=workflow_options,
         legacy_alias=legacy_alias,
         message_total=sum(counts.values()),
     )
@@ -443,9 +689,17 @@ def _policy_rule_count(value) -> int:
 @app.get("/policies")
 @app.get("/playbooks", endpoint="playbooks")
 def policies():
-    support_copilot.ensure_demo_cases()
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    configured_operation = onboarding_store.active_operation(workspace["id"]) if workspace and workspace.get("status") == "completed" else None
+    legacy_demo = request.args.get("demo") == "1" or (bool(app.config.get("TESTING")) and not configured_operation)
+    if not configured_operation and not legacy_demo:
+        return redirect(url_for("onboarding"))
+    if legacy_demo:
+        support_copilot.ensure_demo_cases()
     policy = policy_config.load_policy()
-    analytics_metrics = database.copilot_analytics()
+    analytics_metrics = database.copilot_analytics(
+        workflow_key=(configured_workflow.workflow_key(configured_operation["id"]) if configured_operation and not legacy_demo else None)
+    )
     builtins = {
         "customer_care": {
             "title": "Customer Care & Resi",
@@ -499,8 +753,8 @@ def policies():
     policy_cards = [
         {"id": key, "title": item["title"], "description": item["description"], "status": "Attivo", "source": item["source"], "version": item["version"], "custom": False}
         for key, item in builtins.items()
-    ]
-    custom_documents = database.list_policy_documents()
+    ] if legacy_demo else []
+    custom_documents = database.list_policy_documents() if legacy_demo else []
     for document in custom_documents:
         policy_cards.append(
             {
@@ -514,18 +768,63 @@ def policies():
                 "document": document,
             }
         )
-    selected_id = request.args.get("playbook") or request.args.get("policy") or "customer_care"
+    if configured_operation:
+        operational_model = configured_operation.get("operational_model") or {}
+        operation_definition = operational_model.get("operation") or {}
+        policy_cards.insert(
+            0,
+            {
+                "id": configured_workflow.workflow_key(configured_operation["id"]),
+                "title": operation_definition.get("name") or configured_operation.get("name") or "Configured operation",
+                "description": operation_definition.get("purpose") or configured_operation.get("objective"),
+                "status": "Active",
+                "source": f"{(operational_model.get('knowledge') or {}).get('source_count', 0)} knowledge sources",
+                "version": operational_model.get("schema_version") or "1.0",
+                "custom": False,
+                "configured": True,
+                "model": operational_model,
+            },
+        )
+    default_playbook = policy_cards[0]["id"] if policy_cards else "customer_care"
+    selected_id = request.args.get("playbook") or request.args.get("policy") or default_playbook
     if selected_id not in {item["id"] for item in policy_cards}:
-        selected_id = "customer_care"
+        selected_id = default_playbook
     selected = next(item for item in policy_cards if item["id"] == selected_id)
     selected_exceptions = []
-    if selected.get("custom"):
+    if selected.get("configured"):
+        model = selected["model"]
+        rules_view = [
+            {
+                "id": rule.get("id"),
+                "label": rule.get("statement") or "Operational rule",
+                "value": rule.get("action") or rule.get("statement"),
+            }
+            for rule in model.get("rules") or []
+        ]
+        selected_exceptions = [
+            {
+                "id": f"OPEN-{index:02d}",
+                "description": item.get("question") or "Ambiguity requires human review.",
+            }
+            for index, item in enumerate(model.get("ambiguities") or [], 1)
+            if not item.get("resolved")
+        ]
+        description = (model.get("operation") or {}).get("purpose") or selected["description"]
+        decision_flow = [
+            ("Request", "Unstructured operational input"),
+            ("Context", f"{len(model.get('required_fields') or [])} required fields"),
+            ("Rules", f"{len(model.get('rules') or [])} explicit checks"),
+            ("Human gate", "Operator confirms the action"),
+        ]
+    elif selected.get("custom"):
         document = selected["document"]
         rules_view = document["rules"]
         selected_exceptions = [
             {"id": f"REV-{index + 1:02}", "description": copy}
             for index, copy in enumerate(document["confirmations"])
         ]
+        description = selected["description"]
+        decision_flow = [("Request", "Unstructured input"), ("Context", "Required facts"), ("Rules", "Structured procedure"), ("Human gate", "Operator review")]
     else:
         definition = builtins[selected_id]
         rules_view = definition["rules"]
@@ -542,11 +841,15 @@ def policies():
         decision_flow=decision_flow,
         selected_exceptions=selected_exceptions,
         description=description,
-        rule_count=sum(len(item["rules"]) for item in builtins.values()) + sum(len(item["rules"]) for item in custom_documents),
+        rule_count=(len((configured_operation or {}).get("operational_model", {}).get("rules", [])) if configured_operation and not legacy_demo else sum(len(item["rules"]) for item in builtins.values()) + sum(len(item["rules"]) for item in custom_documents)),
+        active_count=len(policy_cards),
         decision_count=analytics_metrics["total"],
         policy_signals=analytics_metrics["insights"],
         rules_used=analytics_metrics["rules"],
         custom_count=len(custom_documents),
+        configured_operation=configured_operation,
+        configured_scenarios=(onboarding_store.list_test_scenarios(configured_operation["id"]) if configured_operation else []),
+        legacy_demo=legacy_demo,
     )
 
 
@@ -628,6 +931,29 @@ def _simulation_category(message: str) -> str:
 def simulate_policy():
     """Esegue scenari espliciti senza leggere store o creare casi."""
     data = request.get_json(silent=True) or {}
+    requested_scenario = str(data.get("scenario") or "")
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    operation = onboarding_store.active_operation(workspace["id"]) if workspace else None
+    if operation and requested_scenario.startswith("TST-"):
+        scenario = next(
+            (item for item in onboarding_store.list_test_scenarios(operation["id"]) if item["id"] == requested_scenario),
+            None,
+        )
+        if not scenario:
+            return jsonify({"errore": "Scenario not found."}), 404
+        return jsonify(
+            {
+                "category": "configured",
+                "category_label": scenario["title"],
+                "outcome": "recommendation",
+                "eligibility": "human_review",
+                "motivation": scenario["rationale"],
+                "rule_id": "MODEL-TEST",
+                "policy_sections": [operation.get("name") or "Configured playbook"],
+                "next_action": scenario["recommendation"],
+                "no_real_action": True,
+            }
+        )
     presets = {
         "recesso_ok": ("recesso", {"purchase_verified": True, "delivery_days": 7, "product_condition": "integral"}),
         "recesso_out": ("recesso", {"purchase_verified": True, "delivery_days": 22, "product_condition": "integral"}),
@@ -639,7 +965,7 @@ def simulate_policy():
         "internal_purchase": ("ops_purchase", {"business_reason_clear": True, "budget_status": "approved", "manager_approval": "approved"}),
         "internal_incident": ("ops_incident", {"urgency": "critical", "incident_impact": "business_blocked", "owner_assigned": False}),
     }
-    scenario = str(data.get("scenario") or "")
+    scenario = requested_scenario
     legacy_request = not scenario and bool(data.get("order_number"))
     if legacy_request:
         category = _simulation_category(str(data.get("message") or ""))
@@ -682,8 +1008,15 @@ def _chart_points(rows: list[dict], key: str, *, width: int = 100, height: int =
 
 @app.get("/analytics")
 def analytics_view():
-    support_copilot.ensure_demo_cases()
-    metrics = database.copilot_analytics()
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    operation = onboarding_store.active_operation(workspace["id"]) if workspace and workspace.get("status") == "completed" else None
+    legacy_demo = request.args.get("demo") == "1" or (bool(app.config.get("TESTING")) and not operation)
+    if not operation and not legacy_demo:
+        return redirect(url_for("onboarding"))
+    if legacy_demo:
+        support_copilot.ensure_demo_cases()
+    configured_key = configured_workflow.workflow_key(operation["id"]) if operation and not legacy_demo else None
+    metrics = database.copilot_analytics(workflow_key=configured_key)
     feedback_labels = {
         "policy_interpretation": "Interpretazione policy",
         "missing_information": "Informazioni mancanti",
@@ -695,12 +1028,19 @@ def analytics_view():
     fact_labels = {
         key: value["label"] for key, value in support_copilot.FACTS.items()
     }
+    category_labels = dict(support_copilot.CATEGORY_LABELS)
+    workflow_labels = {key: value["label"] for key, value in support_copilot.WORKFLOWS.items()}
+    workflow_labels.update(configured_workflow.operation_labels())
+    if operation:
+        model = operation.get("operational_model") or {}
+        category_labels.update({item["id"]: item["name"] for item in model.get("case_types") or []})
+        fact_labels.update({item["id"]: item["label"] for item in model.get("required_fields") or []})
     return render_template(
         "analytics.html",
         metrics=metrics,
-        category_labels=support_copilot.CATEGORY_LABELS,
-        workflow_labels={key: value["label"] for key, value in support_copilot.WORKFLOWS.items()},
-        outcome_labels=support_copilot.OUTCOME_LABELS,
+        category_labels=category_labels,
+        workflow_labels=workflow_labels,
+        outcome_labels={**support_copilot.OUTCOME_LABELS, **configured_workflow.GENERIC_OUTCOMES},
         fact_labels=fact_labels,
         feedback_labels=feedback_labels,
     )
@@ -754,25 +1094,63 @@ def case_detail(case_id: str):
     )
 
 
-def _render_workbench(case_id: str | None = None, workflow_key: str | None = None):
-    support_copilot.ensure_demo_cases()
+def _render_workbench(
+    case_id: str | None = None,
+    workflow_key: str | None = None,
+    *,
+    legacy_demo: bool = False,
+):
     return_case = database.get_case(case_id) if case_id else None
     if case_id and return_case is None:
         return render_template("404.html"), 404
-    recent_cases = [
-        item for item in database.list_cases(source_mode_prefix="policy_copilot", limit=30)
-    ][:6]
-    selected_workflow = workflow_key if workflow_key in support_copilot.WORKFLOWS else "customer_care"
+
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    operation = onboarding_store.active_operation(workspace["id"]) if workspace and workspace.get("status") == "completed" else None
+    legacy_demo = legacy_demo or (bool(app.config.get("TESTING")) and not operation and not return_case)
+    configured_key = configured_workflow.workflow_key(operation["id"]) if operation else None
+    if not return_case and not operation and not legacy_demo:
+        return redirect(url_for("onboarding"))
+
+    if legacy_demo:
+        support_copilot.ensure_demo_cases()
+    if return_case and str(return_case.get("workflow_key") or "").startswith("operation:"):
+        view = configured_workflow.view_model(return_case)
+    else:
+        view = support_copilot.view_model(return_case)
+
+    if operation and not legacy_demo:
+        operation_model = operation.get("operational_model") or {}
+        workflow = {
+            "label": (operation_model.get("operation") or {}).get("name") or operation.get("name") or "Configured operation",
+            "short": "Company playbook",
+            "description": (operation_model.get("operation") or {}).get("purpose") or operation.get("objective"),
+            "input_label": "Operational request",
+            "output_label": "Recommended next action",
+            "playbook": (operation_model.get("operation") or {}).get("name") or "Active playbook",
+            "examples": [],
+        }
+        workflows = {configured_key: workflow}
+        selected_workflow = configured_key
+        recent_cases = database.list_cases(workflow_key=configured_key, limit=6)
+    else:
+        workflows = support_copilot.WORKFLOWS
+        selected_workflow = workflow_key if workflow_key in workflows else "customer_care"
+        recent_cases = database.list_cases(source_mode_prefix="policy_copilot", limit=6)
+    workflow_labels = {key: item["label"] for key, item in support_copilot.WORKFLOWS.items()}
+    workflow_labels.update(configured_workflow.operation_labels())
     return render_template(
         "workbench.html",
-        **support_copilot.view_model(return_case),
+        **view,
         messages=database.get_case_messages(case_id) if case_id else [],
         timeline=database.get_timeline(case_id) if case_id else [],
         recent_cases=recent_cases,
         status_labels=domain.STATUS_LABELS,
         category_labels=support_copilot.CATEGORY_LABELS,
-        workflows=support_copilot.WORKFLOWS,
+        workflows=workflows,
+        workflow_labels=workflow_labels,
         selected_workflow=selected_workflow,
+        configured_operation=operation if operation and not legacy_demo else None,
+        legacy_demo=legacy_demo,
     )
 
 
@@ -781,7 +1159,10 @@ def workbench():
     requested = (request.args.get("case_id") or "").strip()
     if requested and database.get_case(requested):
         return redirect(url_for("workbench_case", case_id=requested))
-    return _render_workbench(workflow_key=(request.args.get("workflow") or "").strip())
+    return _render_workbench(
+        workflow_key=(request.args.get("workflow") or "").strip(),
+        legacy_demo=request.args.get("demo") == "1",
+    )
 
 
 @app.get("/workbench/<case_id>")
@@ -798,10 +1179,16 @@ def analyze_support_message():
     if len(message) > MAX_MESSAGE_LENGTH:
         return jsonify({"errore": "Il messaggio supera il limite di 5.000 caratteri."}), 400
     try:
-        return_case = support_copilot.create_case(
-            message,
-            workflow_key=str(data.get("workflow") or "customer_care"),
-        )
+        requested_workflow = str(data.get("workflow") or "")
+        workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+        operation = onboarding_store.active_operation(workspace["id"]) if workspace and workspace.get("status") == "completed" else None
+        if operation and requested_workflow in {"", configured_workflow.workflow_key(operation["id"])}:
+            return_case = configured_workflow.create_case(message, operation)
+        else:
+            return_case = support_copilot.create_case(
+                message,
+                workflow_key=requested_workflow or "customer_care",
+            )
     except ValueError as exc:
         return jsonify({"errore": str(exc)}), 400
     except Exception:  # noqa: BLE001
@@ -814,7 +1201,11 @@ def analyze_support_message():
 def record_support_fact(case_id: str):
     data = request.get_json(silent=True) or {}
     try:
-        return_case = support_copilot.update_fact(case_id, str(data.get("field") or ""), data.get("value"))
+        existing = database.get_case(case_id)
+        if existing and str(existing.get("workflow_key") or "").startswith("operation:"):
+            return_case = configured_workflow.update_fact(case_id, str(data.get("field") or ""), data.get("value"))
+        else:
+            return_case = support_copilot.update_fact(case_id, str(data.get("field") or ""), data.get("value"))
     except KeyError:
         return jsonify({"errore": "Caso non trovato."}), 404
     except ValueError as exc:

@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <meta name="description" content="Configure a company-specific operational decision system from your own procedures and goals.">
+  <title>Set up your workspace · Ops Copilot</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="onboarding-body">
+  <header class="onboarding-nav">
+    <a class="landing-brand" href="{{ url_for('index') }}"><span>O</span><strong>Ops Copilot</strong></a>
+    <div class="onboarding-progress" aria-label="Workspace setup progress">
+      <span id="progressLabel">Workspace setup</span>
+      <div><i id="progressBar"></i></div>
+      <b id="progressStep">0 / 8</b>
+    </div>
+    <span class="onboarding-safe"><i></i> Private draft</span>
+  </header>
+
+  <main class="onboarding-shell">
+    <div id="onboardingNotice" class="onboarding-notice hidden" role="alert"></div>
+
+    <section class="onboarding-step onboarding-welcome" data-step="0">
+      <span class="onboarding-kicker">Operational Decision Intelligence</span>
+      <h1>Turn how your company works into an operational system.</h1>
+      <p>Describe one operation in your own words. Ops Copilot will structure the knowledge, surface what is unclear and build a first playbook you can test before using it.</p>
+      <div class="onboarding-principles">
+        <span>Your procedures</span><i></i><span>Explicit rules</span><i></i><span>Human control</span>
+      </div>
+      <button class="button primary onboarding-primary" id="startWorkspace" type="button">Set up workspace <span>→</span></button>
+      <small>No integrations or technical setup required.</small>
+    </section>
+
+    <section class="onboarding-step" data-step="1">
+      <div class="onboarding-step-head"><span class="onboarding-kicker">01 · Company context</span><h1>Start with the business.</h1><p>This gives the system enough context to interpret your operation without forcing a rigid template.</p></div>
+      <form id="companyForm" class="onboarding-form">
+        <label class="full">Company name<input id="companyName" required maxlength="160" placeholder="Acme Operations"></label>
+        <label class="full">What does the company do?<textarea id="companyDescription" required minlength="20" maxlength="8000" rows="4" placeholder="We help logistics teams coordinate time-sensitive work across customers, suppliers and internal owners…"></textarea><small>Plain language is perfect.</small></label>
+        <label>Industry<select id="industry" required><option value="">Select an industry</option><option>Professional services</option><option>Software</option><option>E-commerce</option><option>Logistics</option><option>Manufacturing</option><option>Healthcare</option><option>Financial services</option><option>Other</option></select></label>
+        <label>Markets or countries<input id="markets" placeholder="Italy, France, Germany"></label>
+        <label>Business model<select id="businessModel" required><option value="">Select a model</option><option value="B2B">B2B</option><option value="B2C">B2C</option><option value="Both">Both</option></select></label>
+        <label>Approximate team size<select id="teamSize" required><option value="">Select team size</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–1,000</option><option>1,000+</option></select></label>
+        <div class="onboarding-form-actions full"><button class="button ghost" type="button" data-back="0">Back</button><button class="button primary" type="submit">Continue <span>→</span></button></div>
+      </form>
+    </section>
+
+    <section class="onboarding-step" data-step="2">
+      <div class="onboarding-step-head"><span class="onboarding-kicker">02 · First operation</span><h1>What operation do you want to improve?</h1><p>Start with one recurring process. You can describe the real version—even if it is messy, manual or inconsistent.</p></div>
+      <form id="operationForm" class="onboarding-form single-column">
+        <label>What operation do you want to improve?<textarea id="operationDescription" required minlength="20" maxlength="12000" rows="3" placeholder="We coordinate incoming requests, decide who should handle them and keep stakeholders updated…"></textarea></label>
+        <label>What should this process achieve?<textarea id="operationObjective" required minlength="12" maxlength="6000" rows="3" placeholder="Every valid request should reach the right owner with a clear next action within one business day."></textarea></label>
+        <label>How does it work today? <span>Optional</span><textarea id="currentProcess" maxlength="12000" rows="4" placeholder="Requests arrive through email. A coordinator checks a shared document, asks for missing details and assigns the work…"></textarea><small>Write notes, exceptions and workarounds exactly as your team uses them today.</small></label>
+        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="1">Back</button><button class="button primary" type="submit">Continue <span>→</span></button></div>
+      </form>
+    </section>
+
+    <section class="onboarding-step" data-step="3">
+      <div class="onboarding-step-head"><span class="onboarding-kicker">03 · Knowledge</span><h1>Add what your team already knows.</h1><p>Upload SOPs, policies, manuals, FAQs or rough notes. This step is optional—the model can begin from your description and improve later.</p></div>
+      <form id="knowledgeForm" class="knowledge-form">
+        <label class="onboarding-dropzone" for="knowledgeFiles">
+          <input id="knowledgeFiles" name="files" type="file" multiple accept=".pdf,.docx,.txt,.md">
+          <span class="dropzone-icon">↑</span><strong>Drop documents here or browse</strong><small>PDF, DOCX, TXT or MD · maximum 2 MB per file</small>
+        </label>
+        <button class="knowledge-paste-toggle" id="pasteToggle" type="button">Or paste rough notes <span>+</span></button>
+        <div class="knowledge-paste hidden" id="pastePanel"><textarea id="pastedKnowledge" name="pasted_text" rows="6" placeholder="Paste a procedure, meeting notes, policy fragments or recurring operator decisions…"></textarea></div>
+        <div class="knowledge-files" id="knowledgeFilesList"></div>
+        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="2">Back</button><button class="button primary" type="submit">Structure this operation <span>→</span></button></div>
+      </form>
+    </section>
+
+    <section class="onboarding-step onboarding-analysis" data-step="4">
+      <span class="onboarding-kicker">04 · Structuring</span>
+      <h1>Building your operational model.</h1>
+      <p>The system is turning your context into explicit, reviewable objects. No action is being executed.</p>
+      <ol class="analysis-checklist" id="analysisChecklist">
+        <li><i></i><div><strong>Understanding company context</strong><span>Business model, market and operating environment</span></div></li>
+        <li><i></i><div><strong>Reading available knowledge</strong><span>Procedures, notes and source references</span></div></li>
+        <li><i></i><div><strong>Identifying case types</strong><span>Standard, incomplete and exceptional paths</span></div></li>
+        <li><i></i><div><strong>Extracting decision rules</strong><span>Conditions, actions and human gates</span></div></li>
+        <li><i></i><div><strong>Finding knowledge gaps</strong><span>Only questions that materially affect a decision</span></div></li>
+        <li><i></i><div><strong>Preparing the first playbook</strong><span>Versioned operational model ready for review</span></div></li>
+      </ol>
+      <div class="analysis-status"><span id="analysisStatus">Preparing context…</span><b id="analysisPercent">8%</b></div>
+    </section>
+
+    <section class="onboarding-step" data-step="5">
+      <div class="onboarding-step-head"><span class="onboarding-kicker">05 · Smart clarifications</span><h1>A few decisions need an owner.</h1><p>These questions appeared because the source material did not provide one safe, consistent answer.</p></div>
+      <form id="clarificationForm">
+        <div class="clarification-list" id="clarificationList"></div>
+        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="3">Review inputs</button><button class="button primary" type="submit">Apply answers <span>→</span></button></div>
+      </form>
+    </section>
+
+    <section class="onboarding-step" data-step="6">
+      <div class="onboarding-step-head"><span class="onboarding-kicker">06 · Operational model</span><h1>Your first playbook is ready to review.</h1><p>A manager-level view of what the system understood, what it can decide and where people remain responsible.</p></div>
+      <div id="modelSummary"></div>
+      <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="3">Review inputs</button><button class="button primary" id="testModel" type="button">Test this playbook <span>→</span></button></div>
+    </section>
+
+    <section class="onboarding-step" data-step="7">
+      <div class="onboarding-step-head"><span class="onboarding-kicker">07 · Test your playbook</span><h1>Would your team make the same call?</h1><p>Review three synthetic cases. Your feedback becomes evidence for the next revision—it does not silently rewrite a rule.</p></div>
+      <form id="scenarioForm">
+        <div class="scenario-list" id="scenarioList"></div>
+        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="6">Review model</button><button class="button primary" type="submit">Finish setup <span>→</span></button></div>
+      </form>
+    </section>
+
+    <section class="onboarding-step onboarding-ready" data-step="8">
+      <span class="ready-mark">✓</span>
+      <span class="onboarding-kicker">Workspace ready</span>
+      <h1>Your operation now has a shared decision system.</h1>
+      <p>The playbook is active as a reviewed first version. It can improve as operators resolve real cases and document exceptions.</p>
+      <div class="ready-stats" id="readyStats"></div>
+      <div class="ready-completeness"><div><span>Workspace completeness</span><strong id="readyCompleteness">—</strong></div><div><i id="readyBar"></i></div><p id="readyRemaining"></p></div>
+      <div class="onboarding-ready-actions"><button class="button primary onboarding-primary" id="enterWorkspace" type="button">Enter workspace <span>→</span></button><a class="button ghost" href="{{ url_for('playbooks') }}">Review playbook</a></div>
+    </section>
+  </main>
+
+  <footer class="onboarding-footer"><span>Raw input stays behind the context and privacy layer.</span><span>Local structuring engine · Human-reviewed configuration</span></footer>
+
+<script>
+  let state = {{ onboarding_state|tojson }};
+  let currentStep = state.workspace ? Math.min(Number(state.workspace.current_step || 1), 8) : 0;
+  let analysisRunning = false;
+  const steps = [...document.querySelectorAll("[data-step]")];
+  const notice = document.getElementById("onboardingNotice");
+
+  function setNotice(message, error = false) {
+    notice.textContent = message;
+    notice.className = message ? `onboarding-notice ${error ? "error" : "success"}` : "onboarding-notice hidden";
+  }
+
+  async function postJSON(url, payload = {}) {
+    const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.errore || "Something went wrong.");
+    return data;
+  }
+
+  function showStep(step) {
+    currentStep = Number(step);
+    steps.forEach(section => section.classList.toggle("active", Number(section.dataset.step) === currentStep));
+    document.getElementById("progressStep").textContent = `${currentStep} / 8`;
+    document.getElementById("progressBar").style.width = `${Math.max(2, currentStep / 8 * 100)}%`;
+    document.getElementById("progressLabel").textContent = currentStep === 8 ? "Setup complete" : "Workspace setup";
+    window.scrollTo({top: 0, behavior: "smooth"});
+    if (currentStep === 4 && !analysisRunning) runAnalysis();
+    if (currentStep === 5) renderClarifications();
+    if (currentStep === 6) renderModel();
+    if (currentStep === 7) renderScenarios();
+    if (currentStep === 8) renderReady();
+  }
+
+  function hydrate() {
+    const workspace = state.workspace || {};
+    const operation = state.operation || {};
+    document.getElementById("companyName").value = workspace.company_name || "";
+    document.getElementById("companyDescription").value = workspace.company_description || "";
+    document.getElementById("industry").value = workspace.industry || "";
+    document.getElementById("markets").value = (workspace.markets || []).join(", ");
+    document.getElementById("businessModel").value = workspace.business_model || "";
+    document.getElementById("teamSize").value = workspace.team_size || "";
+    document.getElementById("operationDescription").value = operation.description || "";
+    document.getElementById("operationObjective").value = operation.objective || "";
+    document.getElementById("currentProcess").value = operation.current_process || "";
+    renderSources();
+  }
+
+  document.getElementById("startWorkspace").addEventListener("click", async event => {
+    event.currentTarget.disabled = true;
+    try {
+      const data = await postJSON("/api/onboarding/start");
+      state = {workspace: data.workspace, operation: null, sources: [], clarifications: [], scenarios: []};
+      showStep(1);
+    } catch (error) { setNotice(error.message, true); event.currentTarget.disabled = false; }
+  });
+
+  document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => showStep(button.dataset.back)));
+
+  document.getElementById("companyForm").addEventListener("submit", async event => {
+    event.preventDefault(); setNotice("");
+    const button = event.submitter; button.disabled = true;
+    try {
+      const data = await postJSON("/api/onboarding/company", {
+        company_name: document.getElementById("companyName").value,
+        company_description: document.getElementById("companyDescription").value,
+        industry: document.getElementById("industry").value,
+        markets: document.getElementById("markets").value,
+        business_model: document.getElementById("businessModel").value,
+        team_size: document.getElementById("teamSize").value
+      });
+      state.workspace = data.workspace; showStep(2);
+    } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+  });
+
+  document.getElementById("operationForm").addEventListener("submit", async event => {
+    event.preventDefault(); setNotice(""); const button = event.submitter; button.disabled = true;
+    try {
+      const data = await postJSON("/api/onboarding/operation", {
+        description: document.getElementById("operationDescription").value,
+        objective: document.getElementById("operationObjective").value,
+        current_process: document.getElementById("currentProcess").value
+      });
+      state.operation = data.operation; showStep(3);
+    } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+  });
+
+  document.getElementById("pasteToggle").addEventListener("click", event => {
+    document.getElementById("pastePanel").classList.toggle("hidden");
+    event.currentTarget.querySelector("span").textContent = document.getElementById("pastePanel").classList.contains("hidden") ? "+" : "−";
+  });
+
+  document.getElementById("knowledgeFiles").addEventListener("change", renderSources);
+
+  function renderSources() {
+    const stored = state.sources || [];
+    const selected = [...document.getElementById("knowledgeFiles").files].map((file, index) => ({id: `selected-${index}`, name: file.name, source_type: file.name.split(".").pop(), status: "selected", temporary: true}));
+    const list = document.getElementById("knowledgeFilesList");
+    const values = [...stored, ...selected];
+    list.innerHTML = values.map(item => `<article class="knowledge-file"><span>${(item.source_type || "DOC").toUpperCase()}</span><div><strong>${escapeHTML(item.name)}</strong><small>${item.status === "selected" ? "Ready to upload" : "Ready · text extracted"}</small></div>${item.temporary ? "" : `<button type="button" data-remove-source="${item.id}" aria-label="Remove ${escapeHTML(item.name)}">×</button>`}</article>`).join("");
+    document.querySelectorAll("[data-remove-source]").forEach(button => button.addEventListener("click", async () => {
+      try { await postJSON(`/api/onboarding/knowledge/${encodeURIComponent(button.dataset.removeSource)}/remove`); state.sources = state.sources.filter(item => item.id !== button.dataset.removeSource); renderSources(); }
+      catch (error) { setNotice(error.message, true); }
+    }));
+  }
+
+  document.getElementById("knowledgeForm").addEventListener("submit", async event => {
+    event.preventDefault(); setNotice(""); const button = event.submitter; button.disabled = true;
+    const formData = new FormData();
+    [...document.getElementById("knowledgeFiles").files].forEach(file => formData.append("files", file));
+    formData.append("pasted_text", document.getElementById("pastedKnowledge").value);
+    try {
+      const response = await fetch("/api/onboarding/knowledge", {method: "POST", body: formData});
+      const data = await response.json(); if (!response.ok) throw new Error(data.errore || "The knowledge could not be added.");
+      state.sources = data.sources; showStep(4);
+    } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+  });
+
+  async function runAnalysis() {
+    analysisRunning = true; setNotice("");
+    const items = [...document.querySelectorAll("#analysisChecklist li")];
+    items.forEach(item => item.className = "");
+    let index = 0;
+    const timer = setInterval(() => {
+      if (index > 0) items[index - 1]?.classList.add("complete");
+      items[index]?.classList.add("active");
+      document.getElementById("analysisStatus").textContent = items[index]?.querySelector("strong")?.textContent || "Finalising model…";
+      document.getElementById("analysisPercent").textContent = `${Math.min(94, 12 + index * 16)}%`;
+      index += 1;
+      if (index > items.length) clearInterval(timer);
+    }, 360);
+    try {
+      const data = await postJSON("/api/onboarding/analyze");
+      await new Promise(resolve => setTimeout(resolve, 1800));
+      clearInterval(timer); items.forEach(item => { item.classList.remove("active"); item.classList.add("complete"); });
+      document.getElementById("analysisPercent").textContent = "100%";
+      state.operation.operational_model = data.model;
+      state.operation.name = data.model.operation.name;
+      state.clarifications = data.clarifications;
+      setTimeout(() => showStep(data.step), 420);
+    } catch (error) { clearInterval(timer); setNotice(error.message, true); showStep(3); }
+    finally { analysisRunning = false; }
+  }
+
+  function renderClarifications() {
+    const list = document.getElementById("clarificationList");
+    if (!(state.clarifications || []).length) { showStep(6); return; }
+    list.innerHTML = state.clarifications.map((item, index) => `<article class="clarification-card"><header><span>Question ${index + 1}</span><small>${escapeHTML(item.issue_type.replaceAll("_", " "))}</small></header><h3>${escapeHTML(item.question)}</h3><div>${item.options.map(option => `<label><input type="radio" name="clarification-${item.id}" value="${escapeHTML(option)}" required><span>${escapeHTML(option)}</span></label>`).join("")}</div></article>`).join("");
+  }
+
+  document.getElementById("clarificationForm").addEventListener("submit", async event => {
+    event.preventDefault(); const answers = {};
+    (state.clarifications || []).forEach(item => { answers[item.id] = document.querySelector(`[name="clarification-${item.id}"]:checked`)?.value; });
+    try { const data = await postJSON("/api/onboarding/clarifications", {answers}); state.operation.operational_model = data.model; showStep(6); }
+    catch (error) { setNotice(error.message, true); }
+  });
+
+  function renderModel() {
+    const model = state.operation?.operational_model || {};
+    if (!model.operation) return;
+    const unresolved = (model.ambiguities || []).filter(item => !item.resolved).length;
+    document.getElementById("modelSummary").innerHTML = `<section class="model-hero"><div><span>ACTIVE OPERATION</span><h2>${escapeHTML(model.operation.name)}</h2><p>${escapeHTML(model.operation.purpose)}</p></div><strong>${model.completeness || 0}%<small>complete</small></strong></section><section class="model-metrics"><article><strong>${model.case_types.length}</strong><span>Case types</span></article><article><strong>${model.required_fields.length}</strong><span>Required fields</span></article><article><strong>${model.rules.length}</strong><span>Decision rules</span></article><article><strong>${model.escalations.length}</strong><span>Escalation paths</span></article><article><strong>${unresolved}</strong><span>Open ambiguities</span></article></section><div class="model-columns"><section><span class="onboarding-kicker">Case types</span>${model.case_types.map(item => `<article><strong>${escapeHTML(item.name)}</strong><p>${escapeHTML(item.description)}</p></article>`).join("")}</section><section><span class="onboarding-kicker">Human ownership</span>${model.escalations.map(item => `<article><strong>${escapeHTML(item.owner)}</strong><p>${escapeHTML(item.trigger)}</p></article>`).join("")}</section></div><details class="model-details"><summary>Review details <span>+</span></summary><div><h3>Company context</h3><p>${escapeHTML(model.company_context?.summary || "Not specified")}</p><h3>Required information</h3><ul>${model.required_fields.map(item => `<li>${escapeHTML(item.label)}</li>`).join("")}</ul><h3>Decision rules</h3><ol>${model.rules.map(item => `<li><b>${item.id}</b> ${escapeHTML(item.statement)} <small>${escapeHTML(item.source)}</small></li>`).join("")}</ol></div></details>`;
+  }
+
+  document.getElementById("testModel").addEventListener("click", async event => {
+    event.currentTarget.disabled = true;
+    try { const data = await postJSON("/api/onboarding/model-reviewed"); state.scenarios = data.scenarios; showStep(7); }
+    catch (error) { setNotice(error.message, true); } finally { event.currentTarget.disabled = false; }
+  });
+
+  function renderScenarios() {
+    document.getElementById("scenarioList").innerHTML = (state.scenarios || []).map((item, index) => `<article class="scenario-card"><header><span>TEST ${String(index + 1).padStart(2, "0")}</span><h3>${escapeHTML(item.title)}</h3></header><p>${escapeHTML(item.input_summary)}</p><div class="scenario-recommendation"><small>RECOMMENDATION</small><strong>${escapeHTML(item.recommendation)}</strong><p>${escapeHTML(item.rationale)}</p></div><div class="scenario-verdict"><label><input type="radio" name="scenario-${item.id}" value="correct" required><span>✓ Correct</span></label><label><input type="radio" name="scenario-${item.id}" value="adjustment" required><span>Needs adjustment</span></label></div><textarea class="hidden" data-scenario-feedback="${item.id}" rows="2" placeholder="What should change?"></textarea></article>`).join("");
+    document.querySelectorAll(".scenario-verdict input").forEach(input => input.addEventListener("change", () => {
+      const scenarioId = input.name.replace("scenario-", "");
+      const feedback = document.querySelector(`[data-scenario-feedback="${scenarioId}"]`);
+      const needsReason = input.value === "adjustment";
+      feedback.classList.toggle("hidden", !needsReason);
+      feedback.required = needsReason;
+      if (needsReason) feedback.focus();
+    }));
+  }
+
+  document.getElementById("scenarioForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    const feedback = (state.scenarios || []).map(item => ({id: item.id, status: document.querySelector(`[name="scenario-${item.id}"]:checked`)?.value, feedback: document.querySelector(`[data-scenario-feedback="${item.id}"]`)?.value || ""}));
+    try { const data = await postJSON("/api/onboarding/tests", {feedback}); state.scenarios = data.scenarios; showStep(8); }
+    catch (error) { setNotice(error.message, true); }
+  });
+
+  function renderReady() {
+    const model = state.operation?.operational_model || {};
+    const sources = state.sources || [];
+    document.getElementById("readyStats").innerHTML = `<article><strong>${model.case_types?.length || 0}</strong><span>Case types mapped</span></article><article><strong>${model.rules?.length || 0}</strong><span>Rules structured</span></article><article><strong>${sources.length}</strong><span>Knowledge sources</span></article><article><strong>${state.scenarios?.length || 0}</strong><span>Scenarios reviewed</span></article>`;
+    const completeness = model.completeness || state.workspace?.completeness || 0;
+    document.getElementById("readyCompleteness").textContent = `${completeness}%`;
+    document.getElementById("readyBar").style.width = `${completeness}%`;
+    document.getElementById("readyRemaining").textContent = (model.remaining_setup || []).length ? `Remaining: ${model.remaining_setup.slice(0, 2).join(" · ")}` : "No blocking setup tasks. Add knowledge as the operation evolves.";
+  }
+
+  document.getElementById("enterWorkspace").addEventListener("click", async event => {
+    event.currentTarget.disabled = true;
+    try { const data = await postJSON("/api/onboarding/complete"); window.location.assign(data.redirect); }
+    catch (error) { setNotice(error.message, true); event.currentTarget.disabled = false; }
+  });
+
+  function escapeHTML(value) { const element = document.createElement("div"); element.textContent = String(value ?? ""); return element.innerHTML; }
+  hydrate(); showStep(currentStep);
+</script>
+</body>
+</html>
