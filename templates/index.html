@@ -4,59 +4,69 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Policy Copilot trasforma comunicazioni customer care in casi, decisioni verificabili e insight operativi.">
-  <title>Policy Copilot for Customer Care</title>
+  <meta name="description" content="Ops Copilot trasforma richieste non strutturate in casi, decisioni verificabili e insight operativi.">
+  <title>Ops Copilot · Human-guided operations</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="landing-body">
+  <span class="sr-only">Dal messaggio del cliente</span>
   <div class="landing-glow landing-glow-one"></div><div class="landing-glow landing-glow-two"></div>
   <header class="landing-nav">
-    <a class="landing-brand" href="{{ url_for('index') }}"><span>R</span><strong>Policy Copilot</strong></a>
-    <nav><a href="#workflow">Come funziona</a><a href="#product">Prodotto</a><a href="#legacy">Demo resi</a></nav>
+    <a class="landing-brand" href="{{ url_for('index') }}"><span>O</span><strong>Ops Copilot</strong></a>
+    <nav><a href="#workflow">Come funziona</a><a href="#use-cases">Workflow</a><a href="#product">Prodotto</a></nav>
     <a class="button primary" href="{{ url_for('workbench') }}">Prova il Workbench <span>→</span></a>
   </header>
 
   <main class="landing-main">
     <section class="landing-hero">
       <div class="landing-hero-copy">
-        <span class="landing-eyebrow"><i></i> AI-assisted customer care operations</span>
-        <h1>Dal messaggio del cliente<br><em>a una decisione verificabile.</em></h1>
-        <p>Un copilot operativo che struttura ogni richiesta, applica le policy aziendali e prepara una risposta. Senza collegare lo store e senza togliere il controllo all’operatore.</p>
-        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workbench') }}">Analizza un messaggio <span>→</span></a><a class="button ghost large" href="{{ url_for('analytics_view') }}">Esplora gli insight</a></div>
-        <div class="landing-trust"><span>Nessuna integrazione richiesta</span><b>·</b><span>Redazione dati</span><b>·</b><span>Human approval</span><b>·</b><span>Demo sicura</span></div>
+        <span class="landing-eyebrow"><i></i> AI-assisted operational workflows</span>
+        <h1>Dalla richiesta<br><em>alla prossima azione.</em></h1>
+        <p>Un copilot che trasforma comunicazioni e note disordinate in casi strutturati, applica i playbook aziendali e prepara il prossimo passo per l’approvazione umana.</p>
+        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workbench') }}">Analizza una richiesta <span>→</span></a><a class="button ghost large" href="{{ url_for('playbooks') }}">Esplora i playbook</a></div>
+        <div class="landing-trust"><span>Nessuna integrazione richiesta</span><b>·</b><span>Tre workflow pronti</span><b>·</b><span>Human approval</span><b>·</b><span>Demo sicura</span></div>
       </div>
 
       <div class="landing-product-preview">
-        <div class="preview-top"><div><span class="preview-logo">R</span><strong>Nuovo caso</strong></div><span class="preview-live"><i></i> Policy attive</span></div>
-        <div class="customer-bubble"><small>COMUNICAZIONE CLIENTE</small><p>Il dispositivo non si accende più. Vorrei usare la garanzia.</p></div>
-        <div class="preview-flow"><div><span class="preview-node">01</span><strong>Intento</strong><small>Garanzia</small></div><b>→</b><div><span class="preview-node">02</span><strong>Contesto</strong><small>4 controlli</small></div><b>→</b><div><span class="preview-node">03</span><strong>Regola</strong><small>GAR-03</small></div></div>
-        <div class="decision-card"><small>DECISIONE PROPOSTA</small><strong>Sostituzione dopo controllo fisico</strong><p>Garanzia valida e prove complete.</p><span>Bozza pronta · approvazione operatore</span></div>
+        <div class="preview-top"><div><span class="preview-logo">O</span><strong>Nuovo caso · Agenzia</strong></div><span class="preview-live"><i></i> Playbook attivo</span></div>
+        <div class="customer-bubble"><small>RICHIESTA</small><p>Vorremmo aggiungere una seconda lingua al sito senza spostare la consegna.</p></div>
+        <div class="preview-flow"><div><span class="preview-node">01</span><strong>Tipo</strong><small>Cambio scope</small></div><b>→</b><div><span class="preview-node">02</span><strong>Contesto</strong><small>3 controlli</small></div><b>→</b><div><span class="preview-node">03</span><strong>Regola</strong><small>CHG-02</small></div></div>
+        <div class="decision-card"><small>PROSSIMA AZIONE</small><strong>Valutare impatto su tempi e costi</strong><p>La modifica supera il percorso standard.</p><span>Bozza pronta · approvazione umana</span></div>
       </div>
     </section>
 
-    <section class="landing-proof-strip"><div><strong>8</strong><span>casi dimostrativi</span></div><div><strong>45/45</strong><span>test automatici</span></div><div><strong>100%</strong><span>risposte con human gate</span></div><div><strong>0</strong><span>azioni reali nella demo</span></div></section>
+    <section class="landing-proof-strip"><div><strong>3</strong><span>workflow operativi</span></div><div><strong>12</strong><span>casi dimostrativi</span></div><div><strong>100%</strong><span>decisioni con human gate</span></div><div><strong>0</strong><span>azioni esterne automatiche</span></div></section>
 
     <section class="landing-section" id="workflow">
-      <div class="landing-section-head"><span class="landing-eyebrow">Un ciclo chiaro</span><h2>La conversazione non si perde dopo la risposta.</h2><p>Ogni utilizzo lascia una memoria strutturata che può essere consultata, aggregata e trasformata in un miglioramento concreto.</p></div>
-      <div class="landing-workflow four-step-workflow">{% set steps=[('01','Workbench','Comprende la richiesta, raccoglie i fatti e prepara la bozza.'),('02','Casi','Conserva conversazione, decisione, feedback ed esito reale.'),('03','Analytics','Trova volumi, attriti, modifiche ricorrenti ed escalation.'),('04','Policies','Trasforma gli insight in regole da valutare e versionare.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Un motore, non un chatbot</span><h2>La richiesta entra. Il processo diventa visibile.</h2><p>Il sistema non si limita a scrivere: individua il workflow, raccoglie i fatti necessari e rende verificabile la regola che guida la proposta.</p></div>
+      <div class="landing-workflow four-step-workflow">{% set steps=[('01','Richiesta','Email, nota o comunicazione non strutturata.'),('02','Contesto','Fatti mancanti raccolti uno alla volta.'),('03','Playbook','Regole, responsabilità ed eccezioni esplicite.'),('04','Azione','Output revisionato e approvato da una persona.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
+    </section>
+
+    <section class="landing-section landing-use-cases" id="use-cases">
+      <div class="landing-section-head"><span class="landing-eyebrow">Template verticali</span><h2>La stessa grammatica, processi diversi.</h2><p>Il nucleo resta stabile; cambiano intenti, informazioni richieste, regole ed esiti.</p></div>
+      <div class="verification-grid three-workflow-cards">
+        <a href="{{ url_for('workbench', workflow='customer_care') }}"><span>01</span><h3>Customer care</h3><p>Assistenza, garanzia, recesso, spedizioni e pagamenti.</p><b>Prova il workflow →</b></a>
+        <a href="{{ url_for('workbench', workflow='agency_ops') }}"><span>02</span><h3>Agenzia & delivery</h3><p>Nuovi progetti, change request, approvazioni e blocchi.</p><b>Prova il workflow →</b></a>
+        <a href="{{ url_for('workbench', workflow='internal_ops') }}"><span>03</span><h3>Operations interne</h3><p>Acquisti, accessi, incidenti ed eccezioni aziendali.</p><b>Prova il workflow →</b></a>
+      </div>
     </section>
 
     <section class="landing-section landing-verification" id="product">
-      <div class="landing-section-head"><span class="landing-eyebrow">Prodotto esplorabile</span><h2>Quattro sezioni, una sola memoria.</h2><p>Non servono credenziali, ordini da conoscere o configurazioni esterne. Parti da un messaggio e verifica ogni passaggio.</p></div>
+      <div class="landing-section-head"><span class="landing-eyebrow">Ciclo di miglioramento</span><h2>Quattro sezioni, una sola memoria.</h2><p>Ogni utilizzo lascia evidenze che possono migliorare procedure, intake e responsabilità.</p></div>
       <div class="verification-grid four-product-cards">
-        <a href="{{ url_for('workbench') }}"><span>01</span><h3>Workbench</h3><p>Incolla la comunicazione, completa il contesto e copia la risposta.</p><b>Prova il flusso →</b></a>
-        <a href="{{ url_for('database_register') }}"><span>02</span><h3>Casi</h3><p>Consulta la memoria operativa protetta e l’audit trail di ogni decisione.</p><b>Apri i casi →</b></a>
-        <a href="{{ url_for('analytics_view') }}"><span>03</span><h3>Analytics</h3><p>Scopri problemi ricorrenti e insight derivati dai casi reali.</p><b>Leggi gli insight →</b></a>
-        <a href="{{ url_for('policies') }}"><span>04</span><h3>Policies</h3><p>Ordina appunti grezzi, conferma le regole e simula gli esiti.</p><b>Gestisci le policy →</b></a>
+        <a href="{{ url_for('workbench') }}"><span>01</span><h3>Workbench</h3><p>Struttura la richiesta e prepara la prossima azione.</p><b>Crea un caso →</b></a>
+        <a href="{{ url_for('database_register') }}"><span>02</span><h3>Casi</h3><p>Conserva contesto, decisione, feedback ed esito.</p><b>Apri la memoria →</b></a>
+        <a href="{{ url_for('analytics_view') }}"><span>03</span><h3>Analytics</h3><p>Trova volumi, attriti, modifiche ed escalation.</p><b>Leggi gli insight →</b></a>
+        <a href="{{ url_for('playbooks') }}"><span>04</span><h3>Playbooks</h3><p>Ordina SOP e policy in regole operative revisionabili.</p><b>Gestisci i playbook →</b></a>
       </div>
     </section>
 
-    <section class="landing-cta" id="legacy"><div><span class="landing-eyebrow">Approfondimento portfolio</span><h2>Vuoi vedere anche il vecchio workflow e-commerce?</h2><p>Due scenari separati mostrano il processo resi completo con Shopify, Sendcloud, magazzino e Make interamente simulati.</p></div><div><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">Guarda il caso DOA</a><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}">Guarda il caso recesso</a></div></section>
+    <section class="landing-cta" id="legacy"><div><span class="landing-eyebrow">Caso verticale completo</span><h2>Il workflow resi resta una demo approfondita.</h2><p>Due scenari mostrano anche il processo e-commerce completo con Shopify, Sendcloud, magazzino e Make interamente simulati.</p></div><div><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">Guarda il caso DOA</a><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}">Guarda il caso recesso</a></div></section>
   </main>
 
-  <footer class="landing-footer"><span>Policy Copilot · Portfolio prototype</span><span>Nessun dato reale · Nessuna azione esterna · Human in the loop</span></footer>
+  <footer class="landing-footer"><span>Ops Copilot · Portfolio prototype</span><span>Nessun dato reale · Nessuna azione esterna · Human in the loop</span></footer>
 </body>
 </html>

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>{% block title %}Return Operations{% endblock %}</title>
+  <title>{% block title %}Ops Copilot{% endblock %}</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -15,7 +15,7 @@
   <div class="ambient ambient-two"></div>
   <div class="app-shell">
     <aside class="sidebar" aria-label="Navigazione principale">
-      <a class="brand-mark" href="{{ url_for('index') }}" aria-label="Return Operations home"><span>R</span></a>
+      <a class="brand-mark" href="{{ url_for('index') }}" aria-label="Ops Copilot home"><span>O</span></a>
       <nav class="side-nav">
         <a class="nav-item {% if request.path.startswith('/workbench') %}active{% endif %}" href="/workbench">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H7l-3 3V5Z"/><path d="M8 9h8M8 12h5"/></svg><span>Workbench</span>
@@ -26,8 +26,8 @@
         <a class="nav-item {% if request.path.startswith('/analytics') %}active{% endif %}" href="/analytics">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg><span>Analytics</span>
         </a>
-        <a class="nav-item {% if request.path.startswith('/policies') %}active{% endif %}" href="/policies">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Policies</span>
+        <a class="nav-item {% if request.path.startswith('/policies') or request.path.startswith('/playbooks') %}active{% endif %}" href="{{ url_for('playbooks') }}">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Playbooks</span>
         </a>
       </nav>
       <div class="sidebar-foot"><a href="{{ url_for('index') }}">Panoramica</a><span><i class="pulse-dot"></i> Demo safe</span></div>
@@ -36,9 +36,9 @@
     <div class="workspace">
       {% block workspace_header %}<header class="workspace-header">
         <div>
-          <span class="page-kicker">{% block page_kicker %}Customer Return Agent{% endblock %}</span>
-          <h1>{% block page_title %}Return Operations{% endblock %}</h1>
-          <p>{% block page_subtitle %}Human-in-the-loop return automation{% endblock %}</p>
+          <span class="page-kicker">{% block page_kicker %}Operations Copilot{% endblock %}</span>
+          <h1>{% block page_title %}Operational Workflows{% endblock %}</h1>
+          <p>{% block page_subtitle %}Human-in-the-loop decision support{% endblock %}</p>
         </div>
         <div class="header-actions">
           {% block header_actions %}<span class="mode-chip"><i></i> Portfolio demo</span>{% endblock %}

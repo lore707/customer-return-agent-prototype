@@ -115,7 +115,7 @@ def url_text(value: str) -> tuple[str, str]:
             allow_redirects=False,
             stream=True,
             timeout=(3.05, 10),
-            headers={"User-Agent": "ReturnPolicyImporter/1.0"},
+            headers={"User-Agent": "OpsPlaybookImporter/1.0"},
         )
         response.raise_for_status()
     except requests.RequestException as exc:
@@ -148,6 +148,83 @@ def _contains(text: str, *terms: str) -> bool:
     return any(term in text for term in terms)
 
 
+def _generic_playbook_extraction(cleaned: str, lowered: str) -> dict:
+    """Ordina procedure non e-commerce in una struttura minima verificabile."""
+    agency_score = sum(term in lowered for term in ("brief", "scope", "deliverable", "asset", "progetto", "cliente approva"))
+    internal_score = sum(term in lowered for term in ("accesso", "acquisto", "licenza", "incidente", "deroga", "richiesta interna"))
+    kind = "agency" if agency_score > internal_score else "internal" if internal_score else "operations"
+
+    def detected(terms: tuple[str, ...], positive: str) -> str:
+        return positive if _contains(lowered, *terms) else "Da confermare"
+
+    if kind == "agency":
+        values = [
+            ("intake_scope", "Scope minimo", detected(("scope", "obiettivo", "deliverable", "brief"), "Obiettivo e deliverable espliciti")),
+            ("intake_deadline", "Scadenza", detected(("scadenza", "deadline", "consegna"), "Da verificare prima della pianificazione")),
+            ("budget_gate", "Copertura economica", detected(("budget", "preventivo", "costo"), "Approvazione prima del kickoff")),
+            ("change_control", "Cambio di scope", detected(("modifica", "change", "extra", "fuori scope"), "Valutare impatto su tempi e costi")),
+            ("delivery_owner", "Responsabile", detected(("owner", "responsabile", "project manager"), "Owner obbligatorio")),
+            ("approval_gate", "Approvazione finale", detected(("approv", "via libera", "conferma"), "Conferma umana esplicita")),
+        ]
+        sections = [
+            ("Intake del lavoro", values[:3]),
+            ("Delivery e controllo", values[3:]),
+        ]
+    elif kind == "internal":
+        values = [
+            ("request_reason", "Motivazione", detected(("motiv", "necessità", "obiettivo"), "Motivazione operativa obbligatoria")),
+            ("request_owner", "Responsabile", detected(("owner", "responsabile", "assegn"), "Owner identificato")),
+            ("approval_gate", "Approvazione", detected(("approv", "manager", "responsabile"), "Approvazione prima dell’esecuzione")),
+            ("priority_rule", "Priorità", detected(("urgente", "priorità", "critico", "impatto"), "Definita da urgenza e impatto")),
+            ("exception_rule", "Eccezioni", detected(("eccezione", "deroga", "fuori processo"), "Motivazione e scadenza obbligatorie")),
+            ("audit_rule", "Tracciabilità", detected(("registra", "audit", "storico", "document"), "Decisione ed esito conservati")),
+        ]
+        sections = [
+            ("Intake e responsabilità", values[:3]),
+            ("Priorità, eccezioni e controllo", values[3:]),
+        ]
+    else:
+        values = [
+            ("request_type", "Tipo di richiesta", "Da confermare"),
+            ("required_context", "Informazioni necessarie", "Da confermare"),
+            ("decision_rule", "Criterio decisionale", "Da confermare"),
+            ("owner_rule", "Responsabile", detected(("owner", "responsabile", "operatore"), "Responsabile esplicito")),
+            ("escalation_rule", "Escalation", detected(("escal", "eccezione", "superiore"), "Percorso manuale previsto")),
+            ("human_gate", "Controllo finale", detected(("approv", "revisione", "persona"), "Approvazione umana")),
+        ]
+        sections = [("Intake", values[:3]), ("Governance", values[3:])]
+
+    rules = [
+        {"id": rule_id, "label": label, "value": value, "confidence": 0.9 if value != "Da confermare" else 0.55, "needs_confirmation": value == "Da confermare"}
+        for rule_id, label, value in values
+    ]
+    confirmations = []
+    for line in cleaned.splitlines():
+        if "DA CONFERMARE" in line.upper():
+            description = re.sub(r"[`*#\[\]]", "", line).strip(" -:—")
+            if description and description not in confirmations:
+                confirmations.append(description)
+    confirmations.extend(
+        f"{item['label']}: il testo non definisce un valore univoco."
+        for item in rules
+        if item["needs_confirmation"]
+    )
+    normalized_document = [
+        {"title": title, "items": [f"{label}: {value}" for _, label, value in section_rules]}
+        for title, section_rules in sections
+    ]
+    return {
+        "rules": rules,
+        "normalized_document": normalized_document,
+        "confirmations": confirmations[:7],
+        "rule_count": len(rules),
+        "confirmation_count": min(len(confirmations), 7),
+        "engine": "structured_playbook_preview",
+        "playbook_type": kind,
+        "characters_read": len(cleaned),
+    }
+
+
 def extract_structured_rules(text: str) -> dict:
     """Converte il testo in una bozza esplicita da revisionare manualmente."""
 
@@ -155,6 +232,8 @@ def extract_structured_rules(text: str) -> dict:
     if len(cleaned) < 40:
         raise PolicyImportError("Inserisci almeno 40 caratteri di policy.")
     lowered = cleaned.casefold()
+    if not _contains(lowered, "reso", "recesso", "garanzia", "rimborso", "doa"):
+        return _generic_playbook_extraction(cleaned, lowered)
     day_match = re.search(r"\b(\d{1,3})\s*(?:giorni|giorno|gg)\b", lowered)
     window = f"{day_match.group(1)} giorni" if day_match else "Da confermare"
 

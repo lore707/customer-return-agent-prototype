@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Workbench · Policy Copilot{% endblock %}
+{% block title %}Workbench · Ops Copilot{% endblock %}
 {% block page_kicker %}Area operativa{% endblock %}
 {% block page_title %}Workbench{% endblock %}
-{% block page_subtitle %}Incolla una comunicazione, completa il contesto e prepara una risposta verificabile.{% endblock %}
+{% block page_subtitle %}Trasforma una richiesta non strutturata in un caso, una decisione e una prossima azione verificabile.{% endblock %}
 {% block header_actions %}
   {% if case %}<a class="button ghost" href="{{ url_for('workbench') }}">+ Nuovo caso</a>{% endif %}
   <a class="button ghost" href="{{ url_for('database_register') }}">Apri Casi</a>
@@ -18,21 +18,23 @@
     <span class="sr-only">AI draft response</span>
     <div class="copilot-start-icon" aria-hidden="true">✦</div>
     <span class="section-label">Nuova analisi</span>
-    <h2 id="workbench-title">Come posso aiutarti con questo caso?</h2>
-    <p>Incolla il messaggio ricevuto. Email, telefono e riferimento dell’ordine vengono rimossi prima del salvataggio.</p>
+    <h2 id="workbench-title">Quale richiesta vuoi trasformare in un caso?</h2>
+    <p>Scegli il workflow e incolla una comunicazione o una nota. Il sistema raccoglierà solo il contesto necessario per quel processo.</p>
+    <div class="workflow-picker" role="group" aria-label="Seleziona il workflow">
+      {% for key, item in workflows.items() %}
+        <button type="button" data-workflow="{{ key }}" class="{% if key == selected_workflow %}active{% endif %}">
+          <span>0{{ loop.index }}</span><strong>{{ item.label }}</strong><small>{{ item.short }}</small>
+        </button>
+      {% endfor %}
+    </div>
     <form id="analyzeForm" class="copilot-composer">
-      <textarea id="initialMessage" maxlength="5000" required placeholder="Incolla qui la comunicazione del cliente…"></textarea>
+      <textarea id="initialMessage" maxlength="5000" required placeholder="Incolla una richiesta, un’email o una nota operativa…"></textarea>
       <div class="copilot-composer-foot">
         <span><i></i> Redazione dati attiva</span>
-        <button class="button primary" type="submit">Analizza richiesta <span aria-hidden="true">→</span></button>
+        <button class="button primary" type="submit">Crea caso <span aria-hidden="true">→</span></button>
       </div>
     </form>
-    <div class="copilot-examples">
-      <span>Prova un esempio</span>
-      <button type="button" data-example="Il prodotto non si accende più e vorrei capire come usare la garanzia.">Prodotto difettoso</button>
-      <button type="button" data-example="Ho cambiato idea e vorrei restituire il prodotto che ho ricevuto.">Recesso</button>
-      <button type="button" data-example="Il tracking dice consegnato ma io non ho ricevuto il pacco.">Problema di spedizione</button>
-    </div>
+    <div class="copilot-examples"><span>Prova un esempio</span>{% for workflow_key, item in workflows.items() %}{% for label, copy in item.examples %}<button type="button" data-example="{{ copy }}" data-example-workflow="{{ workflow_key }}" {% if workflow_key != selected_workflow %}class="hidden"{% endif %}>{{ label }}</button>{% endfor %}{% endfor %}</div>
   </section>
 
   {% if recent_cases %}
@@ -41,7 +43,7 @@
       <div class="copilot-recent-grid">
         {% for item in recent_cases %}
           <a href="{{ url_for('workbench_case', case_id=item.id) }}">
-            <span>{{ category_labels.get(item.return_reason, item.return_reason) }}</span>
+            <span>{{ workflows.get(item.workflow_key or 'customer_care').label }} · {{ category_labels.get(item.return_reason, item.return_reason) }}</span>
             <strong>{{ item.customer_message|truncate(82) }}</strong>
             <small>{{ item.id }} · {{ status_labels.get(item.status, item.status) }}</small>
           </a>
@@ -55,7 +57,7 @@
       <div>
         <a href="{{ url_for('workbench') }}" class="back-link">← Nuova analisi</a>
         <h2>{{ category_label }}</h2>
-        <p>{{ case.id }} · creato {{ case.created_at[8:10] }}/{{ case.created_at[5:7] }} alle {{ case.created_at[11:16] }}</p>
+        <p>{{ workflow.label }} · {{ case.id }} · creato {{ case.created_at[8:10] }}/{{ case.created_at[5:7] }} alle {{ case.created_at[11:16] }}</p>
       </div>
       <div class="copilot-case-badges">
         {% if (case.source_mode or '').startswith('policy_copilot') %}<span class="privacy-badge">● Identificatori comuni rimossi</span>{% else %}<span class="soft-badge">Scenario portfolio legacy</span>{% endif %}
@@ -70,7 +72,7 @@
             <article class="copilot-message {{ message.role }}">
               <div class="copilot-avatar">{% if message.role == 'cliente' %}C{% else %}O{% endif %}</div>
               <div>
-                <small>{% if message.role == 'cliente' %}Comunicazione cliente{% else %}Risposta operatore{% endif %} · {{ message.created_at[11:16] }}</small>
+                <small>{% if message.role == 'cliente' %}{{ workflow.input_label }}{% else %}Output approvato dall’operatore{% endif %} · {{ message.created_at[11:16] }}</small>
                 <p>{{ message.message }}</p>
               </div>
             </article>
@@ -79,9 +81,9 @@
           <article class="copilot-message assistant">
             <div class="copilot-avatar">✦</div>
             <div>
-              <small>Policy Copilot</small>
+              <small>Ops Copilot · {{ workflow.playbook }}</small>
               <div class="copilot-analysis-line">
-                <span>Intento <strong>{{ category_label }}</strong></span>
+                <span>Tipo <strong>{{ category_label }}</strong></span>
                 <span>Confidenza <strong>{{ ((case.confidence or 0) * 100)|round|int }}%</strong></span>
                 <span>Privacy <strong>attiva</strong></span>
               </div>
@@ -110,11 +112,11 @@
                     <span class="eligibility eligibility-{{ case.eligibility_result }}">{{ case.eligibility_result.replace('_', ' ') }}</span>
                   </div>
                   <p>{{ decision.motivation or case.policy_applied }}</p>
-                  <div class="copilot-rule-proof"><span>Regola applicata</span><strong>{{ decision.rule_id or 'Revisione manuale' }}</strong><a href="{{ url_for('policies') }}">Verifica policy →</a></div>
+                  <div class="copilot-rule-proof"><span>Regola applicata</span><strong>{{ decision.rule_id or 'Revisione manuale' }}</strong><a href="{{ url_for('playbooks', playbook=workflow.key) }}">Apri playbook →</a></div>
                 </section>
 
                 <section class="copilot-draft">
-                  <div><span class="section-label">Bozza pronta per l’operatore</span><small>Nessun invio automatico</small></div>
+                  <div><span class="section-label">{{ workflow.output_label }}</span><small>Nessuna esecuzione automatica</small></div>
                   <textarea id="draftResponse" maxlength="5000">{{ case.final_response or case.original_suggested_response or '' }}</textarea>
                   <div class="copilot-draft-actions">
                     <button class="button primary" id="copyDraft" type="button">Copia risposta</button>
@@ -125,7 +127,7 @@
                 <section class="copilot-outcome {% if not case.actual_outcome %}hidden{% endif %}" id="outcomePanel">
                   <span class="section-label">Cosa è successo davvero?</span>
                   <h3>Chiudi il ciclo e alimenta gli Analytics</h3>
-                  <p>Il sistema non invia email e non esegue operazioni: registra soltanto l’esito indicato dall’operatore.</p>
+                  <p>Il sistema non esegue operazioni esterne: registra soltanto l’esito indicato dalla persona responsabile.</p>
                   <div class="copilot-outcome-grid">
                     {% for value, label in outcome_labels.items() %}<button type="button" data-outcome="{{ value }}" class="{% if case.actual_outcome == value %}active{% endif %}">{{ label }}</button>{% endfor %}
                   </div>
@@ -139,7 +141,7 @@
 
         {% if case.status != 'CLOSED' %}
           <form id="followupForm" class="copilot-followup">
-            <textarea id="followupMessage" rows="2" maxlength="5000" placeholder="Incolla un nuovo messaggio dello stesso cliente…"></textarea>
+            <textarea id="followupMessage" rows="2" maxlength="5000" placeholder="Aggiungi un aggiornamento sullo stesso caso…"></textarea>
             <button type="submit" aria-label="Aggiungi messaggio">↑</button>
           </form>
         {% endif %}
@@ -176,7 +178,7 @@
           <summary>Audit trail <span>{{ timeline|length }}</span></summary>
           <ol class="copilot-audit">{% for event in timeline|reverse %}<li><i></i><div><strong>{{ event.event_type.replace('_', ' ') }}</strong><small>{{ event.created_at[11:16] }}</small></div></li>{% endfor %}</ol>
         </details>
-        <div class="copilot-safety"><strong>Controllo umano obbligatorio</strong><p>Il copilot prepara. La persona verifica, usa la risposta e registra l’esito.</p></div>
+        <div class="copilot-safety"><strong>Controllo umano obbligatorio</strong><p>Il copilot struttura e propone. La persona verifica, esegue l’azione e registra l’esito.</p></div>
       </aside>
     </div>
   </div>
@@ -191,11 +193,17 @@
     const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
     const data = await response.json(); if (!response.ok) throw new Error(data.errore || "Operazione non riuscita"); return data;
   }
+  let selectedWorkflow = {{ selected_workflow|tojson }};
+  document.querySelectorAll("[data-workflow]").forEach(button => button.addEventListener("click", () => {
+    selectedWorkflow = button.dataset.workflow;
+    document.querySelectorAll("[data-workflow]").forEach(item => item.classList.toggle("active", item === button));
+    document.querySelectorAll("[data-example-workflow]").forEach(item => item.classList.toggle("hidden", item.dataset.exampleWorkflow !== selectedWorkflow));
+  }));
   document.querySelectorAll("[data-example]").forEach(button => button.addEventListener("click", () => { const field = document.getElementById("initialMessage"); field.value = button.dataset.example; field.focus(); }));
   document.getElementById("analyzeForm")?.addEventListener("submit", async event => {
     event.preventDefault(); const button = event.currentTarget.querySelector("button[type=submit]"); button.disabled = true; button.textContent = "Analisi in corso…";
-    try { const data = await send("/api/workbench/analyze", {message: document.getElementById("initialMessage").value}); window.location.assign(data.redirect); }
-    catch (error) { showNotice(error.message, true); button.disabled = false; button.textContent = "Analizza richiesta →"; }
+    try { const data = await send("/api/workbench/analyze", {message: document.getElementById("initialMessage").value, workflow: selectedWorkflow}); window.location.assign(data.redirect); }
+    catch (error) { showNotice(error.message, true); button.disabled = false; button.textContent = "Crea caso →"; }
   });
   {% if case %}
   const caseId = {{ case.id|tojson }};

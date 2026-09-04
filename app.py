@@ -393,6 +393,7 @@ def database_register():
     filters = {
         "status": (request.args.get("status") or "").strip() or None,
         "reason": (request.args.get("reason") or "").strip() or None,
+        "workflow_key": (request.args.get("workflow") or "").strip() or None,
         "query": (request.args.get("q") or "").strip() or None,
     }
     source_prefix = None if legacy_alias else "policy_copilot"
@@ -423,7 +424,9 @@ def database_register():
         status_labels=domain.STATUS_LABELS,
         reasons=sorted({case["return_reason"] for case in all_cases}),
         category_labels=support_copilot.CATEGORY_LABELS,
+        workflow_labels={key: value["label"] for key, value in support_copilot.WORKFLOWS.items()},
         outcome_labels=support_copilot.OUTCOME_LABELS,
+        workflows=support_copilot.WORKFLOWS,
         legacy_alias=legacy_alias,
         message_total=sum(counts.values()),
     )
@@ -438,37 +441,64 @@ def _policy_rule_count(value) -> int:
 
 
 @app.get("/policies")
+@app.get("/playbooks", endpoint="playbooks")
 def policies():
+    support_copilot.ensure_demo_cases()
     policy = policy_config.load_policy()
     analytics_metrics = database.copilot_analytics()
+    builtins = {
+        "customer_care": {
+            "title": "Customer Care & Resi",
+            "description": "Assistenza, garanzia, recesso, spedizioni e pagamenti",
+            "source": policy["source"],
+            "version": policy["version"],
+            "overview": "Playbook per classificare le richieste clienti e preparare risposte verificabili.",
+            "rules": [
+                {"id": "RET-01", "label": "Finestra recesso", "value": f"{policy['withdrawal']['window_days']} giorni dalla consegna"},
+                {"id": "RET-02", "label": "Condizioni prodotto", "value": "Integro e rivendibile"},
+                {"id": "GAR-01", "label": "Finestra garanzia", "value": f"{policy['defective_product']['warranty_max_days']} giorni"},
+                {"id": "GAR-02", "label": "Prove difetto", "value": ", ".join(policy['defective_product']['evidence_required'])},
+                {"id": "ESC-01", "label": "Controllo umano", "value": "Obbligatorio prima dell’uso della risposta"},
+            ],
+            "exceptions": policy["unresolved"],
+            "flow": [("Richiesta", "Intento cliente"), ("Contesto", "Ordine e fatti"), ("Regole", "Idoneità"), ("Human gate", "Risposta")],
+        },
+        "agency_ops": {
+            "title": "Agency Delivery",
+            "description": "Brief, cambi di scope, approvazioni e blocchi di delivery",
+            "source": "playbooks/agency_delivery.md",
+            "version": "1.0",
+            "overview": "Playbook per trasformare comunicazioni di clienti e team in brief e prossime azioni.",
+            "rules": [
+                {"id": "AGY-01", "label": "Brief minimo", "value": "Obiettivo e scope devono essere espliciti"},
+                {"id": "AGY-02", "label": "Fattibilità", "value": "Scadenza e copertura economica verificate"},
+                {"id": "CHG-01", "label": "Cambio di scope", "value": "Stimare sempre impatto su tempi e costi"},
+                {"id": "APR-01", "label": "Approvazione", "value": "Richiedere un esito esplicito del referente"},
+                {"id": "BLK-01", "label": "Blocco critico", "value": "Owner obbligatorio ed escalation delivery"},
+            ],
+            "exceptions": [{"id": "AGY-X1", "description": "Richieste urgenti senza budget confermato restano sotto revisione del responsabile."}],
+            "flow": [("Richiesta", "Brief o change"), ("Contesto", "Scope e vincoli"), ("Impatto", "Tempi e costi"), ("Human gate", "Handoff")],
+        },
+        "internal_ops": {
+            "title": "Internal Operations",
+            "description": "Acquisti, accessi, incidenti ed eccezioni interne",
+            "source": "playbooks/internal_operations.md",
+            "version": "1.0",
+            "overview": "Playbook per rendere tracciabili richieste interne, approvazioni e responsabilità.",
+            "rules": [
+                {"id": "PUR-01", "label": "Motivazione acquisto", "value": "Utilizzo e beneficiari devono essere documentati"},
+                {"id": "PUR-03", "label": "Approvazione spesa", "value": "Budget e responsabile verificati prima dell’handoff"},
+                {"id": "ACC-01", "label": "Accessi", "value": "Sistema, ruolo, durata e motivazione obbligatori"},
+                {"id": "INC-01", "label": "Incidente critico", "value": "Escalation se l’attività aziendale è bloccata"},
+                {"id": "EXC-02", "label": "Deroga", "value": "Durata, owner e data di revisione obbligatori"},
+            ],
+            "exceptions": [{"id": "OPS-X1", "description": "Le urgenze non sostituiscono le approvazioni richieste per accessi o spese."}],
+            "flow": [("Richiesta", "Acquisto o accesso"), ("Contesto", "Motivo e impatto"), ("Approval", "Responsabile"), ("Human gate", "Handoff")],
+        },
+    }
     policy_cards = [
-        {
-            "id": "standard",
-            "title": "Policy Resi Standard",
-            "description": "Recesso, rimborso e logistica di rientro",
-            "status": "Attiva",
-            "source": policy["source"],
-            "version": policy["version"],
-            "custom": False,
-        },
-        {
-            "id": "hygiene",
-            "title": "Policy Prodotti Igienici",
-            "description": "Sigilli, esclusioni e condizioni prodotto",
-            "status": "Attiva",
-            "source": policy["source"],
-            "version": policy["version"],
-            "custom": False,
-        },
-        {
-            "id": "exceptions",
-            "title": "Policy Eccezioni e Garanzia",
-            "description": "DOA, danni, articolo errato ed escalation",
-            "status": "Attiva",
-            "source": policy["source"],
-            "version": policy["version"],
-            "custom": False,
-        },
+        {"id": key, "title": item["title"], "description": item["description"], "status": "Attivo", "source": item["source"], "version": item["version"], "custom": False}
+        for key, item in builtins.items()
     ]
     custom_documents = database.list_policy_documents()
     for document in custom_documents:
@@ -476,7 +506,7 @@ def policies():
             {
                 "id": document["id"],
                 "title": document["name"],
-                "description": "Policy strutturata e confermata dall’operatore",
+                "description": "Playbook strutturato e confermato dall’operatore",
                 "status": "Pubblicata",
                 "source": document["source_label"],
                 "version": f"1.{document['version'] - 1}",
@@ -484,11 +514,10 @@ def policies():
                 "document": document,
             }
         )
-    selected_id = request.args.get("policy", "standard")
+    selected_id = request.args.get("playbook") or request.args.get("policy") or "customer_care"
     if selected_id not in {item["id"] for item in policy_cards}:
-        selected_id = "standard"
+        selected_id = "customer_care"
     selected = next(item for item in policy_cards if item["id"] == selected_id)
-    standard = policy["withdrawal"]
     selected_exceptions = []
     if selected.get("custom"):
         document = selected["document"]
@@ -497,37 +526,12 @@ def policies():
             {"id": f"REV-{index + 1:02}", "description": copy}
             for index, copy in enumerate(document["confirmations"])
         ]
-        description = "Documento grezzo trasformato in regole strutturate, revisionate e versionate."
-        decision_flow = [("Input", "Comunicazione"), ("Contesto", "Fatti necessari"), ("Regole", "Valori confermati"), ("Human gate", "Uso della risposta")]
-    elif selected_id == "standard":
-        rules_view = [
-            {"id": "RET-01", "label": "Finestra di reso", "value": f"{standard['window_days']} giorni dalla consegna"},
-            {"id": "RET-02", "label": "Condizioni prodotto", "value": "Integro e rivendibile"},
-            {"id": "RET-03", "label": "Costi spedizione reso", "value": "A carico del cliente"},
-            {"id": "RET-04", "label": "Azione disponibile", "value": "Rimborso dopo controllo"},
-        ]
-        description = "Regole applicate alle richieste di recesso standard entro i termini."
-        decision_flow = [("Richiesta", "Recesso"), ("Finestra", "14 giorni"), ("Condizioni", "Rivendibile"), ("Human gate", "Rimborso")]
-    elif selected_id == "hygiene":
-        rules_view = [
-            {"id": "HYG-01", "label": "Prodotti esclusi", "value": ", ".join(standard["excluded_product_keywords"])},
-            {"id": "HYG-02", "label": "Prodotto sigillato", "value": "Idoneo alla valutazione"},
-            {"id": "HYG-03", "label": "Prodotto aperto", "value": "Recesso non idoneo"},
-            {"id": "HYG-04", "label": "Difetto dichiarato", "value": "Passa al flusso garanzia"},
-        ]
-        description = "Eccezioni per prodotti personali: la decisione dipende dallo stato del sigillo."
-        decision_flow = [("Categoria", "Prodotto personale"), ("Sigillo", "Integro o aperto"), ("Difetto", "Recesso o garanzia"), ("Human gate", "Esito")]
     else:
-        defective = policy["defective_product"]
-        rules_view = [
-            {"id": "GAR-01", "label": "Prove richieste", "value": ", ".join(defective["evidence_required"])},
-            {"id": "GAR-02", "label": "Finestra garanzia", "value": f"{defective['warranty_max_days']} giorni dalla consegna"},
-            {"id": "GAR-03", "label": "Difetto documentato", "value": "Sostituzione dopo controllo"},
-            {"id": "ESC-01", "label": "Bassa confidenza", "value": f"Escalation sotto {policy['escalation']['low_confidence_below']:.0%}"},
-        ]
-        description = "Regole per difetti, danni e casi che non possono essere decisi automaticamente."
-        selected_exceptions = policy["unresolved"]
-        decision_flow = [("Difetto", "Classificazione"), ("Prove", "Foto e video"), ("Garanzia", "Entro 2 anni"), ("Human gate", "Swap o escalation")]
+        definition = builtins[selected_id]
+        rules_view = definition["rules"]
+        selected_exceptions = definition["exceptions"]
+        description = definition["overview"]
+        decision_flow = definition["flow"]
     return render_template(
         "policies.html",
         policy=policy,
@@ -538,7 +542,7 @@ def policies():
         decision_flow=decision_flow,
         selected_exceptions=selected_exceptions,
         description=description,
-        rule_count=_policy_rule_count(policy) - _policy_rule_count(policy["unresolved"]) + sum(len(item["rules"]) for item in custom_documents),
+        rule_count=sum(len(item["rules"]) for item in builtins.values()) + sum(len(item["rules"]) for item in custom_documents),
         decision_count=analytics_metrics["total"],
         policy_signals=analytics_metrics["insights"],
         rules_used=analytics_metrics["rules"],
@@ -547,8 +551,9 @@ def policies():
 
 
 @app.post("/policies/extract")
+@app.post("/playbooks/extract")
 def extract_policy_preview():
-    """Estrae una bozza strutturata senza modificare la policy attiva."""
+    """Estrae una bozza strutturata senza modificare i playbook attivi."""
 
     try:
         upload = request.files.get("file")
@@ -568,7 +573,7 @@ def extract_policy_preview():
                 text = str(data.get("text") or "").strip()
                 source = "Testo incollato"
             if not text:
-                raise policy_import.PolicyImportError("Inserisci una policy da analizzare.")
+                raise policy_import.PolicyImportError("Inserisci una procedura da analizzare.")
         extraction = policy_import.extract_structured_rules(text)
     except policy_import.PolicyImportError as exc:
         return jsonify({"errore": str(exc)}), 400
@@ -576,6 +581,7 @@ def extract_policy_preview():
 
 
 @app.post("/policies/publish-preview")
+@app.post("/playbooks/publish-preview")
 def publish_policy_preview():
     """Salva la versione revisionata; il motore resta protetto dall'human gate."""
 
@@ -583,7 +589,7 @@ def publish_policy_preview():
     name = str(data.get("name") or "").strip()
     rules_preview = data.get("rules") or []
     if not name or not isinstance(rules_preview, list) or not rules_preview:
-        return jsonify({"errore": "Nome e regole della policy sono obbligatori."}), 400
+        return jsonify({"errore": "Nome e regole del playbook sono obbligatori."}), 400
     if not data.get("human_confirmed"):
         return jsonify({"errore": "Conferma la revisione umana prima di pubblicare."}), 400
     document = database.publish_policy_document(
@@ -600,7 +606,7 @@ def publish_policy_preview():
             "policy_name": document["name"],
             "policy_id": document["id"],
             "rule_count": len(rules_preview),
-            "redirect": url_for("policies", policy=document["id"]),
+            "redirect": url_for("playbooks", playbook=document["id"]),
             "active_policy_unchanged": True,
         }
     )
@@ -618,6 +624,7 @@ def _simulation_category(message: str) -> str:
 
 
 @app.post("/policies/simulate")
+@app.post("/playbooks/simulate")
 def simulate_policy():
     """Esegue scenari espliciti senza leggere store o creare casi."""
     data = request.get_json(silent=True) or {}
@@ -627,6 +634,10 @@ def simulate_policy():
         "doa_ok": ("doa", {"purchase_verified": True, "delivery_days": 120, "evidence_received": True, "serial_verified": True}),
         "doa_missing": ("doa", {"purchase_verified": True, "delivery_days": 120, "evidence_received": False, "serial_verified": False}),
         "shipping_delay": ("spedizione", {"purchase_verified": True, "order_status": "delayed"}),
+        "agency_project_ready": ("agency_project", {"scope_clear": True, "deadline_confirmed": True, "budget_status": "approved", "owner_assigned": True}),
+        "agency_change_high": ("agency_change", {"impact_level": "high", "deadline_confirmed": True, "budget_status": "approved"}),
+        "internal_purchase": ("ops_purchase", {"business_reason_clear": True, "budget_status": "approved", "manager_approval": "approved"}),
+        "internal_incident": ("ops_incident", {"urgency": "critical", "incident_impact": "business_blocked", "owner_assigned": False}),
     }
     scenario = str(data.get("scenario") or "")
     legacy_request = not scenario and bool(data.get("order_number"))
@@ -688,6 +699,7 @@ def analytics_view():
         "analytics.html",
         metrics=metrics,
         category_labels=support_copilot.CATEGORY_LABELS,
+        workflow_labels={key: value["label"] for key, value in support_copilot.WORKFLOWS.items()},
         outcome_labels=support_copilot.OUTCOME_LABELS,
         fact_labels=fact_labels,
         feedback_labels=feedback_labels,
@@ -742,13 +754,15 @@ def case_detail(case_id: str):
     )
 
 
-def _render_workbench(case_id: str | None = None):
+def _render_workbench(case_id: str | None = None, workflow_key: str | None = None):
+    support_copilot.ensure_demo_cases()
     return_case = database.get_case(case_id) if case_id else None
     if case_id and return_case is None:
         return render_template("404.html"), 404
     recent_cases = [
         item for item in database.list_cases(source_mode_prefix="policy_copilot", limit=30)
     ][:6]
+    selected_workflow = workflow_key if workflow_key in support_copilot.WORKFLOWS else "customer_care"
     return render_template(
         "workbench.html",
         **support_copilot.view_model(return_case),
@@ -757,6 +771,8 @@ def _render_workbench(case_id: str | None = None):
         recent_cases=recent_cases,
         status_labels=domain.STATUS_LABELS,
         category_labels=support_copilot.CATEGORY_LABELS,
+        workflows=support_copilot.WORKFLOWS,
+        selected_workflow=selected_workflow,
     )
 
 
@@ -765,7 +781,7 @@ def workbench():
     requested = (request.args.get("case_id") or "").strip()
     if requested and database.get_case(requested):
         return redirect(url_for("workbench_case", case_id=requested))
-    return _render_workbench()
+    return _render_workbench(workflow_key=(request.args.get("workflow") or "").strip())
 
 
 @app.get("/workbench/<case_id>")
@@ -782,7 +798,12 @@ def analyze_support_message():
     if len(message) > MAX_MESSAGE_LENGTH:
         return jsonify({"errore": "Il messaggio supera il limite di 5.000 caratteri."}), 400
     try:
-        return_case = support_copilot.create_case(message)
+        return_case = support_copilot.create_case(
+            message,
+            workflow_key=str(data.get("workflow") or "customer_care"),
+        )
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
     except Exception:  # noqa: BLE001
         logger.exception("Creazione del caso copilot non riuscita")
         return jsonify({"errore": "Non è stato possibile analizzare la comunicazione."}), 500

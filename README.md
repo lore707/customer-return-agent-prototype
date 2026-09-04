@@ -1,109 +1,125 @@
-# Policy Copilot for Customer Care
+# Ops Copilot
 
-Prototipo portfolio di un supporto operativo per team customer care. Non si
-collega a Shopify, non legge caselle email e non esegue rimborsi: l’operatore
-incolla una comunicazione, completa pochi controlli guidati e ottiene una
-bozza motivata da regole aziendali esplicite.
+Portfolio prototype di un copilot per workflow operativi guidati da procedure.
+Trasforma una richiesta non strutturata in un caso, raccoglie il contesto
+mancante, applica un playbook deterministico e prepara la prossima azione per
+la revisione umana.
 
-Il prodotto dimostra un ciclo completo e verificabile:
+Non è legato a Shopify e non è un chatbot generico. Il suo perimetro è:
 
 ```text
-Workbench → Casi → Analytics → Policies
+Richiesta → Contesto → Playbook → Proposta → Human gate → Esito → Insight
 ```
 
-- **Workbench** crea e aggiorna il singolo caso;
-- **Casi** conserva la memoria operativa con redazione degli identificatori più comuni;
+Il prototipo funziona senza collegare caselle email, CRM, store o strumenti
+aziendali e non esegue azioni esterne.
+
+## Quattro sezioni, una memoria
+
+- **Workbench** crea e aggiorna i casi operativi;
+- **Casi** conserva richiesta, fatti, decisione, feedback ed esito;
 - **Analytics** aggrega esclusivamente i dati salvati nei casi;
-- **Policies** trasforma istruzioni grezze in documenti e regole revisionabili.
+- **Playbooks** organizza policy, SOP e procedure in regole revisionabili.
 
-La regola progettuale è: **l’AI comprende, le regole decidono, l’operatore
-approva.**
+## Workflow inclusi
 
-## Cosa si può provare
+Il motore è orizzontale, ma viene dimostrato attraverso tre template verticali.
 
-### 1. Workbench
+### Customer care
 
-Incolla una comunicazione del cliente. Il sistema:
+Classifica e gestisce recesso, garanzia, danni, articoli errati, spedizioni,
+pagamenti, informazioni prodotto e reclami. Può preparare una risposta da
+revisionare e registrare esiti come rimborso, sostituzione o escalation.
 
-1. rimuove email, telefono e riferimento dell’ordine prima di salvarla;
-2. classifica il processo (recesso, garanzia, spedizione, pagamento e altri);
+### Agenzia & delivery
+
+Gestisce nuovi progetti, cambi di scope, approvazioni e blocchi di delivery.
+Verifica brief, scadenza, budget, impatto e responsabilità; produce una risposta,
+un brief o il prossimo handoff operativo.
+
+### Operations interne
+
+Gestisce richieste di acquisto, accessi, incidenti ed eccezioni di processo.
+Verifica motivazione, approvazione, priorità, impatto e owner; propone
+assegnazione, escalation o avvio del processo.
+
+## Workbench
+
+L’operatore seleziona il workflow e incolla una richiesta, un’email o una nota.
+Il sistema:
+
+1. rimuove email, telefono e riferimenti comuni prima del salvataggio;
+2. classifica il tipo di richiesta all’interno del workflow scelto;
 3. chiede un solo fatto operativo alla volta;
-4. applica una regola deterministica;
-5. prepara una risposta modificabile e copiabile;
-6. chiede all’operatore di registrare l’esito realmente avvenuto.
+4. applica una regola deterministica del playbook;
+5. prepara un output modificabile e copiabile;
+6. richiede all’operatore di registrare l’esito realmente avvenuto.
 
-Il prototipo non invia la risposta e non esegue azioni economiche.
+La classificazione e la redazione sono dimostrative e locali. Non viene
+effettuato alcun invio o aggiornamento esterno.
 
-### 2. Casi
+## Casi e Analytics
 
-È il database operativo del prodotto. Ogni record collega:
+Ogni caso collega:
 
-- conversazione con redazione automatica di email, telefoni e riferimenti d'ordine comuni;
-- categoria e confidenza;
-- fatti verificati dall’operatore;
-- informazioni ancora mancanti;
-- regola applicata e decisione proposta;
-- risposta usata, modifiche ed esito reale;
+- workflow e tipo di richiesta;
+- testo con redazione base;
+- fatti verificati e informazioni mancanti;
+- regola applicata e motivazione;
+- output usato, modifiche ed esito;
 - audit trail degli eventi.
 
-Un dataset iniziale di otto casi sintetici viene creato una sola volta ed è
-sempre marcato come **Dati demo**. I casi creati nel Workbench si aggiungono
-alla stessa memoria.
+Un dataset di 12 casi sintetici, distribuiti sui tre workflow, viene creato in
+modo idempotente ed è sempre marcato come demo. Analytics calcola dai casi:
 
-### 3. Analytics
-
-Non mostra KPI inventati. Calcola dai Casi:
-
-- motivi di contatto più frequenti;
-- esiti effettivi;
+- utilizzo per workflow;
+- tipi di richiesta più frequenti;
+- esiti reali;
 - informazioni richieste più spesso;
-- tasso e motivi di modifica delle bozze;
+- modifiche alle proposte;
 - escalation e regole applicate;
-- insight azionabili collegati ai record di origine.
+- suggerimenti da valutare nei Playbooks.
 
-Ogni suggerimento resta una proposta da valutare, non modifica
-automaticamente prompt o policy.
+## Playbook Builder
 
-### 4. Policies
-
-Il Policy Builder accetta appunti liberi, TXT/MD, PDF, DOCX o un URL HTTPS.
-La pipeline è:
+Accetta appunti liberi, TXT/MD, PDF, DOCX o un URL HTTPS. Distingue procedure
+customer care, agency delivery e operations interne, poi produce una bozza
+strutturata:
 
 ```text
 documento grezzo
-→ estrazione strutturata
+→ estrazione di regole, responsabilità ed eccezioni
 → documento operativo ordinato
-→ campi modificabili
+→ valori modificabili
 → conferma delle ambiguità
 → versione pubblicata in libreria
 ```
 
-Le tre policy incluse nel codice alimentano il motore deterministico. Le nuove
-versioni create dal wizard vengono salvate e versionate nella libreria, ma per
-sicurezza non sostituiscono automaticamente le regole attive. Cinque scenari
-permettono di simulare il motore senza store, azioni o nuovi casi.
+I tre playbook inclusi nel codice alimentano il motore. Le versioni create dal
+builder vengono salvate e versionate, ma non sostituiscono automaticamente le
+regole attive.
 
 ## Architettura
 
 ```mermaid
 flowchart LR
-    Message[Messaggio operatore] --> Redaction[Redazione identificatori]
+    Request[Richiesta] --> Workflow[Workflow selezionato]
+    Workflow --> Redaction[Redazione identificatori]
     Redaction --> Intent[Classificazione]
     Intent --> Facts[Controlli guidati]
-    Facts --> Rules[Regole deterministiche]
-    Rules --> Draft[Bozza]
-    Draft --> Human[Revisione operatore]
+    Facts --> Playbook[Regole deterministiche]
+    Playbook --> Proposal[Proposta operativa]
+    Proposal --> Human[Revisione umana]
     Human --> Cases[(Casi + audit)]
     Cases --> Analytics[Analytics interni]
-    Analytics --> Policies[Segnali per le policy]
+    Analytics --> Playbooks[Segnali per i playbook]
 ```
 
 - Flask serve UI e API;
-- SQLite conserva casi, messaggi, audit, feedback e policy pubblicate;
-- HTML/CSS/JavaScript non richiedono un frontend framework;
-- il nuovo percorso principale non richiede Shopify o chiavi AI;
-- la precedente demo Shopify/Sendcloud/Make resta disponibile come scenario
-  portfolio separato e completamente mock.
+- SQLite conserva casi, messaggi, audit, feedback e playbook pubblicati;
+- HTML, CSS e JavaScript non richiedono un frontend framework;
+- il percorso principale non richiede chiavi AI o integrazioni;
+- la demo Shopify/Sendcloud/Make rimane un caso verticale separato e mock.
 
 ## Avvio locale
 
@@ -116,15 +132,15 @@ python app.py
 
 Apri `http://127.0.0.1:5000/workbench`.
 
-Le sezioni principali sono:
+Sezioni principali:
 
 - `/workbench`
 - `/cases`
 - `/analytics`
-- `/policies`
+- `/playbooks`
 
-Le vecchie dimostrazioni end-to-end restano in `/demo/doa` e
-`/demo/recesso`; `/database` è mantenuto come alias compatibile del registro.
+Gli endpoint `/policies` e `/database` rimangono come alias compatibili. Le
+demo resi approfondite sono disponibili in `/demo/doa` e `/demo/recesso`.
 
 ## Configurazione
 
@@ -132,11 +148,11 @@ Il percorso principale funziona senza variabili segrete. Sono opzionali:
 
 - `DATABASE_PATH`: percorso del database SQLite, default `data/returns.db`;
 - `DEMO_MODE=true`: abilita gli scenari portfolio precedenti;
-- `RETURN_SHIPPING_PROVIDER=mock`: mantiene la spedizione in simulazione;
+- `RETURN_SHIPPING_PROVIDER=mock`: mantiene le spedizioni in simulazione;
 - `ANTHROPIC_API_KEY`, `SHOPIFY_STORE`, `SHOPIFY_TOKEN`: usate soltanto dal
-  precedente esperimento integrato, non dalle quattro sezioni principali.
+  precedente esperimento integrato.
 
-Non inserire credenziali o dati cliente reali nel prototipo pubblico.
+Non inserire credenziali o dati personali reali nel prototipo pubblico.
 
 ## Test
 
@@ -144,9 +160,9 @@ Non inserire credenziali o dati cliente reali nel prototipo pubblico.
 python -m unittest discover -s tests -v
 ```
 
-I 45 test coprono il nuovo ciclo Workbench–Casi–Analytics–Policies, redazione
-degli identificatori, decisioni deterministiche, persistenza, versionamento,
-state machine, simulazioni e compatibilità con i workflow portfolio esistenti.
+La suite copre i tre workflow, il ciclo Workbench–Casi–Analytics–Playbooks,
+redazione, decisioni deterministiche, persistenza, versionamento, state
+machine, simulazioni e compatibilità con le demo resi esistenti.
 
 ## Deploy su Render
 
@@ -157,20 +173,17 @@ Build: pip install -r requirements.txt
 Start: gunicorn --bind 0.0.0.0:$PORT app:app
 ```
 
-Il piano demo usa `/tmp/customer-return-agent.db`: il database è effimero e
-può essere ricreato quando l’istanza viene sostituita. Per una futura versione
-multiutente servirebbero autenticazione, PostgreSQL, backup, ruoli e una
-politica formale di retention.
+Il piano demo usa un database effimero. Una versione multi-tenant richiederebbe
+autenticazione, PostgreSQL, backup, ruoli e una politica formale di retention.
 
 ## Limiti dichiarati
 
+- tre workflow preconfigurati, non ancora un builder universale di workflow;
 - nessuna autenticazione o separazione tra organizzazioni;
-- redazione automatica limitata agli identificatori più comuni: l’operatore
-  deve comunque evitare dati sensibili;
-- nessun invio email, upload allegati o integrazione helpdesk;
-- le nuove policy pubblicate non vengono attivate automaticamente;
+- redazione limitata agli identificatori più comuni;
+- nessun invio, upload di allegati o integrazione con strumenti esterni;
+- i nuovi playbook pubblicati non vengono attivati automaticamente;
 - classificazione locale dimostrativa, non un modello addestrato;
-- SQLite e filesystem effimero sono adatti a un portfolio, non a produzione.
+- SQLite e filesystem effimero sono adatti al portfolio, non alla produzione.
 
-Academy e Radar sono volutamente fuori da questa iterazione: verranno aggiunti
-solo dopo aver validato le quattro sezioni centrali.
+Academy e Radar restano volutamente fuori da questa iterazione.

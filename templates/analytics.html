@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Analytics · Policy Copilot{% endblock %}
+{% block title %}Analytics · Ops Copilot{% endblock %}
 {% block page_kicker %}Intelligence interna{% endblock %}
 {% block page_title %}Analytics{% endblock %}
-{% block page_subtitle %}I casi operativi diventano segnali utili per processi, risposte e policy.{% endblock %}
+{% block page_subtitle %}I casi operativi diventano segnali utili per workflow, output e playbook.{% endblock %}
 {% block header_actions %}
   <span class="mode-chip"><i></i> Fonte: Casi</span>
   <a class="button ghost" href="{{ url_for('database_register') }}">Verifica i dati</a>
@@ -14,8 +14,13 @@
 <span class="sr-only">Performance agente</span>
 <section class="analytics-source-note">
   <div><span>Database di origine</span><strong>{{ metrics.total }} casi con redazione base</strong></div>
-  <p>Questa pagina non usa Shopify, email o dati esterni. Ogni numero deriva esclusivamente dai casi salvati nel Workbench.</p>
+  <p>Ogni numero deriva esclusivamente dai casi salvati nel Workbench, indipendentemente dal workflow che li ha generati.</p>
   {% if metrics.sample_count %}<span class="demo-data-badge">{{ metrics.sample_count }} casi demo inclusi</span>{% endif %}
+</section>
+
+<section class="analytics-panel analytics-workflows">
+  <div class="analytics-panel-head"><div><span class="section-label">Adozione dei workflow</span><h2>Dove viene usato il copilot?</h2></div><span>{{ metrics.workflows|length }} workflow</span></div>
+  <div class="workflow-distribution">{% for row in metrics.workflows %}<div><strong>{{ workflow_labels.get(row.key, row.key) }}</strong><i><b style="width: {{ row.relative }}%"></b></i><span>{{ row.count }} casi · {{ row.percentage }}%</span></div>{% endfor %}</div>
 </section>
 
 <section class="analytics-kpis">
@@ -29,7 +34,7 @@
 
 <div class="analytics-primary-grid">
   <section class="analytics-panel">
-    <div class="analytics-panel-head"><div><span class="section-label">Domanda interna</span><h2>Perché ci contattano?</h2></div><span>{{ metrics.total }} casi</span></div>
+    <div class="analytics-panel-head"><div><span class="section-label">Domanda operativa</span><h2>Quali richieste arrivano?</h2></div><span>{{ metrics.total }} casi</span></div>
     <div class="analytics-bars">
       {% for row in metrics.categories %}
         <div><div><strong>{{ category_labels.get(row.key, row.key) }}</strong><span>{{ row.count }} · {{ row.percentage }}%</span></div><i><b style="width: {{ row.relative }}%"></b></i></div>
@@ -50,7 +55,7 @@
 <div class="analytics-secondary-grid">
   <section class="analytics-panel analytics-friction">
     <div class="analytics-panel-head"><div><span class="section-label">Attrito operativo</span><h2>Informazioni richieste più spesso</h2></div><a href="{{ url_for('workbench') }}">Apri Workbench →</a></div>
-    <p class="panel-intro">Indica quali controlli fanno perdere più tempo prima di poter applicare una policy.</p>
+    <p class="panel-intro">Indica quali controlli fanno perdere più tempo prima di poter applicare un playbook.</p>
     <div class="friction-list">
       {% for row in metrics.context_fields %}
         <div><span>{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span><div><strong>{{ fact_labels.get(row.key, row.key) }}</strong><i><b style="width: {{ row.relative }}%"></b></i></div><em>{{ row.count }} casi</em></div>
@@ -70,7 +75,7 @@
 </div>
 
 <section class="analytics-insights">
-  <div class="analytics-insights-head"><div><span class="section-label">Insight azionabili</span><h2>Cosa conviene migliorare</h2><p>Suggerimenti generati dai pattern interni. Richiedono sempre una valutazione umana prima di modificare una policy.</p></div><a class="button primary" href="{{ url_for('policies') }}">Valuta nelle Policies</a></div>
+  <div class="analytics-insights-head"><div><span class="section-label">Insight azionabili</span><h2>Cosa conviene migliorare</h2><p>Suggerimenti generati dai pattern interni. Richiedono sempre una valutazione umana prima di modificare un playbook.</p></div><a class="button primary" href="{{ url_for('playbooks') }}">Valuta nei Playbooks</a></div>
   <div class="insight-grid">
     {% for insight in metrics.insights %}
       <article class="insight-{{ insight.type }}">
@@ -86,7 +91,7 @@
 <section class="analytics-lineage">
   <div><span class="section-label">Data lineage</span><h2>Dall’evidenza al numero</h2><p>Apri un caso per verificare messaggio, fatti, regola, risposta ed esito che alimentano le aggregazioni.</p></div>
   <div class="lineage-cases">
-    {% for item in metrics.recent_cases %}<a href="{{ url_for('workbench_case', case_id=item.id) }}"><strong>{{ item.id }}</strong><span>{{ category_labels.get(item.return_reason, item.return_reason) }}</span><i>→</i></a>{% endfor %}
+    {% for item in metrics.recent_cases %}<a href="{{ url_for('workbench_case', case_id=item.id) }}"><strong>{{ item.id }}</strong><span>{{ workflow_labels.get(item.workflow_key or 'customer_care') }} · {{ category_labels.get(item.return_reason, item.return_reason) }}</span><i>→</i></a>{% endfor %}
   </div>
 </section>
 {% endblock %}

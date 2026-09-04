@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS return_cases (
     manual_step_count INTEGER NOT NULL DEFAULT 0,
     data_source TEXT,
     source_mode TEXT,
+    workflow_key TEXT NOT NULL DEFAULT 'customer_care',
     source_fetched_at TEXT,
     source_payload TEXT NOT NULL DEFAULT '{}',
     case_facts TEXT NOT NULL DEFAULT '{}',

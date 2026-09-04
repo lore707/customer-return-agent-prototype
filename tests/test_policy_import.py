@@ -61,6 +61,16 @@ class PolicyImportTests(unittest.TestCase):
         )
         self.assertEqual("2 anni (730 giorni)", warranty["value"])
 
+    def test_agency_notes_become_a_generic_playbook(self):
+        result = policy_import.extract_structured_rules(
+            "Ogni nuovo progetto richiede un brief con obiettivo, scope e deliverable. "
+            "Il budget deve essere approvato prima del kickoff. Un responsabile segue "
+            "la delivery e ogni modifica deve essere valutata per impatto e costi."
+        )
+        self.assertEqual("agency", result["playbook_type"])
+        self.assertEqual("intake_scope", result["rules"][0]["id"])
+        self.assertTrue(result["normalized_document"])
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -303,6 +303,34 @@ class AppWorkflowTests(unittest.TestCase):
             )
         )
 
+    def test_agency_workflow_is_available_end_to_end(self):
+        created = self.client.post(
+            "/api/workbench/analyze",
+            json={
+                "workflow": "agency_ops",
+                "message": "Il cliente chiede una landing page per il lancio di ottobre.",
+            },
+        )
+        self.assertEqual(200, created.status_code)
+        case_id = created.get_json()["case_id"]
+        for field, value in (
+            ("scope_clear", True),
+            ("deadline_confirmed", True),
+            ("budget_status", "approved"),
+            ("owner_assigned", True),
+        ):
+            response = self.client.post(
+                f"/api/workbench/cases/{case_id}/facts",
+                json={"field": field, "value": value},
+            )
+            self.assertEqual(200, response.status_code)
+        case = database.get_case(case_id)
+        self.assertEqual("agency_ops", case["workflow_key"])
+        self.assertEqual("AGY-04", case["policy_decision"]["rule_id"])
+        page = self.client.get(f"/workbench/{case_id}")
+        self.assertIn(b"Agency Delivery", page.data)
+        self.assertEqual(200, self.client.get("/playbooks").status_code)
+
     def test_workbench_exposes_case_picker_and_shopify_evidence(self):
         app.demo.ensure_showcase()
         return_case = database.get_case_by_scenario("withdrawal-approved")

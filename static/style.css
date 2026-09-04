@@ -1352,7 +1352,7 @@ td small { font-size: 10px; }
 .cases-register-head { display: flex; padding: 21px 23px 18px; gap: 20px; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid rgba(140,153,195,.11); }
 .cases-register-head h2 { margin: 4px 0; font-size: 21px; }
 .cases-register-head p { margin: 0; font-size: 12px; }
-.cases-filters { display: grid; grid-template-columns: minmax(240px, 1fr) 190px 190px auto auto; padding: 15px 18px; gap: 9px; align-items: end; border-bottom: 1px solid rgba(140,153,195,.11); background: rgba(20,25,46,.55); }
+.cases-filters { display: grid; grid-template-columns: minmax(230px, 1fr) 170px 170px 170px auto auto; padding: 15px 18px; gap: 9px; align-items: end; border-bottom: 1px solid rgba(140,153,195,.11); background: rgba(20,25,46,.55); }
 .cases-filters label { display: grid; gap: 5px; }
 .cases-filters label > span { color: #737d99; font: 650 9px var(--font-display); text-transform: uppercase; letter-spacing: .08em; }
 .cases-filters input,.cases-filters select { min-height: 40px; padding: 8px 11px; border: 1px solid rgba(140,153,195,.18); border-radius: 9px; outline: 0; color: #dfe2ed; background: #0b0f20; font: 500 11px var(--font-body); }
@@ -1589,3 +1589,20 @@ td small { font-size: 10px; }
   .four-step-workflow > b { display: none; }
   .four-product-cards { grid-template-columns: 1fr; }
 }
+
+/* Workflow-aware operations copilot */
+.workflow-picker { width: min(900px, 100%); display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 28px auto 16px; }
+.workflow-picker button { min-height: 110px; padding: 18px; border: 1px solid var(--line); border-radius: 16px; background: rgba(13, 20, 37, .78); color: var(--text); text-align: left; cursor: pointer; transition: border-color .18s ease, background .18s ease, transform .18s ease; }
+.workflow-picker button:hover { transform: translateY(-2px); border-color: rgba(126, 87, 255, .5); }
+.workflow-picker button.active { border-color: #7c4dff; background: linear-gradient(145deg, rgba(112, 67, 230, .24), rgba(18, 26, 47, .92)); box-shadow: 0 0 0 1px rgba(124, 77, 255, .16), 0 14px 35px rgba(48, 24, 112, .2); }
+.workflow-picker button span { display: inline-flex; color: #9e87ff; font: 700 .78rem/1 Manrope, sans-serif; margin-bottom: 12px; }
+.workflow-picker button strong { display: block; font: 700 1.05rem/1.2 Manrope, sans-serif; }
+.workflow-picker button small { display: block; margin-top: 7px; color: var(--muted); font-size: .88rem; }
+.workflow-chip { display: inline-flex; align-items: center; gap: 7px; color: #c9bbff; background: rgba(111, 72, 226, .13); border: 1px solid rgba(131, 95, 240, .25); border-radius: 999px; padding: 5px 9px; }
+.workflow-distribution { display: grid; gap: 13px; margin-top: 18px; }
+.workflow-distribution > div { display: grid; grid-template-columns: minmax(130px, 1fr) 2fr auto; gap: 12px; align-items: center; }
+.workflow-distribution i { height: 7px; border-radius: 999px; background: rgba(123, 93, 194, .16); overflow: hidden; }
+.workflow-distribution i b { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #7453ff, #b158f5); }
+.three-workflow-cards { grid-template-columns: repeat(3, 1fr); }
+@media (max-width: 820px) { .workflow-picker { grid-template-columns: 1fr; } .workflow-picker button { min-height: 0; } }
+@media (max-width: 900px) { .three-workflow-cards { grid-template-columns: 1fr; } }

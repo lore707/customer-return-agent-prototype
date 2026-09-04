@@ -1,41 +1,41 @@
 {% extends "base.html" %}
 
-{% block title %}Policies · Policy Copilot{% endblock %}
-{% block page_kicker %}Knowledge operations{% endblock %}
-{% block page_title %}Policies{% endblock %}
-{% block page_subtitle %}Trasforma istruzioni aziendali disordinate in regole chiare, versionate e verificabili.{% endblock %}
-{% block header_actions %}<button class="button primary" id="openPolicyImport" type="button">+ Aggiungi policy</button>{% endblock %}
+{% block title %}Playbooks · Ops Copilot{% endblock %}
+{% block page_kicker %}Procedure & governance{% endblock %}
+{% block page_title %}Playbooks{% endblock %}
+{% block page_subtitle %}Policy, SOP e procedure trasformate in controlli operativi chiari e verificabili.{% endblock %}
+{% block header_actions %}<button class="button primary" id="openPolicyImport" type="button">+ Nuovo playbook</button>{% endblock %}
 {% block page_class %}copilot-policies{% endblock %}
 
 {% block content %}
 <section class="policy-principle">
-  <div><span>01</span><strong>Import</strong><small>scrivi o carica le istruzioni</small></div><i>→</i>
+  <div><span>01</span><strong>Import</strong><small>scrivi o carica la procedura</small></div><i>→</i>
   <div><span>02</span><strong>Structure</strong><small>estrazione in campi espliciti</small></div><i>→</i>
   <div><span>03</span><strong>Human review</strong><small>conferma le ambiguità</small></div><i>→</i>
   <div><span>04</span><strong>Execute</strong><small>il Workbench applica le regole</small></div>
 </section>
 
 <section class="policy-kpis">
-  <article><span>Policy attive nel motore</span><strong>3</strong><small>{{ custom_count }} versioni pubblicate in libreria</small></article>
+  <article><span>Playbook attivi</span><strong>3</strong><small>tre workflow già utilizzabili</small></article>
   <article><span>Regole operative</span><strong>{{ rule_count }}</strong><small>campi espliciti e verificabili</small></article>
-  <article><span>Eccezioni aperte</span><strong>{{ policy.unresolved|length }}</strong><small>restano sotto controllo umano</small></article>
+  <article><span>Versioni personalizzate</span><strong>{{ custom_count }}</strong><small>pubblicate con revisione umana</small></article>
   <article><span>Casi valutati</span><strong>{{ decision_count }}</strong><small>evidenze disponibili negli Analytics</small></article>
 </section>
 
 {% if policy_signals %}
 <section class="policy-signals">
-  <div class="policy-signals-head"><div><span class="section-label">Segnali dai casi</span><h2>Dove le policy possono migliorare</h2></div><a href="{{ url_for('analytics_view') }}">Apri Analytics →</a></div>
-  <div>{% for signal in policy_signals[:3] %}<article><span>{{ signal.title }}</span><strong>{{ signal.evidence }}</strong><p>{{ signal.action }}</p><button type="button" data-open-from-signal="{{ signal.title }}: {{ signal.evidence }} {{ signal.action }}">Usa come nota policy</button></article>{% endfor %}</div>
+  <div class="policy-signals-head"><div><span class="section-label">Segnali dai casi</span><h2>Dove i playbook possono migliorare</h2></div><a href="{{ url_for('analytics_view') }}">Apri Analytics →</a></div>
+  <div>{% for signal in policy_signals[:3] %}<article><span>{{ signal.title }}</span><strong>{{ signal.evidence }}</strong><p>{{ signal.action }}</p><button type="button" data-open-from-signal="{{ signal.title }}: {{ signal.evidence }} {{ signal.action }}">Usa come nota del playbook</button></article>{% endfor %}</div>
 </section>
 {% endif %}
 
 <section class="policy-manager">
   <aside class="policy-catalogue">
-    <div><span class="section-label">Libreria</span><h2>{{ policy_cards|length }} policy</h2></div>
-    <label class="policy-search-simple"><input id="policySearch" placeholder="Cerca una policy…"></label>
+    <div><span class="section-label">Libreria</span><h2>{{ policy_cards|length }} playbook</h2></div>
+    <label class="policy-search-simple"><input id="policySearch" placeholder="Cerca un playbook…"></label>
     <nav id="policyList">
       {% for item in policy_cards %}
-        <a class="policy-catalogue-item {% if item.id == selected_id %}active{% endif %}" href="{{ url_for('policies', policy=item.id) }}" data-policy-name="{{ item.title|lower }} {{ item.description|lower }}">
+        <a class="policy-catalogue-item {% if item.id == selected_id %}active{% endif %}" href="{{ url_for('playbooks', playbook=item.id) }}" data-policy-name="{{ item.title|lower }} {{ item.description|lower }}">
           <div><strong>{{ item.title }}</strong><span>{{ item.status }}</span></div>
           <p>{{ item.description }}</p>
           <small>v{{ item.version }} · {{ item.source }}</small><b>→</b>
@@ -46,7 +46,7 @@
 
   <article class="policy-detail-simple">
     <header>
-      <div><span class="section-label">Policy selezionata</span><h2>{{ selected.title }} <em>{{ selected.status }}</em></h2><p>{{ description }}</p></div>
+      <div><span class="section-label">Playbook selezionato</span><h2>{{ selected.title }} <em>{{ selected.status }}</em></h2><p>{{ description }}</p></div>
       <span class="read-only-badge">v{{ selected.version }} · {{ selected.status|lower }}</span>
     </header>
     <nav class="policy-simple-tabs">
@@ -58,7 +58,7 @@
 
     <div class="policy-simple-panel active" data-policy-panel="overview">
       <section class="policy-overview-copy">
-        <div><span class="section-label">Come viene applicata</span><h3>L’AI comprende. Le regole decidono. L’operatore approva.</h3><p>Il testo del cliente serve a riconoscere il processo; i fatti registrati dall’operatore attivano una regola esplicita. Nessuna policy invia risposte o esegue azioni.</p></div>
+        <div><span class="section-label">Come viene applicato</span><h3>L’AI comprende. Il playbook guida. La persona approva.</h3><p>La richiesta serve a riconoscere il processo; i fatti registrati dall’operatore attivano una regola esplicita. Nessun playbook esegue azioni esterne.</p></div>
         <dl><div><dt>Fonte</dt><dd>{{ selected.source }}</dd></div><div><dt>Versione</dt><dd>{{ selected.version }}</dd></div><div><dt>Regole visibili</dt><dd>{{ rules_view|length }}</dd></div><div><dt>Controllo finale</dt><dd>Operatore</dd></div></dl>
       </section>
       <section class="policy-flow-simple"><span class="section-label">Flusso decisionale</span><div>{% for title, copy in decision_flow %}<article><i>{{ loop.index }}</i><strong>{{ title }}</strong><small>{{ copy }}</small></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div></section>
@@ -72,15 +72,15 @@
     </div>
 
     <div class="policy-simple-panel" data-policy-panel="exceptions">
-      <section class="policy-exceptions-simple"><span class="section-label">Human review</span><h3>Eccezioni non automatizzate</h3><p>Quando il documento non è univoco, il sistema non inventa una risposta: rende il dubbio visibile.</p>
-        {% for item in selected_exceptions %}<article><span>!</span><div><strong>{{ item.id }}</strong><p>{{ item.description }}</p></div><em>Da valutare</em></article>{% else %}<div class="policy-clear">✓ Nessuna eccezione aperta per questa policy.</div>{% endfor %}
+      <section class="policy-exceptions-simple"><span class="section-label">Human review</span><h3>Eccezioni non automatizzate</h3><p>Quando la procedura non è univoca, il sistema non inventa un’azione: rende il dubbio visibile.</p>
+        {% for item in selected_exceptions %}<article><span>!</span><div><strong>{{ item.id }}</strong><p>{{ item.description }}</p></div><em>Da valutare</em></article>{% else %}<div class="policy-clear">✓ Nessuna eccezione aperta per questo playbook.</div>{% endfor %}
       </section>
     </div>
 
     <div class="policy-simple-panel" data-policy-panel="simulation">
       <section class="policy-simulator-simple">
-        <div><span class="section-label">Test senza effetti</span><h3>Simula uno scenario</h3><p>La simulazione usa le stesse regole del Workbench, non accede a store e non salva un caso.</p></div>
-        <label>Scenario<select id="simulationScenario"><option value="recesso_ok">Recesso · entro 14 giorni · integro</option><option value="recesso_out">Recesso · oltre 14 giorni</option><option value="doa_ok">Garanzia · prove e seriale completi</option><option value="doa_missing">Garanzia · prove mancanti</option><option value="shipping_delay">Spedizione · consegna in ritardo</option></select></label>
+        <div><span class="section-label">Test senza effetti</span><h3>Simula uno scenario</h3><p>La simulazione usa le stesse regole del Workbench e non salva alcun caso.</p></div>
+        <label>Scenario<select id="simulationScenario"><optgroup label="Customer care"><option value="recesso_ok">Recesso · entro 14 giorni</option><option value="doa_missing">Garanzia · prove mancanti</option></optgroup><optgroup label="Agenzia & delivery"><option value="agency_project_ready">Nuovo progetto · pronto per il brief</option><option value="agency_change_high">Cambio scope · impatto alto</option></optgroup><optgroup label="Operations interne"><option value="internal_purchase">Acquisto · approvato</option><option value="internal_incident">Incidente · attività bloccata</option></optgroup></select></label>
         <button class="button primary" id="runPolicySimulation" type="button">Esegui simulazione</button>
         <div class="policy-simulation-result hidden" id="simulationResult"></div>
       </section>
@@ -91,13 +91,13 @@
 <div class="policy-modal hidden" id="policyModal" role="dialog" aria-modal="true" aria-labelledby="policyModalTitle">
   <div class="policy-modal-backdrop" data-close-policy-modal></div>
   <section class="policy-modal-card policy-builder-card">
-    <header class="policy-modal-head"><div><span class="section-label">Policy builder</span><h2 id="policyModalTitle">Da appunti grezzi a regole operative</h2><p>Il sistema ordina il testo. Tu confermi ciò che potrà essere usato.</p></div><button type="button" aria-label="Chiudi" data-close-policy-modal>×</button></header>
+    <header class="policy-modal-head"><div><span class="section-label">Playbook builder</span><h2 id="policyModalTitle">Da appunti grezzi a procedura operativa</h2><p>Il sistema ordina il testo. Tu confermi regole, responsabilità ed eccezioni.</p></div><button type="button" aria-label="Chiudi" data-close-policy-modal>×</button></header>
     <div class="policy-import-progress"><span class="active" data-import-progress="1"><b>1</b> Inserisci</span><i></i><span data-import-progress="2"><b>2</b> Struttura</span><i></i><span data-import-progress="3"><b>3</b> Conferma</span><i></i><span data-import-progress="4"><b>4</b> Pubblica</span></div>
 
     <div class="policy-import-step active" data-import-step="1">
-      <label class="policy-name-field"><span>Nome policy</span><input id="newPolicyName" value="Nuova policy operativa" maxlength="100"></label>
+      <label class="policy-name-field"><span>Nome playbook</span><input id="newPolicyName" value="Nuovo playbook operativo" maxlength="100"></label>
       <div class="policy-source-tabs"><button class="active" type="button" data-source-mode="text">Scrivi o incolla</button><button type="button" data-source-mode="upload">Carica documento</button><button type="button" data-source-mode="url">Importa URL</button></div>
-      <div class="policy-source-panel active" data-source-panel="text"><textarea id="policyText" rows="11" placeholder="Scrivi liberamente: tempi, eccezioni, cosa chiedere al cliente, chi deve approvare…"></textarea><button class="text-action" id="loadPolicyExample" type="button">Inserisci un esempio disordinato</button></div>
+      <div class="policy-source-panel active" data-source-panel="text"><textarea id="policyText" rows="11" placeholder="Scrivi liberamente: cosa deve succedere, quali dati servono, chi approva, quando escalare…"></textarea><button class="text-action" id="loadPolicyExample" type="button">Inserisci un esempio disordinato</button></div>
       <div class="policy-source-panel" data-source-panel="upload"><label class="policy-dropzone"><input id="policyFile" type="file" accept=".pdf,.docx,.txt,.md"><span>↑</span><strong>Seleziona PDF, DOCX, TXT o MD</strong><small>Massimo 2 MB</small></label></div>
       <div class="policy-source-panel" data-source-panel="url"><label><span>URL pubblico HTTPS</span><input id="policyUrl" type="url" placeholder="https://example.com/policy.pdf"></label></div>
       <div class="policy-import-actions"><span class="policy-import-note">Il testo non viene usato direttamente per decidere.</span><button class="button primary" id="analyzePolicy" type="button">Ordina e struttura →</button></div>
@@ -118,7 +118,7 @@
       <div class="policy-import-actions"><button class="button ghost" type="button" data-import-back="2">← Modifica regole</button><button class="button primary" id="publishPolicy" type="button" disabled>Pubblica versione 1.0</button></div>
     </div>
 
-    <div class="policy-import-step policy-published" data-import-step="4"><span>✓</span><h3>Policy pubblicata nella libreria</h3><p>Documento, regole e conferme sono stati salvati e versionati. Per sicurezza non sostituiscono automaticamente le tre policy già attive nel motore.</p><div><a class="button primary" id="openPublishedPolicy" href="{{ url_for('policies') }}">Apri la policy</a></div></div>
+    <div class="policy-import-step policy-published" data-import-step="4"><span>✓</span><h3>Playbook pubblicato nella libreria</h3><p>Documento, regole e conferme sono stati salvati e versionati. Per sicurezza non sostituiscono automaticamente i tre playbook attivi nel motore.</p><div><a class="button primary" id="openPublishedPolicy" href="{{ url_for('playbooks') }}">Apri il playbook</a></div></div>
     <p class="policy-modal-message hidden" id="policyModalMessage" aria-live="polite"></p>
   </section>
 </div>
@@ -129,7 +129,7 @@
   document.querySelectorAll("[data-policy-tab]").forEach(button => button.addEventListener("click", () => { document.querySelectorAll("[data-policy-tab]").forEach(item => item.classList.toggle("active", item === button)); document.querySelectorAll("[data-policy-panel]").forEach(panel => panel.classList.toggle("active", panel.dataset.policyPanel === button.dataset.policyTab)); }));
   document.getElementById("policySearch")?.addEventListener("input", event => document.querySelectorAll("[data-policy-name]").forEach(item => item.classList.toggle("hidden", !item.dataset.policyName.includes(event.target.value.toLowerCase()))));
 
-  document.getElementById("runPolicySimulation")?.addEventListener("click", async event => { const button = event.currentTarget, result = document.getElementById("simulationResult"); button.disabled = true; button.textContent = "Simulazione…"; try { const response = await fetch("/policies/simulate", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({scenario: document.getElementById("simulationScenario").value})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore); result.innerHTML = `<span class="section-label">Outcome simulato</span><h3>${data.next_action}</h3><p>${data.motivation}</p><dl><dt>Categoria</dt><dd>${data.category_label}</dd><dt>Regola</dt><dd>${data.rule_id}</dd><dt>Eligibility</dt><dd>${data.eligibility.replaceAll("_", " ")}</dd></dl><small>✓ Nessuna azione e nessun caso creato.</small>`; result.className = "policy-simulation-result"; } catch (error) { result.textContent = error.message; result.className = "policy-simulation-result error-box"; } finally { button.disabled = false; button.textContent = "Esegui simulazione"; } });
+  document.getElementById("runPolicySimulation")?.addEventListener("click", async event => { const button = event.currentTarget, result = document.getElementById("simulationResult"); button.disabled = true; button.textContent = "Simulazione…"; try { const response = await fetch("/playbooks/simulate", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({scenario: document.getElementById("simulationScenario").value})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore); result.innerHTML = `<span class="section-label">Outcome simulato</span><h3>${data.next_action}</h3><p>${data.motivation}</p><dl><dt>Categoria</dt><dd>${data.category_label}</dd><dt>Regola</dt><dd>${data.rule_id}</dd><dt>Eligibility</dt><dd>${data.eligibility.replaceAll("_", " ")}</dd></dl><small>✓ Nessuna azione e nessun caso creato.</small>`; result.className = "policy-simulation-result"; } catch (error) { result.textContent = error.message; result.className = "policy-simulation-result error-box"; } finally { button.disabled = false; button.textContent = "Esegui simulazione"; } });
 
   const modal = document.getElementById("policyModal"), message = document.getElementById("policyModalMessage"), confirmationBox = document.getElementById("policyConfirmations"), publishButton = document.getElementById("publishPolicy");
   let sourceMode = "text", extraction = null, accepted = new Set(), sourceLabel = "Testo operatore";
@@ -140,16 +140,16 @@
   document.querySelectorAll("[data-open-from-signal]").forEach(button => button.addEventListener("click", () => openModal(button.dataset.openFromSignal)));
   document.querySelectorAll("[data-close-policy-modal]").forEach(item => item.addEventListener("click", closeModal));
   document.querySelectorAll("[data-source-mode]").forEach(button => button.addEventListener("click", () => { sourceMode = button.dataset.sourceMode; document.querySelectorAll("[data-source-mode]").forEach(item => item.classList.toggle("active", item === button)); document.querySelectorAll("[data-source-panel]").forEach(panel => panel.classList.toggle("active", panel.dataset.sourcePanel === sourceMode)); }));
-  document.getElementById("loadPolicyExample")?.addEventListener("click", () => { document.getElementById("policyText").value = "i resi vanno bene entro 14 giorni dalla consegna, prodotto integro. se è guasto garanzia 2 anni e servono foto e video. per il recesso il cliente paga il ritorno. i prodotti igienici se aperti no. il rimborso si fa solo quando controlliamo il prodotto. prima di rispondere controlla sempre una persona. DA CONFERMARE: cosa fare se manca un accessorio"; });
+  document.getElementById("loadPolicyExample")?.addEventListener("click", () => { document.getElementById("policyText").value = "per i nuovi progetti serve un brief con obiettivo, scope, deliverable e deadline. il budget va approvato prima del kickoff. ogni lavoro deve avere un responsabile. se il cliente chiede un extra bisogna stimare impatto su tempi e costi prima di confermare. i blocchi importanti vanno passati al responsabile delivery. DA CONFERMARE: chi può approvare una richiesta urgente senza budget"; });
   function error(copy) { message.textContent = copy; message.className = "policy-modal-message error-box"; }
   function collectRules() { return [...document.querySelectorAll("[data-extracted-rule]")].map(item => ({id: item.dataset.extractedRule, label: item.querySelector("strong").textContent, value: item.querySelector("input").value.trim()})); }
   function render(data) { extraction = data; accepted.clear(); document.getElementById("normalizedDocument").innerHTML = ""; data.normalized_document.forEach(section => { const article = document.createElement("article"); article.innerHTML = `<h3>${section.title}</h3><ul>${section.items.map(item => `<li>${item}</li>`).join("")}</ul>`; document.getElementById("normalizedDocument").appendChild(article); }); const rules = document.getElementById("extractedRules"); rules.innerHTML = ""; data.rules.forEach(rule => { const label = document.createElement("label"); label.dataset.extractedRule = rule.id; label.className = rule.needs_confirmation ? "needs-review" : ""; label.innerHTML = `<strong>${rule.label}</strong><input><small>${Math.round(rule.confidence * 100)}% confidence${rule.needs_confirmation ? " · verifica" : ""}</small>`; label.querySelector("input").value = rule.value; rules.appendChild(label); }); document.getElementById("confirmationCount").textContent = data.confirmation_count; confirmationBox.innerHTML = ""; if (!data.confirmations.length) confirmationBox.innerHTML = '<div class="policy-clear">✓ Nessuna ambiguità rilevata.</div>'; data.confirmations.forEach((copy, index) => { const item = document.createElement("article"); item.innerHTML = `<span>!</span><div><strong>Interpretazione da verificare</strong><p></p></div><button type="button" data-confirm-rule="${index}">Conferma</button>`; item.querySelector("p").textContent = copy; confirmationBox.appendChild(item); }); }
-  document.getElementById("analyzePolicy")?.addEventListener("click", async event => { const button = event.currentTarget; button.disabled = true; button.textContent = "Strutturazione…"; try { let response; if (sourceMode === "upload") { const file = document.getElementById("policyFile").files[0]; if (!file) throw new Error("Seleziona un documento."); const body = new FormData(); body.append("file", file); sourceLabel = file.name; response = await fetch("/policies/extract", {method: "POST", body}); } else { const body = sourceMode === "url" ? {mode: "url", url: document.getElementById("policyUrl").value} : {mode: "text", text: document.getElementById("policyText").value}; sourceLabel = sourceMode === "url" ? body.url : "Testo operatore"; response = await fetch("/policies/extract", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)}); } const data = await response.json(); if (!response.ok) throw new Error(data.errore); render(data); step(2); } catch (problem) { error(problem.message); } finally { button.disabled = false; button.textContent = "Ordina e struttura →"; } });
+  document.getElementById("analyzePolicy")?.addEventListener("click", async event => { const button = event.currentTarget; button.disabled = true; button.textContent = "Strutturazione…"; try { let response; if (sourceMode === "upload") { const file = document.getElementById("policyFile").files[0]; if (!file) throw new Error("Seleziona un documento."); const body = new FormData(); body.append("file", file); sourceLabel = file.name; response = await fetch("/playbooks/extract", {method: "POST", body}); } else { const body = sourceMode === "url" ? {mode: "url", url: document.getElementById("policyUrl").value} : {mode: "text", text: document.getElementById("policyText").value}; sourceLabel = sourceMode === "url" ? body.url : "Testo operatore"; response = await fetch("/playbooks/extract", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(body)}); } const data = await response.json(); if (!response.ok) throw new Error(data.errore); render(data); step(2); } catch (problem) { error(problem.message); } finally { button.disabled = false; button.textContent = "Ordina e struttura →"; } });
   document.querySelectorAll("[data-import-back]").forEach(button => button.addEventListener("click", () => step(Number(button.dataset.importBack))));
   document.querySelector("[data-import-next='3']")?.addEventListener("click", () => { extraction.rules = collectRules(); step(3); updatePublish(); });
   confirmationBox?.addEventListener("click", event => { const button = event.target.closest("[data-confirm-rule]"); if (!button) return; if (accepted.has(button.dataset.confirmRule)) { accepted.delete(button.dataset.confirmRule); button.textContent = "Conferma"; } else { accepted.add(button.dataset.confirmRule); button.textContent = "Confermata ✓"; } updatePublish(); });
   function updatePublish() { const required = extraction?.confirmations.length || 0; publishButton.disabled = !document.getElementById("humanPolicyConfirmation").checked || accepted.size < required; }
   document.getElementById("humanPolicyConfirmation")?.addEventListener("change", updatePublish);
-  publishButton?.addEventListener("click", async () => { publishButton.disabled = true; publishButton.textContent = "Pubblicazione…"; try { const response = await fetch("/policies/publish-preview", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({name: document.getElementById("newPolicyName").value, source: sourceLabel, rules: collectRules(), confirmations: extraction.confirmations, normalized_document: extraction.normalized_document, human_confirmed: true})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore); document.getElementById("openPublishedPolicy").href = data.redirect; step(4); } catch (problem) { error(problem.message); updatePublish(); } finally { publishButton.textContent = "Pubblica versione 1.0"; } });
+  publishButton?.addEventListener("click", async () => { publishButton.disabled = true; publishButton.textContent = "Pubblicazione…"; try { const response = await fetch("/playbooks/publish-preview", {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify({name: document.getElementById("newPolicyName").value, source: sourceLabel, rules: collectRules(), confirmations: extraction.confirmations, normalized_document: extraction.normalized_document, human_confirmed: true})}); const data = await response.json(); if (!response.ok) throw new Error(data.errore); document.getElementById("openPublishedPolicy").href = data.redirect; step(4); } catch (problem) { error(problem.message); updatePublish(); } finally { publishButton.textContent = "Pubblica versione 1.0"; } });
 </script>
 {% endblock %}

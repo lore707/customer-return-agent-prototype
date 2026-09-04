@@ -57,6 +57,7 @@ CASE_FIELDS = {
     "manual_step_count",
     "data_source",
     "source_mode",
+    "workflow_key",
     "source_fetched_at",
     "source_payload",
     "case_facts",
@@ -81,6 +82,7 @@ MIGRATION_COLUMNS = {
     "manual_step_count": "INTEGER NOT NULL DEFAULT 0",
     "data_source": "TEXT",
     "source_mode": "TEXT",
+    "workflow_key": "TEXT NOT NULL DEFAULT 'customer_care'",
     "source_fetched_at": "TEXT",
     "source_payload": "TEXT NOT NULL DEFAULT '{}'",
     "case_facts": "TEXT NOT NULL DEFAULT '{}'",
@@ -154,6 +156,10 @@ def init_database(path: str | Path | None = None) -> None:
         conn.execute(
             """CREATE INDEX IF NOT EXISTS idx_return_cases_actual_outcome
                ON return_cases(actual_outcome, created_at)"""
+        )
+        conn.execute(
+            """CREATE INDEX IF NOT EXISTS idx_return_cases_workflow
+               ON return_cases(workflow_key, created_at)"""
         )
         # Migrazione semplice dei casi creati prima dell'introduzione della
         # memoria conversazionale: il messaggio originale diventa il primo
@@ -364,6 +370,7 @@ def list_cases(
     reason: str | None = None,
     query: str | None = None,
     source_mode_prefix: str | None = None,
+    workflow_key: str | None = None,
     limit: int = 100,
     path: str | Path | None = None,
 ) -> list[dict]:
@@ -378,15 +385,19 @@ def list_cases(
     if source_mode_prefix:
         where.append("source_mode LIKE ?")
         params.append(f"{source_mode_prefix}%")
+    if workflow_key:
+        where.append("workflow_key = ?")
+        params.append(workflow_key)
     if query:
         where.append(
             "(id LIKE ? OR customer_message LIKE ? OR return_reason LIKE ? "
             "OR actual_outcome LIKE ? OR policy_applied LIKE ? "
+            "OR workflow_key LIKE ? "
             "OR shopify_order_number LIKE ? OR customer_name LIKE ? "
             "OR customer_email LIKE ? OR product_name LIKE ? OR sku LIKE ?)"
         )
         like = f"%{query}%"
-        params.extend([like] * 10)
+        params.extend([like] * 11)
     clause = f"WHERE {' AND '.join(where)}" if where else ""
     params.append(max(1, min(limit, 500)))
     with session(path) as conn:
@@ -938,14 +949,17 @@ def copilot_analytics(path: str | Path | None = None) -> dict:
     case_ids = {item["id"] for item in cases}
     total = len(cases)
     category_counts: dict[str, int] = {}
+    workflow_counts: dict[str, int] = {}
     outcome_counts: dict[str, int] = {}
     eligibility_counts: dict[str, int] = {}
     rule_counts: dict[str, int] = {}
     for item in cases:
+        workflow = item.get("workflow_key") or "customer_care"
         category = item.get("return_reason") or "altro"
         outcome = item.get("actual_outcome")
         eligibility = item.get("eligibility_result") or "unknown"
         rule_id = (item.get("policy_decision") or {}).get("rule_id") or "In raccolta"
+        workflow_counts[workflow] = workflow_counts.get(workflow, 0) + 1
         category_counts[category] = category_counts.get(category, 0) + 1
         eligibility_counts[eligibility] = eligibility_counts.get(eligibility, 0) + 1
         rule_counts[rule_id] = rule_counts.get(rule_id, 0) + 1
@@ -1065,6 +1079,7 @@ def copilot_analytics(path: str | Path | None = None) -> dict:
         "message_total": sum(messages.values()),
         "average_messages": round(sum(messages.values()) / total, 1) if total else 0,
         "sample_count": sum(item.get("source_mode") == "policy_copilot_demo" for item in cases),
+        "workflows": rows(workflow_counts),
         "categories": categories,
         "outcomes": outcomes,
         "eligibility": rows(eligibility_counts),
