@@ -1988,16 +1988,14 @@ def reset_demo():
 
 @app.get("/health")
 def health():
+    operational_service = operational_model_service.get_operational_model_service()
     return jsonify(
         {
             "ok": True,
             "mode": "portfolio_demo" if DEMO_MODE else "live",
             "live_integrations": _has_live_credentials(),
             "operational_model_provider": (
-                "anthropic"
-                if (os.getenv("OPERATIONAL_MODEL_PROVIDER") or "local").strip().lower() == "anthropic"
-                and _has_anthropic_credentials()
-                else "local"
+                "anthropic" if operational_service.uses_external_provider else "local"
             ),
             "operational_model": os.getenv("OPERATIONAL_MODEL_MODEL", "claude-sonnet-5"),
             "database": "sqlite",

@@ -11,7 +11,12 @@ sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "src"))
 
 import operational_grammar
-from operational_model_service import AnthropicOperationalModelService
+from operational_model_service import (
+    AnthropicOperationalModelService,
+    LocalOperationalModelService,
+    ResilientOperationalModelService,
+    get_operational_model_service,
+)
 
 
 def element(kind, item_id, name, **changes):
@@ -86,6 +91,14 @@ def context():
 
 
 class OperationalGrammarTests(unittest.TestCase):
+    @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"}, clear=True)
+    def test_api_key_activates_anthropic_without_redundant_provider_setting(self):
+        self.assertIsInstance(get_operational_model_service(), ResilientOperationalModelService)
+
+    @patch.dict("os.environ", {}, clear=True)
+    def test_no_api_key_keeps_the_free_local_provider(self):
+        self.assertIsInstance(get_operational_model_service(), LocalOperationalModelService)
+
     def test_schema_uses_supported_compact_shape(self):
         value = json.dumps(operational_grammar.schema())
         for unsupported in ('"minimum"', '"maximum"', '"maxItems"'):

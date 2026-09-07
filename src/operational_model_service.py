@@ -1418,8 +1418,9 @@ class ResilientOperationalModelService(OperationalModelBehaviour):
 
 def get_operational_model_service() -> OperationalModelBehaviour:
     """Select the provider without coupling routes or UI to an LLM vendor."""
-    mode = (os.getenv("OPERATIONAL_MODEL_PROVIDER") or "local").strip().lower()
     has_key = bool((os.getenv("ANTHROPIC_API_KEY") or "").strip())
+    configured_mode = (os.getenv("OPERATIONAL_MODEL_PROVIDER") or "").strip().lower()
+    mode = configured_mode or ("anthropic" if has_key else "local")
     local = LocalOperationalModelService()
     if mode != "anthropic" or not has_key:
         return local
