@@ -15,8 +15,9 @@ Company context + operation + knowledge
 → active human-guided workspace
 ```
 
-Non sono necessarie integrazioni, credenziali Shopify o chiavi AI. Il prototipo
-non esegue azioni esterne.
+Non sono necessarie integrazioni o credenziali Shopify e il prototipo non esegue
+azioni esterne. La ricostruzione può funzionare con il motore locale gratuito
+oppure, quando configurato esplicitamente, con Claude tramite API Anthropic.
 
 ## Onboarding 0–8
 
@@ -28,27 +29,32 @@ Il percorso `/onboarding` salva progressivamente ogni passaggio in SQLite:
 3. documenti o note operative facoltativi;
 4. strutturazione del modello;
 5. chiarimenti generati soltanto sui punti non univoci;
-6. review manageriale di case type, campi, regole ed escalation;
+6. review manageriale modificabile di case type, campi, sequenza, regole ed escalation;
 7. valutazione di tre scenari sintetici;
 8. attivazione del workspace con un livello di completezza non forzato al 100%.
 
 Gli upload supportano PDF, DOCX, TXT e MD. Il contenuto resta server-side; il
 browser riceve soltanto metadati e stato dell’elaborazione.
 
-## Modello operativo generico
+## Grammatica operativa universale
 
-Gli oggetti principali sono:
+La grammatica `2.0` stabilisce **quali oggetti può contenere un'operazione**, non
+quali processi debba usare un'azienda. Gli oggetti principali sono:
 
 - `Workspace` e relativo contesto aziendale;
 - `Operation` e modello operativo attivo;
 - `KnowledgeSource`;
-- `CaseType`, `RequiredField`, `Rule` ed `Escalation`;
+- `CaseType`, `Actor`, `System`, `Input`, `LifecycleStage` e `DecisionRule`;
+- `Exception`, `Escalation`, `Constraint`, `Outcome`, `Metric` e `FeedbackLoop`;
 - `Clarification` e `TestScenario`;
 - casi, messaggi, feedback e audit trail già presenti nel prodotto.
 
-Il motore locale produce una configurazione deterministica e coerente. È
-incapsulato dietro `operational_model_service.py`, così un provider AI futuro
-può sostituirlo senza spostare logica nelle pagine o nei controller.
+Ogni elemento conserva provenienza (`explicit`, `derived` o `suggested`), livello
+di confidenza, evidenza e necessità di conferma. Claude riceve una rappresentazione
+compatta della grammatica e restituisce JSON vincolato dallo schema; l'app lo
+espande nel documento operativo completo. Il motore locale resta un fallback
+gratuito e deterministico. Entrambi sono incapsulati dietro
+`operational_model_service.py` e alimentano la stessa UI e persistenza.
 
 Prima della strutturazione, `context_privacy.py` minimizza il payload, limita la
 quantità di testo e rimuove email, telefoni e segreti comuni. Il confine è:
@@ -102,6 +108,18 @@ python app.py
 ```
 
 Apri `http://127.0.0.1:5000` e scegli **Configura la prima operazione**.
+
+Per usare Claude, aggiungi a `.env`:
+
+```text
+OPERATIONAL_MODEL_PROVIDER=anthropic
+OPERATIONAL_MODEL_MODEL=claude-sonnet-5
+ANTHROPIC_API_KEY=la_tua_chiave
+```
+
+Con `OPERATIONAL_MODEL_PROVIDER=local` l'onboarding non effettua chiamate a
+pagamento. Su Render `ANTHROPIC_API_KEY` va impostata come secret environment
+variable; non deve essere salvata nel repository.
 
 ## Test
 

@@ -43,11 +43,17 @@ DEMO_MODE = os.getenv("DEMO_MODE", "true").strip().lower() in {"1", "true", "yes
 WORKSPACE_COOKIE = "ops_workspace_id"
 
 
+def _has_anthropic_credentials() -> bool:
+    return bool((os.getenv("ANTHROPIC_API_KEY") or "").strip())
+
+
+def _has_shopify_credentials() -> bool:
+    return all((os.getenv(name) or "").strip() for name in ("SHOPIFY_STORE", "SHOPIFY_TOKEN"))
+
+
 def _has_live_credentials() -> bool:
-    return all(
-        (os.getenv(name) or "").strip()
-        for name in ("ANTHROPIC_API_KEY", "SHOPIFY_STORE", "SHOPIFY_TOKEN")
-    )
+    """Legacy return workflow requires both independent integrations."""
+    return _has_anthropic_credentials() and _has_shopify_credentials()
 
 
 def _ensure_demo_showcase() -> None:
@@ -76,8 +82,8 @@ def inject_app_shell():
         "demo_mode": DEMO_MODE,
         "live_intake_available": live_available,
         "integration_status": {
-            "shopify": "Live API" if live_available else "Snapshot verificato",
-            "claude": "Claude live" if live_available else "Output registrati",
+            "shopify": "Live API" if _has_shopify_credentials() else "Non collegato",
+            "claude": "Claude live" if _has_anthropic_credentials() else "Motore locale",
             "shipping": "Provider mock",
         },
         "policy_status": policy_config.summary(),
@@ -429,6 +435,7 @@ def onboarding_analyze():
         sources = onboarding_store.list_knowledge_sources(operation["id"])
         prepared = context_privacy.prepare_operational_context(workspace, operation, sources)
         service = operational_model_service.get_operational_model_service()
+        prepared["privacy"]["external_provider_used"] = service.uses_external_provider
         result = service.build(prepared)
         operation = onboarding_store.save_generated_model(workspace["id"], operation["id"], result)
     except Exception:  # noqa: BLE001
@@ -483,6 +490,27 @@ def onboarding_model_reviewed():
     return jsonify({"ok": True, "scenarios": stored, "step": 7})
 
 
+@app.post("/api/onboarding/model")
+def onboarding_update_model():
+    """Save the manager's structured corrections before scenario validation."""
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "Operation not found."}), 404
+    try:
+        updated_model = operational_model_service.get_operational_model_service().review(
+            operation.get("operational_model") or {}, request.get_json(silent=True) or {}
+        )
+        onboarding_store.update_operation_model(
+            workspace["id"], operation["id"], updated_model, current_step=6
+        )
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
+    return jsonify({"ok": True, "model": updated_model, "step": 6})
+
+
 @app.post("/api/onboarding/tests")
 def onboarding_tests():
     workspace, error = _workspace_or_error()
@@ -495,7 +523,13 @@ def onboarding_tests():
     scenarios = onboarding_store.save_scenario_feedback(
         workspace["id"], operation["id"], feedback
     )
-    return jsonify({"ok": True, "scenarios": scenarios, "step": 8})
+    updated_model = operational_model_service.get_operational_model_service().apply_test_feedback(
+        operation.get("operational_model") or {}, scenarios
+    )
+    onboarding_store.update_operation_model(
+        workspace["id"], operation["id"], updated_model
+    )
+    return jsonify({"ok": True, "scenarios": scenarios, "model": updated_model, "step": 8})
 
 
 @app.post("/api/onboarding/complete")
@@ -1959,6 +1993,13 @@ def health():
             "ok": True,
             "mode": "portfolio_demo" if DEMO_MODE else "live",
             "live_integrations": _has_live_credentials(),
+            "operational_model_provider": (
+                "anthropic"
+                if (os.getenv("OPERATIONAL_MODEL_PROVIDER") or "local").strip().lower() == "anthropic"
+                and _has_anthropic_credentials()
+                else "local"
+            ),
+            "operational_model": os.getenv("OPERATIONAL_MODEL_MODEL", "claude-sonnet-5"),
             "database": "sqlite",
             "shipping": "mock",
             "automated_tests": 30,

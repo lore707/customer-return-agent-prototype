@@ -11,13 +11,16 @@ sys.path.insert(0, str(ROOT / "src"))
 import app
 import context_privacy
 import database
+import onboarding_store
 
 
 class OnboardingTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.previous_database = os.environ.get("DATABASE_PATH")
+        self.previous_provider = os.environ.get("OPERATIONAL_MODEL_PROVIDER")
         os.environ["DATABASE_PATH"] = str(Path(self.temp_dir.name) / "onboarding.db")
+        os.environ["OPERATIONAL_MODEL_PROVIDER"] = "local"
         database.init_database()
         app.app.config.update(TESTING=True)
         self.client = app.app.test_client()
@@ -27,6 +30,10 @@ class OnboardingTests(unittest.TestCase):
             os.environ.pop("DATABASE_PATH", None)
         else:
             os.environ["DATABASE_PATH"] = self.previous_database
+        if self.previous_provider is None:
+            os.environ.pop("OPERATIONAL_MODEL_PROVIDER", None)
+        else:
+            os.environ["OPERATIONAL_MODEL_PROVIDER"] = self.previous_provider
         self.temp_dir.cleanup()
 
     def _configure_to_model(self):
@@ -64,7 +71,7 @@ class OnboardingTests(unittest.TestCase):
         analyzed = self.client.post("/api/onboarding/analyze")
         self.assertEqual(200, analyzed.status_code)
         payload = analyzed.get_json()
-        self.assertEqual("1.0", payload["model"]["schema_version"])
+        self.assertEqual("1.2", payload["model"]["schema_version"])
         self.assertGreaterEqual(len(payload["model"]["rules"]), 2)
         return operation_id, payload
 
@@ -80,13 +87,17 @@ class OnboardingTests(unittest.TestCase):
         scenarios = tests.get_json()["scenarios"]
         self.assertEqual(3, len(scenarios))
         feedback = [{"id": item["id"], "status": "correct", "feedback": "Matches our process."} for item in scenarios]
-        self.assertEqual(200, self.client.post("/api/onboarding/tests", json={"feedback": feedback}).status_code)
+        reviewed = self.client.post("/api/onboarding/tests", json={"feedback": feedback})
+        self.assertEqual(200, reviewed.status_code)
+        reviewed_model = reviewed.get_json()["model"]
+        self.assertEqual(len(scenarios), reviewed_model["validation"]["passed"])
+        self.assertGreater(reviewed_model["completeness"], payload["model"]["completeness"])
         completed = self.client.post("/api/onboarding/complete")
         self.assertEqual(200, completed.status_code)
 
         workbench = self.client.get("/workbench")
         self.assertEqual(200, workbench.status_code)
-        self.assertIn(b"Coordinate vendor onboarding requests", workbench.data)
+        self.assertIn(b"vendor onboarding requests", workbench.data)
 
         created = self.client.post(
             "/api/workbench/analyze",
@@ -103,7 +114,7 @@ class OnboardingTests(unittest.TestCase):
 
         playbooks = self.client.get("/playbooks")
         self.assertEqual(200, playbooks.status_code)
-        self.assertIn(b"Coordinate vendor onboarding requests", playbooks.data)
+        self.assertIn(b"vendor onboarding requests", playbooks.data)
         self.assertNotIn(b"tre workflow", playbooks.data)
 
     def test_privacy_layer_redacts_identifiers_and_secrets(self):
@@ -147,6 +158,28 @@ class OnboardingTests(unittest.TestCase):
         analyzed = self.client.post("/api/onboarding/analyze")
         self.assertEqual(200, analyzed.status_code)
         self.assertEqual(0, analyzed.get_json()["model"]["knowledge"]["source_count"])
+
+    def test_manager_can_edit_and_persist_the_generated_operational_document(self):
+        operation_id, payload = self._configure_to_model()
+        model = payload["model"]
+        response = self.client.post(
+            "/api/onboarding/model",
+            json={
+                "operation": {"name": "Vendor intake", "purpose": "Qualify and assign every supplier request to an accountable owner."},
+                "case_types": [{"name": "New vendor"}, {"name": "Urgent exception"}],
+                "required_fields": [{"label": "Business reason"}, {"label": "Deadline"}],
+                "process_steps": [{"actor": "Coordinator", "action": "Checks the request", "result": "Request qualified"}],
+                "rules": [{"id": "VEN-01", "statement": "The request is complete", "action": "Assign the accountable owner"}],
+                "escalations": [{"owner": "Operations Manager", "trigger": "The request is outside the playbook"}],
+            },
+        )
+        self.assertEqual(200, response.status_code)
+        reviewed = response.get_json()["model"]
+        self.assertEqual("Vendor intake", reviewed["operation"]["name"])
+        self.assertEqual("human_review", reviewed["rules"][0]["origin"])
+        stored = onboarding_store.get_operation(operation_id)
+        self.assertEqual("Vendor intake", stored["name"])
+        self.assertEqual("Vendor intake", stored["operational_model"]["operation"]["name"])
 
 
 if __name__ == "__main__":

@@ -10,6 +10,12 @@ services:
     envVars:
       - key: DEMO_MODE
         value: true
+      - key: OPERATIONAL_MODEL_PROVIDER
+        value: anthropic
+      - key: OPERATIONAL_MODEL_MODEL
+        value: claude-sonnet-5
+      - key: ANTHROPIC_API_KEY
+        sync: false
       - key: RETURN_SHIPPING_PROVIDER
         value: mock
       - key: DATABASE_PATH

@@ -341,6 +341,25 @@ def save_scenario_feedback(workspace_id: str, operation_id: str, feedback: list[
     return list_test_scenarios(operation_id, path)
 
 
+def update_operation_model(workspace_id: str, operation_id: str, model: dict, *, current_step: int = 8, path=None) -> dict:
+    """Persist evidence-driven model changes produced after human review."""
+    now = database.utc_now()
+    completeness = int(model.get("completeness") or 0)
+    operation_name = str((model.get("operation") or {}).get("name") or "").strip()[:160] or None
+    with database.session(path) as conn:
+        conn.execute(
+            """UPDATE operations SET name = COALESCE(?, name), operational_model = ?, completeness = ?, updated_at = ?
+               WHERE id = ? AND workspace_id = ?""",
+            (operation_name, json.dumps(model, ensure_ascii=False), completeness, now, operation_id, workspace_id),
+        )
+    update_workspace(
+        workspace_id,
+        {"current_step": current_step, "completeness": completeness},
+        path=path,
+    )
+    return get_operation(operation_id, path)
+
+
 def complete_workspace(workspace_id: str, *, path=None) -> dict:
     workspace = get_workspace(workspace_id, path)
     operation = active_operation(workspace_id, path)

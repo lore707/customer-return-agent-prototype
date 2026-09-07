@@ -1,8 +1,7 @@
 """Context minimisation before an operational model service is called.
 
-The prototype does not send data to an external provider. Keeping this layer
-separate makes that boundary explicit and leaves one place for future
-redaction, consent and retention controls.
+Keeping this layer separate makes the external-provider boundary explicit and
+gives redaction, minimisation, consent and retention controls one clear home.
 """
 
 from __future__ import annotations

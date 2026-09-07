@@ -34,14 +34,28 @@ def operation_id_from_case(case: dict) -> str | None:
 def _case_type(message: str, model: dict) -> dict:
     types = model.get("case_types") or []
     lowered = message.casefold()
-    target = "standard"
-    if any(term in lowered for term in ("exception", "eccezione", "deroga", "outside", "fuori processo")):
-        target = "exception"
-    elif any(term in lowered for term in ("urgent", "urgente", "critical", "critico", "bloccato")):
-        target = "urgent"
-    elif any(term in lowered for term in ("missing", "manca", "incomplete", "incompleto")):
-        target = "incomplete"
-    return next((item for item in types if item.get("id") == target), types[0] if types else {"id": "standard", "name": "Standard request"})
+    semantic_cues = {
+        "withdrawal": ("recesso", "ripensamento", "restituire", "reso volontario"),
+        "defective_doa": ("doa", "difetto", "difettoso", "non funziona", "guasto", "malfunzionamento"),
+        "warranty": ("garanzia", "warranty", "due anni", "24 mesi"),
+        "damaged_delivery": ("arrivato rotto", "arrivato danneggiato", "danno da trasporto"),
+        "wrong_item": ("articolo errato", "articolo sbagliato", "prodotto sbagliato"),
+        "return_logistics": ("rientro", "reso arrivato", "pacco in sede", "tracking", "controllo fisico"),
+        "incomplete_escalation": ("manca", "incompleto", "senza prove", "ambiguo", "eccezione", "fuori policy", "non coperto"),
+    }
+
+    def score(item: dict) -> int:
+        phrases = list(item.get("keywords") or [])
+        phrases.extend(semantic_cues.get(item.get("id"), ()))
+        name_tokens = re.findall(r"[a-zà-ÿ]{4,}", (item.get("name") or "").casefold())
+        phrase_score = sum(4 for phrase in set(phrases) if phrase and phrase in lowered)
+        token_score = sum(1 for token in set(name_tokens) if token in lowered)
+        return phrase_score + token_score
+
+    if types:
+        ranked = sorted(types, key=score, reverse=True)
+        return ranked[0]
+    return {"id": "unclassified_operation", "name": "Caso da classificare"}
 
 
 def _field_definitions(model: dict) -> dict:
@@ -86,7 +100,7 @@ def _evaluate(case_type: dict, facts: dict, model: dict) -> dict:
             "next_action": "Ask for the missing information.",
             "draft": f"Thanks for the request. Before we can confirm the next step, we need: {', '.join(unavailable)}. Once available, the case can be reviewed against the playbook.",
         }
-    if case_type.get("id") in {"exception", "urgent"}:
+    if case_type.get("id") in {"exception", "urgent", "budget_exception", "incomplete_escalation", "unclassified_operation"}:
         escalation = (model.get("escalations") or [{"owner": "Process owner", "action": "Escalate for review."}])[0]
         return {
             **base,

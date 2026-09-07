@@ -1,4 +1,4 @@
-anthropic>=0.40
+anthropic>=0.117
 python-dotenv>=1.0
 requests>=2.31
 flask>=3.0

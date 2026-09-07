@@ -80,7 +80,7 @@
       <ol class="analysis-checklist" id="analysisChecklist">
         <li><i></i><div><strong>Understanding company context</strong><span>Business model, market and operating environment</span></div></li>
         <li><i></i><div><strong>Reading available knowledge</strong><span>Procedures, notes and source references</span></div></li>
-        <li><i></i><div><strong>Identifying case types</strong><span>Standard, incomplete and exceptional paths</span></div></li>
+        <li><i></i><div><strong>Identifying case types</strong><span>Recurring paths implied by your knowledge</span></div></li>
         <li><i></i><div><strong>Extracting decision rules</strong><span>Conditions, actions and human gates</span></div></li>
         <li><i></i><div><strong>Finding knowledge gaps</strong><span>Only questions that materially affect a decision</span></div></li>
         <li><i></i><div><strong>Preparing the first playbook</strong><span>Versioned operational model ready for review</span></div></li>
@@ -99,7 +99,26 @@
     <section class="onboarding-step" data-step="6">
       <div class="onboarding-step-head"><span class="onboarding-kicker">06 · Operational model</span><h1>Your first playbook is ready to review.</h1><p>A manager-level view of what the system understood, what it can decide and where people remain responsible.</p></div>
       <div id="modelSummary"></div>
-      <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="3">Review inputs</button><button class="button primary" id="testModel" type="button">Test this playbook <span>→</span></button></div>
+      <form id="modelEditor" class="model-editor hidden">
+        <header><div><span class="onboarding-kicker">Manager review</span><h2>Correct the operational document.</h2><p>One item per line. Nothing is changed silently: your edits become the reviewed version of the playbook.</p></div><button class="button ghost" id="cancelModelEdit" type="button">Cancel</button></header>
+        <div class="model-editor-grid">
+          <label>Operation name<input id="editOperationName" required maxlength="72"></label>
+          <label class="full">Purpose<textarea id="editOperationPurpose" required minlength="12" rows="2"></textarea></label>
+          <label>Case types<textarea id="editCaseTypes" required rows="7" placeholder="One real operational path per line"></textarea></label>
+          <label>Required information<textarea id="editRequiredFields" rows="7" placeholder="One required fact per line"></textarea></label>
+          <label class="full">Process steps <small>Role | Action | Expected result</small><textarea id="editProcessSteps" rows="9"></textarea></label>
+          <label class="full">Decision rules <small>ID | Condition | Action</small><textarea id="editRules" required rows="9"></textarea></label>
+          <label class="full">Escalations <small>Owner | Trigger</small><textarea id="editEscalations" rows="5"></textarea></label>
+          <label>Actors <small>Name | Accountability</small><textarea id="editActors" rows="6"></textarea></label>
+          <label>Systems <small>Name | Purpose</small><textarea id="editSystems" rows="6"></textarea></label>
+          <label>Exceptions <small>Owner | Trigger | Handling</small><textarea id="editExceptions" rows="6"></textarea></label>
+          <label>Constraints <small>Category | Constraint</small><textarea id="editConstraints" rows="6"></textarea></label>
+          <label>Metrics <small>Name | Definition</small><textarea id="editMetrics" rows="6"></textarea></label>
+          <label>Feedback loops <small>Signal | Review | Improvement action</small><textarea id="editFeedbackLoops" rows="6"></textarea></label>
+        </div>
+        <div class="onboarding-form-actions"><span class="model-editor-help">Your review is stored as verified evidence.</span><button class="button primary" type="submit">Save reviewed document</button></div>
+      </form>
+      <div class="onboarding-form-actions" id="modelActions"><button class="button ghost" id="editModel" type="button">Edit document</button><button class="button primary" id="testModel" type="button">Test this playbook <span>→</span></button></div>
     </section>
 
     <section class="onboarding-step" data-step="7">
@@ -121,7 +140,7 @@
     </section>
   </main>
 
-  <footer class="onboarding-footer"><span>Raw input stays behind the context and privacy layer.</span><span>Local structuring engine · Human-reviewed configuration</span></footer>
+  <footer class="onboarding-footer"><span>Raw input stays behind the context and privacy layer.</span><span>Structured operational grammar · Human-reviewed configuration</span></footer>
 
 <script>
   let state = {{ onboarding_state|tojson }};
@@ -270,12 +289,13 @@
   function renderClarifications() {
     const list = document.getElementById("clarificationList");
     if (!(state.clarifications || []).length) { showStep(6); return; }
-    list.innerHTML = state.clarifications.map((item, index) => `<article class="clarification-card"><header><span>Question ${index + 1}</span><small>${escapeHTML(item.issue_type.replaceAll("_", " "))}</small></header><h3>${escapeHTML(item.question)}</h3><div>${item.options.map(option => `<label><input type="radio" name="clarification-${item.id}" value="${escapeHTML(option)}" required><span>${escapeHTML(option)}</span></label>`).join("")}</div></article>`).join("");
+    list.innerHTML = state.clarifications.map((item, index) => `<article class="clarification-card"><header><span>Question ${index + 1}</span><small>${escapeHTML(item.issue_type.replaceAll("_", " "))}</small></header><h3>${escapeHTML(item.question)}</h3>${item.details?.evidence?.length ? `<blockquote>${item.details.evidence.map(value => escapeHTML(value)).join("<br>")}</blockquote>` : ""}<div>${item.options.map(option => `<label><input type="radio" name="clarification-${item.id}" value="${escapeHTML(option)}" required><span>${escapeHTML(option)}</span></label>`).join("")}<label><input type="radio" name="clarification-${item.id}" value="__custom__" required><span>Write another answer</span></label></div><input class="clarification-custom hidden" data-custom-answer="${item.id}" placeholder="Write the rule, owner or answer in your own words"></article>`).join("");
+    document.querySelectorAll('.clarification-card input[type="radio"]').forEach(input => input.addEventListener("change", () => { const id = input.name.replace("clarification-", ""); const custom = document.querySelector(`[data-custom-answer="${id}"]`); const selected = document.querySelector(`[name="${input.name}"]:checked`)?.value === "__custom__"; custom.classList.toggle("hidden", !selected); custom.required = selected; if (selected) custom.focus(); }));
   }
 
   document.getElementById("clarificationForm").addEventListener("submit", async event => {
     event.preventDefault(); const answers = {};
-    (state.clarifications || []).forEach(item => { answers[item.id] = document.querySelector(`[name="clarification-${item.id}"]:checked`)?.value; });
+    (state.clarifications || []).forEach(item => { const selected = document.querySelector(`[name="clarification-${item.id}"]:checked`)?.value; answers[item.id] = selected === "__custom__" ? document.querySelector(`[data-custom-answer="${item.id}"]`)?.value : selected; });
     try { const data = await postJSON("/api/onboarding/clarifications", {answers}); state.operation.operational_model = data.model; showStep(6); }
     catch (error) { setNotice(error.message, true); }
   });
@@ -284,8 +304,115 @@
     const model = state.operation?.operational_model || {};
     if (!model.operation) return;
     const unresolved = (model.ambiguities || []).filter(item => !item.resolved).length;
-    document.getElementById("modelSummary").innerHTML = `<section class="model-hero"><div><span>ACTIVE OPERATION</span><h2>${escapeHTML(model.operation.name)}</h2><p>${escapeHTML(model.operation.purpose)}</p></div><strong>${model.completeness || 0}%<small>complete</small></strong></section><section class="model-metrics"><article><strong>${model.case_types.length}</strong><span>Case types</span></article><article><strong>${model.required_fields.length}</strong><span>Required fields</span></article><article><strong>${model.rules.length}</strong><span>Decision rules</span></article><article><strong>${model.escalations.length}</strong><span>Escalation paths</span></article><article><strong>${unresolved}</strong><span>Open ambiguities</span></article></section><div class="model-columns"><section><span class="onboarding-kicker">Case types</span>${model.case_types.map(item => `<article><strong>${escapeHTML(item.name)}</strong><p>${escapeHTML(item.description)}</p></article>`).join("")}</section><section><span class="onboarding-kicker">Human ownership</span>${model.escalations.map(item => `<article><strong>${escapeHTML(item.owner)}</strong><p>${escapeHTML(item.trigger)}</p></article>`).join("")}</section></div><details class="model-details"><summary>Review details <span>+</span></summary><div><h3>Company context</h3><p>${escapeHTML(model.company_context?.summary || "Not specified")}</p><h3>Required information</h3><ul>${model.required_fields.map(item => `<li>${escapeHTML(item.label)}</li>`).join("")}</ul><h3>Decision rules</h3><ol>${model.rules.map(item => `<li><b>${item.id}</b> ${escapeHTML(item.statement)} <small>${escapeHTML(item.source)}</small></li>`).join("")}</ol></div></details>`;
+    const caseTypes = model.case_types || [];
+    const fields = model.required_fields || [];
+    const rules = model.rules || [];
+    const escalations = model.escalations || [];
+    const process = model.process || {};
+    const processSteps = process.steps || [];
+    const outcomes = model.outcomes || [];
+    const assumptions = model.assumptions || [];
+    const actors = model.actors || [];
+    const systems = Array.isArray(model.systems) ? model.systems : [];
+    const exceptions = model.exceptions || [];
+    const constraints = model.constraints || [];
+    const metrics = model.metrics || [];
+    const feedbackLoops = model.feedback_loops || [];
+    const generation = model.generation || {};
+    const provider = String(model.provider || "");
+    const engineNote = provider === "anthropic_operational_model"
+      ? `Claude ${generation.model || ""} · structured reconstruction · ${(generation.input_tokens || 0).toLocaleString()} input / ${(generation.output_tokens || 0).toLocaleString()} output tokens`
+      : provider.includes("after_provider_error")
+        ? "Local fallback · Claude was unavailable · manager review required"
+        : "Local evidence extractor · no external AI call";
+    const provenanceBadge = item => {
+      const source = item?.provenance?.source_type || (item?.origin === "knowledge" ? "explicit" : item?.origin === "human_review" ? "reviewed" : "derived");
+      const labels = {explicit: "Source-backed", derived: "Inferred", suggested: "Confirm", reviewed: "Reviewed"};
+      return `<em class="model-provenance ${escapeHTML(source)}">${escapeHTML(labels[source] || source)}</em>`;
+    };
+    const fieldPreview = fields.slice(0, 8);
+    const rulePreview = rules.slice(0, 6);
+    const scoreRows = model.completeness_breakdown || [];
+    document.getElementById("modelSummary").innerHTML = `
+      <section class="model-hero">
+        <div><span>REVIEWABLE OPERATIONAL DOCUMENT · ${escapeHTML(model.schema_version || "1.0")}</span><h2>${escapeHTML(model.operation.name)}</h2><p>${escapeHTML(model.operation.purpose)}</p><small class="model-engine-note">${escapeHTML(engineNote)}</small></div>
+        <strong>${model.completeness || 0}%<small>evidence coverage, not AI confidence</small></strong>
+      </section>
+      <section class="model-metrics">
+        <article><strong>${caseTypes.length}</strong><span>Case types</span></article>
+        <article><strong>${fields.length}</strong><span>Required facts</span></article>
+        <article><strong>${rules.filter(item => ["knowledge", "human_review"].includes(item.origin)).length}</strong><span>Verified rules</span></article>
+        <article><strong>${escalations.length}</strong><span>Human owners</span></article>
+        <article><strong>${unresolved}</strong><span>Open ambiguities</span></article>
+      </section>
+      <div class="model-columns">
+        <section><span class="onboarding-kicker">Case types understood</span>${caseTypes.map(item => `<article><header><strong>${escapeHTML(item.name)}</strong>${provenanceBadge(item)}</header><p>${escapeHTML(item.description)}</p></article>`).join("")}</section>
+        <section><span class="onboarding-kicker">Human ownership</span>${escalations.map(item => `<article><header><strong>${escapeHTML(item.owner)}</strong>${provenanceBadge(item)}</header><p>${escapeHTML(item.trigger)}</p></article>`).join("")}</section>
+      </div>
+      <section class="model-process-panel">
+        <header><div><span class="onboarding-kicker">Operational sequence</span><h3>How the work moves</h3></div><small>${processSteps.length} documented steps</small></header>
+        <ol class="model-process-list">${processSteps.length ? processSteps.map((item, index) => `<li><b>${String(index + 1).padStart(2, "0")}</b><div><span>${escapeHTML(item.stage || item.actor)} ${provenanceBadge(item)}</span><strong>${escapeHTML(item.action)}</strong><small>${escapeHTML(item.actor)} · ${escapeHTML(item.result)}</small></div></li>`).join("") : `<li class="model-empty"><div><strong>Sequence not documented yet</strong><small>Add the real steps during manager review.</small></div></li>`}</ol>
+        <div class="model-process-meta"><span><b>Channels</b>${escapeHTML((process.channels || []).join(", ") || "To confirm")}</span><span><b>Systems</b>${escapeHTML((process.systems || []).join(", ") || "To confirm")}</span><span><b>Roles</b>${escapeHTML((process.roles || []).join(", ") || "To confirm")}</span></div>
+      </section>
+      <div class="model-evidence-grid">
+        <section class="model-semantic-panel"><span class="onboarding-kicker">Required information</span><div class="model-field-list">${fieldPreview.map(item => `<span>${escapeHTML(item.label)}</span>`).join("")}</div>${fields.length > fieldPreview.length ? `<small>+${fields.length - fieldPreview.length} more required facts</small>` : ""}</section>
+        <section class="model-semantic-panel"><span class="onboarding-kicker">Decision rules reconstructed</span><ol class="model-rule-preview">${rulePreview.map(item => `<li><b>${escapeHTML(item.id)}</b><span><strong>${escapeHTML(item.condition || item.statement)}</strong><small>Then: ${escapeHTML(item.action || "To confirm")} ${provenanceBadge(item)}</small></span></li>`).join("")}</ol>${rules.length > rulePreview.length ? `<small>+${rules.length - rulePreview.length} more rules in the playbook</small>` : ""}</section>
+      </div>
+      <section class="model-grammar-panel">
+        <header><div><span class="onboarding-kicker">Operational grammar</span><h3>The complete operating model</h3></div><small>Ontology fixed · company content reconstructed</small></header>
+        <div class="model-grammar-grid">
+          <article><strong>Actors & systems</strong><ul>${actors.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.accountability || (item.responsibilities || []).join("; "))}</small></li>`).join("")}${systems.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.purpose)}</small></li>`).join("") || "<li>Not documented</li>"}</ul></article>
+          <article><strong>Exceptions & constraints</strong><ul>${exceptions.map(item => `<li>${escapeHTML(item.trigger)} <small>${escapeHTML(item.handling)} · ${escapeHTML(item.owner)}</small></li>`).join("")}${constraints.map(item => `<li>${escapeHTML(item.category)} <small>${escapeHTML(item.statement)}</small></li>`).join("") || "<li>Not documented</li>"}</ul></article>
+          <article><strong>Metrics & learning loops</strong><ul>${metrics.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.definition)}</small></li>`).join("")}${feedbackLoops.map(item => `<li>${escapeHTML(item.signal)} <small>${escapeHTML(item.review)} · ${escapeHTML(item.improvement_action)}</small></li>`).join("") || "<li>Not documented</li>"}</ul></article>
+        </div>
+      </section>
+      <div class="model-evidence-grid model-outcome-grid">
+        <section class="model-semantic-panel"><span class="onboarding-kicker">Expected outcomes</span><ul class="model-clean-list">${outcomes.length ? outcomes.map(item => `<li><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.description)}</small></li>`).join("") : `<li><strong>Outcome da confermare</strong><small>Define when a case is considered correctly resolved.</small></li>`}</ul></section>
+        <section class="model-semantic-panel"><span class="onboarding-kicker">Assumptions to confirm</span><ul class="model-clean-list">${assumptions.length ? assumptions.map(item => `<li><strong>${escapeHTML(item.statement)}</strong><small>Suggested from missing context · not an active rule</small></li>`).join("") : `<li><strong>No contextual assumptions</strong><small>The structure is supported by supplied knowledge or human review.</small></li>`}</ul></section>
+      </div>
+      <details class="model-details"><summary>Evidence and completeness <span>+</span></summary><div><p class="model-score-intro">Completeness is calculated from source coverage, resolved ambiguities and validated scenarios. It is not a self-declared confidence score.</p><div class="model-score-list">${scoreRows.map(item => `<article><span>${escapeHTML(item.label)}</span><div><i style="width:${Math.round((item.earned / item.maximum) * 100)}%"></i></div><b>${item.earned}/${item.maximum}</b></article>`).join("")}</div><h3>Company context</h3><p>${escapeHTML(model.company_context?.summary || "Not specified")}</p><p>${escapeHTML(model.company_context?.operating_environment || "")}</p><h3>All required information</h3><ul>${fields.map(item => `<li>${escapeHTML(item.label)}</li>`).join("")}</ul><h3>All decision rules</h3><ol>${rules.map(item => `<li><b>${escapeHTML(item.id)}</b> ${escapeHTML(item.statement)} → ${escapeHTML(item.action || "To confirm")} <small>${escapeHTML(item.source)}</small></li>`).join("")}</ol></div></details>`;
+    populateModelEditor(model);
   }
+
+  function lineValues(value) { return String(value || "").split("\n").map(item => item.trim()).filter(Boolean); }
+  function pipeParts(value, count) { const parts = value.split("|").map(item => item.trim()); while (parts.length < count) parts.push(""); return parts; }
+  function populateModelEditor(model) {
+    document.getElementById("editOperationName").value = model.operation?.name || "";
+    document.getElementById("editOperationPurpose").value = model.operation?.purpose || "";
+    document.getElementById("editCaseTypes").value = (model.case_types || []).map(item => item.name).join("\n");
+    document.getElementById("editRequiredFields").value = (model.required_fields || []).map(item => item.label).join("\n");
+    document.getElementById("editProcessSteps").value = (model.process?.steps || []).map(item => `${item.actor || ""} | ${item.action || ""} | ${item.result || ""}`).join("\n");
+    document.getElementById("editRules").value = (model.rules || []).map(item => `${item.id || ""} | ${item.statement || ""} | ${item.action || ""}`).join("\n");
+    document.getElementById("editEscalations").value = (model.escalations || []).map(item => `${item.owner || ""} | ${item.trigger || ""}`).join("\n");
+    document.getElementById("editActors").value = (model.actors || []).map(item => `${item.name || ""} | ${item.accountability || ""}`).join("\n");
+    document.getElementById("editSystems").value = (model.systems || []).map(item => `${item.name || ""} | ${item.purpose || ""}`).join("\n");
+    document.getElementById("editExceptions").value = (model.exceptions || []).map(item => `${item.owner || ""} | ${item.trigger || ""} | ${item.handling || ""}`).join("\n");
+    document.getElementById("editConstraints").value = (model.constraints || []).map(item => `${item.category || ""} | ${item.statement || ""}`).join("\n");
+    document.getElementById("editMetrics").value = (model.metrics || []).map(item => `${item.name || ""} | ${item.definition || ""}`).join("\n");
+    document.getElementById("editFeedbackLoops").value = (model.feedback_loops || []).map(item => `${item.signal || ""} | ${item.review || ""} | ${item.improvement_action || ""}`).join("\n");
+  }
+  function toggleModelEditor(editing) { document.getElementById("modelSummary").classList.toggle("hidden", editing); document.getElementById("modelActions").classList.toggle("hidden", editing); document.getElementById("modelEditor").classList.toggle("hidden", !editing); }
+  document.getElementById("editModel").addEventListener("click", () => toggleModelEditor(true));
+  document.getElementById("cancelModelEdit").addEventListener("click", () => { populateModelEditor(state.operation?.operational_model || {}); toggleModelEditor(false); });
+  document.getElementById("modelEditor").addEventListener("submit", async event => {
+    event.preventDefault(); const button = event.submitter; button.disabled = true;
+    const payload = {
+      operation: {name: document.getElementById("editOperationName").value, purpose: document.getElementById("editOperationPurpose").value},
+      case_types: lineValues(document.getElementById("editCaseTypes").value).map(name => ({name})),
+      required_fields: lineValues(document.getElementById("editRequiredFields").value).map(label => ({label})),
+      process_steps: lineValues(document.getElementById("editProcessSteps").value).map(line => { const [actor, action, result] = pipeParts(line, 3); return {actor, action, result}; }),
+      rules: lineValues(document.getElementById("editRules").value).map(line => { const [id, statement, action] = pipeParts(line, 3); return {id, statement, action}; }),
+      escalations: lineValues(document.getElementById("editEscalations").value).map(line => { const [owner, trigger] = pipeParts(line, 2); return {owner, trigger}; }),
+      actors: lineValues(document.getElementById("editActors").value).map(line => { const [name, accountability] = pipeParts(line, 2); return {name, accountability}; }),
+      systems: lineValues(document.getElementById("editSystems").value).map(line => { const [name, purpose] = pipeParts(line, 2); return {name, purpose}; }),
+      exceptions: lineValues(document.getElementById("editExceptions").value).map(line => { const [owner, trigger, handling] = pipeParts(line, 3); return {owner, trigger, handling}; }),
+      constraints: lineValues(document.getElementById("editConstraints").value).map(line => { const [category, statement] = pipeParts(line, 2); return {category, statement}; }),
+      metrics: lineValues(document.getElementById("editMetrics").value).map(line => { const [name, definition] = pipeParts(line, 2); return {name, definition}; }),
+      feedback_loops: lineValues(document.getElementById("editFeedbackLoops").value).map(line => { const [signal, review, improvement_action] = pipeParts(line, 3); return {signal, review, improvement_action}; })
+    };
+    try { const data = await postJSON("/api/onboarding/model", payload); state.operation.operational_model = data.model; toggleModelEditor(false); renderModel(); setNotice("Reviewed operational document saved."); }
+    catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+  });
 
   document.getElementById("testModel").addEventListener("click", async event => {
     event.currentTarget.disabled = true;
@@ -308,7 +435,7 @@
   document.getElementById("scenarioForm").addEventListener("submit", async event => {
     event.preventDefault();
     const feedback = (state.scenarios || []).map(item => ({id: item.id, status: document.querySelector(`[name="scenario-${item.id}"]:checked`)?.value, feedback: document.querySelector(`[data-scenario-feedback="${item.id}"]`)?.value || ""}));
-    try { const data = await postJSON("/api/onboarding/tests", {feedback}); state.scenarios = data.scenarios; showStep(8); }
+    try { const data = await postJSON("/api/onboarding/tests", {feedback}); state.scenarios = data.scenarios; state.operation.operational_model = data.model; showStep(8); }
     catch (error) { setNotice(error.message, true); }
   });
 
