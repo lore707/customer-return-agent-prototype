@@ -16,6 +16,7 @@ from operational_model_service import (
     LocalOperationalModelService,
     ResilientOperationalModelService,
     get_operational_model_service,
+    public_provider_error,
 )
 
 
@@ -115,6 +116,11 @@ class OperationalGrammarTests(unittest.TestCase):
         model = service.build(context())["model"]
         self.assertEqual("local_evidence_extractor_after_provider_error", model["provider"])
 
+    def test_provider_validation_error_has_safe_public_message(self):
+        code, message = public_provider_error(ValueError("Invalid operational grammar"))
+        self.assertEqual("invalid_model", code)
+        self.assertIn("did not pass validation", message)
+
     def test_schema_uses_supported_compact_shape(self):
         value = json.dumps(operational_grammar.schema())
         for unsupported in ('"minimum"', '"maximum"', '"maxItems"'):
@@ -150,7 +156,7 @@ class OperationalGrammarTests(unittest.TestCase):
         request = anthropic_client.return_value.messages.stream.call_args.kwargs
         self.assertEqual("json_schema", request["output_config"]["format"]["type"])
         self.assertEqual("medium", request["output_config"]["effort"])
-        self.assertEqual(8_000, request["max_tokens"])
+        self.assertEqual(12_000, request["max_tokens"])
         self.assertEqual("2.0", model["schema_version"])
         self.assertEqual(321, model["generation"]["input_tokens"])
         self.assertEqual("Discovery", model["process"]["steps"][0]["stage"])

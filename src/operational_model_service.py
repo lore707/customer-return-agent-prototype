@@ -24,9 +24,9 @@ MODEL_EFFORT = os.getenv("OPERATIONAL_MODEL_EFFORT", "medium").strip().lower()
 if MODEL_EFFORT not in {"low", "medium", "high"}:
     MODEL_EFFORT = "medium"
 try:
-    MODEL_MAX_TOKENS = max(4_000, min(12_000, int(os.getenv("OPERATIONAL_MODEL_MAX_TOKENS", "8000"))))
+    MODEL_MAX_TOKENS = max(4_000, min(12_000, int(os.getenv("OPERATIONAL_MODEL_MAX_TOKENS", "12000"))))
 except ValueError:
-    MODEL_MAX_TOKENS = 8_000
+    MODEL_MAX_TOKENS = 12_000
 
 
 SYSTEM_PROMPT = """You are an Operational Reconstruction Engine.
@@ -754,6 +754,28 @@ def _parse_json(value: str) -> dict:
         raise
 
 
+def public_provider_error(exc: Exception) -> tuple[str, str]:
+    """Map provider failures to useful, non-sensitive messages for the public UI."""
+    detail = str(exc).casefold()
+    if isinstance(exc, anthropic.RateLimitError):
+        return "rate_limit", "Anthropic's rate limit was reached. Wait a minute, then retry; your knowledge is still saved."
+    if isinstance(exc, anthropic.AuthenticationError):
+        return "authentication", "The Anthropic API key configured on Render was rejected. Check the secret and redeploy."
+    if isinstance(exc, anthropic.PermissionDeniedError):
+        return "permission", "This Anthropic API key cannot use the configured Claude model. Check the workspace permissions."
+    if any(term in detail for term in ("credit balance", "credit_balance", "billing", "insufficient credit", "insufficient_quota", "purchase credits")):
+        return "billing", "Anthropic rejected the call because the API credit is unavailable or insufficient. Add credit, then retry."
+    if isinstance(exc, (anthropic.APITimeoutError, anthropic.APIConnectionError)):
+        return "connection", "The connection to Anthropic was interrupted. Wait a moment, then retry; your knowledge is still saved."
+    if isinstance(exc, json.JSONDecodeError) or "output token limit" in detail:
+        return "incomplete_output", "Claude reached the output limit before completing the operational model. Retry with fewer notes or documents."
+    if isinstance(exc, ValueError):
+        return "invalid_model", "Claude returned an operational model that did not pass validation. Retry; no local result was substituted."
+    if isinstance(exc, anthropic.BadRequestError):
+        return "bad_request", "Anthropic rejected the model request. Check the configured model and generation settings."
+    return "provider_error", "Claude could not complete the operational model. Retry in a moment."
+
+
 def _normalise_extraction(payload: dict, context: dict) -> dict:
     text = _all_text(context)
     sources = context.get("knowledge_sources", [])
@@ -1392,6 +1414,8 @@ class AnthropicOperationalModelService(OperationalModelBehaviour):
         with client.messages.stream(**request) as stream:
             text = stream.get_final_text()
             response = stream.get_final_message()
+        if getattr(response, "stop_reason", None) == "max_tokens":
+            raise ValueError("Claude reached the output token limit before returning valid JSON.")
         ontology = _parse_json(text)
         validation_errors = operational_grammar.validate(ontology)
         if validation_errors:

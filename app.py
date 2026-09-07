@@ -437,8 +437,9 @@ def _run_onboarding_analysis(workspace_id: str, operation_id: str, prepared: dic
         onboarding_store.save_generated_model(workspace_id, operation_id, result)
         with ONBOARDING_JOB_LOCK:
             ONBOARDING_JOBS[operation_id] = {"status": "complete", "finished_at": time.time()}
-    except Exception:  # noqa: BLE001
+    except Exception as exc:  # noqa: BLE001
         logger.exception("Asynchronous operational model generation failed")
+        error_code, public_message = operational_model_service.public_provider_error(exc)
         try:
             onboarding_store.set_generation_status(workspace_id, operation_id, "draft")
         except Exception:  # pragma: no cover - preserve the original provider failure
@@ -447,7 +448,8 @@ def _run_onboarding_analysis(workspace_id: str, operation_id: str, prepared: dic
             ONBOARDING_JOBS[operation_id] = {
                 "status": "error",
                 "finished_at": time.time(),
-                "message": "Claude could not complete the operational model. Retry in a moment.",
+                "code": error_code,
+                "message": public_message,
             }
 
 
@@ -496,7 +498,7 @@ def onboarding_analyze_status():
     with ONBOARDING_JOB_LOCK:
         job = dict(ONBOARDING_JOBS.get(operation["id"]) or {})
     if job.get("status") == "error":
-        return jsonify({"errore": job.get("message"), "status": "error"}), 500
+        return jsonify({"errore": job.get("message"), "error_code": job.get("code"), "status": "error"}), 500
     if operation.get("status") == "review" and operation.get("operational_model"):
         clarifications = onboarding_store.list_clarifications(operation["id"])
         return jsonify(

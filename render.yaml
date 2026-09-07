@@ -17,7 +17,7 @@ services:
       - key: OPERATIONAL_MODEL_EFFORT
         value: medium
       - key: OPERATIONAL_MODEL_MAX_TOKENS
-        value: 8000
+        value: 12000
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: RETURN_SHIPPING_PROVIDER
