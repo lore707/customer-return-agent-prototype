@@ -2060,6 +2060,7 @@ def health():
                 "anthropic" if operational_service.uses_external_provider else "local"
             ),
             "operational_model": os.getenv("OPERATIONAL_MODEL_MODEL", "claude-sonnet-5"),
+            "operational_model_effort": operational_model_service.MODEL_EFFORT,
             "release": (os.getenv("RENDER_GIT_COMMIT") or "local")[:7],
             "database": "sqlite",
             "shipping": "mock",

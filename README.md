@@ -117,12 +117,17 @@ Per usare Claude, aggiungi a `.env`:
 ```text
 OPERATIONAL_MODEL_PROVIDER=anthropic
 OPERATIONAL_MODEL_MODEL=claude-sonnet-5
+OPERATIONAL_MODEL_EFFORT=medium
+OPERATIONAL_MODEL_MAX_TOKENS=8000
 ANTHROPIC_API_KEY=la_tua_chiave
 ```
 
 Con `OPERATIONAL_MODEL_PROVIDER=local` l'onboarding non effettua chiamate a
 pagamento. Su Render `ANTHROPIC_API_KEY` va impostata come secret environment
-variable; non deve essere salvata nel repository.
+variable; non deve essere salvata nel repository. Quando Claude è configurato,
+un errore del provider viene mostrato come errore e non viene mascherato con un
+output locale. Il fallback può essere abilitato soltanto in modo esplicito con
+`OPERATIONAL_MODEL_ALLOW_LOCAL_FALLBACK=true`.
 
 ## Test
 

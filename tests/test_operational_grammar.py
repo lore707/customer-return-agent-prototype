@@ -3,7 +3,7 @@ import sys
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -99,6 +99,22 @@ class OperationalGrammarTests(unittest.TestCase):
     def test_no_api_key_keeps_the_free_local_provider(self):
         self.assertIsInstance(get_operational_model_service(), LocalOperationalModelService)
 
+    @patch.dict("os.environ", {}, clear=True)
+    def test_provider_errors_are_not_silently_replaced_by_local_output(self):
+        primary = MagicMock()
+        primary.build.side_effect = ValueError("invalid structured output")
+        service = ResilientOperationalModelService(primary=primary, fallback=LocalOperationalModelService())
+        with self.assertRaisesRegex(ValueError, "invalid structured output"):
+            service.build(context())
+
+    @patch.dict("os.environ", {"OPERATIONAL_MODEL_ALLOW_LOCAL_FALLBACK": "true"}, clear=True)
+    def test_local_fallback_requires_explicit_configuration(self):
+        primary = MagicMock()
+        primary.build.side_effect = ValueError("invalid structured output")
+        service = ResilientOperationalModelService(primary=primary, fallback=LocalOperationalModelService())
+        model = service.build(context())["model"]
+        self.assertEqual("local_evidence_extractor_after_provider_error", model["provider"])
+
     def test_schema_uses_supported_compact_shape(self):
         value = json.dumps(operational_grammar.schema())
         for unsupported in ('"minimum"', '"maximum"', '"maxItems"'):
@@ -126,10 +142,15 @@ class OperationalGrammarTests(unittest.TestCase):
             content=[SimpleNamespace(type="text", text=json.dumps(payload()))],
             usage=SimpleNamespace(input_tokens=321, output_tokens=654),
         )
-        anthropic_client.return_value.messages.create.return_value = response
+        stream = MagicMock()
+        stream.get_final_text.return_value = json.dumps(payload())
+        stream.get_final_message.return_value = response
+        anthropic_client.return_value.messages.stream.return_value.__enter__.return_value = stream
         model = AnthropicOperationalModelService().build(context())["model"]
-        request = anthropic_client.return_value.messages.create.call_args.kwargs
+        request = anthropic_client.return_value.messages.stream.call_args.kwargs
         self.assertEqual("json_schema", request["output_config"]["format"]["type"])
+        self.assertEqual("medium", request["output_config"]["effort"])
+        self.assertEqual(8_000, request["max_tokens"])
         self.assertEqual("2.0", model["schema_version"])
         self.assertEqual(321, model["generation"]["input_tokens"])
         self.assertEqual("Discovery", model["process"]["steps"][0]["stage"])

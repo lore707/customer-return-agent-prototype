@@ -14,6 +14,10 @@ services:
         value: anthropic
       - key: OPERATIONAL_MODEL_MODEL
         value: claude-sonnet-5
+      - key: OPERATIONAL_MODEL_EFFORT
+        value: medium
+      - key: OPERATIONAL_MODEL_MAX_TOKENS
+        value: 8000
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: RETURN_SHIPPING_PROVIDER

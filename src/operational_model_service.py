@@ -20,6 +20,13 @@ import operational_grammar
 
 LOGGER = logging.getLogger(__name__)
 MODEL = os.getenv("OPERATIONAL_MODEL_MODEL", "claude-sonnet-5")
+MODEL_EFFORT = os.getenv("OPERATIONAL_MODEL_EFFORT", "medium").strip().lower()
+if MODEL_EFFORT not in {"low", "medium", "high"}:
+    MODEL_EFFORT = "medium"
+try:
+    MODEL_MAX_TOKENS = max(4_000, min(12_000, int(os.getenv("OPERATIONAL_MODEL_MAX_TOKENS", "8000"))))
+except ValueError:
+    MODEL_MAX_TOKENS = 8_000
 
 
 SYSTEM_PROMPT = """You are an Operational Reconstruction Engine.
@@ -67,6 +74,10 @@ Quality requirements:
 - Stages must be ordered, non-overlapping and collectively explain the end-to-end flow.
 - Infer carefully from incomplete prose, but expose every inference through provenance.
 - Write output labels in the predominant language of the supplied knowledge.
+- Be complete without being repetitive: return at most 32 elements, normally 4-8 stages,
+  3-10 decision rules and only distinct actors, systems, inputs and controls.
+- Keep descriptive strings concise, details to at most 3 entries and evidence to one short
+  source excerpt per element. Missing knowledge is more useful than duplicated filler.
 """
 
 
@@ -1358,12 +1369,12 @@ class AnthropicOperationalModelService(OperationalModelBehaviour):
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is required for the Anthropic operational model provider.")
         client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
+        request = dict(
             model=MODEL,
-            max_tokens=12_000,
+            max_tokens=MODEL_MAX_TOKENS,
             system=SYSTEM_PROMPT,
             output_config={
-                "effort": "high",
+                "effort": MODEL_EFFORT,
                 "format": {
                     "type": "json_schema",
                     "schema": operational_grammar.schema(),
@@ -1376,7 +1387,11 @@ class AnthropicOperationalModelService(OperationalModelBehaviour):
                 }
             ],
         )
-        text = "".join(block.text for block in response.content if block.type == "text")
+        # Streaming keeps the outbound connection active on hosted environments while
+        # Claude performs a long structured reconstruction.
+        with client.messages.stream(**request) as stream:
+            text = stream.get_final_text()
+            response = stream.get_final_message()
         ontology = _parse_json(text)
         validation_errors = operational_grammar.validate(ontology)
         if validation_errors:
@@ -1406,7 +1421,10 @@ class ResilientOperationalModelService(OperationalModelBehaviour):
         try:
             return self.primary.build(context)
         except (anthropic.APIError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
-            LOGGER.warning("Operational model provider failed; using local evidence extraction: %s", exc)
+            if (os.getenv("OPERATIONAL_MODEL_ALLOW_LOCAL_FALLBACK") or "").strip().lower() not in {"1", "true", "yes", "on"}:
+                LOGGER.exception("Operational model provider failed; transparent failure enabled")
+                raise
+            LOGGER.warning("Operational model provider failed; explicitly using local evidence extraction: %s", exc)
             result = self.fallback.build(context)
             result["model"]["provider"] = "local_evidence_extractor_after_provider_error"
             result["model"]["remaining_setup"] = [
