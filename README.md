@@ -34,7 +34,10 @@ Il percorso `/onboarding` salva progressivamente ogni passaggio in SQLite:
 8. attivazione del workspace con un livello di completezza non forzato al 100%.
 
 Gli upload supportano PDF, DOCX, TXT e MD. Il contenuto resta server-side; il
-browser riceve soltanto metadati e stato dell’elaborazione.
+browser riceve soltanto metadati e stato dell’elaborazione. La generazione con
+Claude viene avviata come job in background: la pagina interroga un endpoint di
+stato fino al completamento, evitando i timeout dei proxy di hosting durante le
+ricostruzioni più lunghe.
 
 ## Grammatica operativa universale
 

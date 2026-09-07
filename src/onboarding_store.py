@@ -271,6 +271,17 @@ def save_generated_model(workspace_id: str, operation_id: str, result: dict, *, 
     return get_operation(operation_id, path)
 
 
+def set_generation_status(workspace_id: str, operation_id: str, status: str, *, path=None) -> None:
+    """Persist the asynchronous generation state without storing provider errors."""
+    if status not in {"draft", "processing", "review"}:
+        raise ValueError("Invalid operational model generation status.")
+    with database.session(path) as conn:
+        conn.execute(
+            "UPDATE operations SET status = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
+            (status, database.utc_now(), operation_id, workspace_id),
+        )
+
+
 def list_clarifications(operation_id: str, path=None) -> list[dict]:
     with database.session(path) as conn:
         rows = conn.execute(

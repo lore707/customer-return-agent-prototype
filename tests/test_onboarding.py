@@ -1,6 +1,7 @@
 import os
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -24,6 +25,21 @@ class OnboardingTests(unittest.TestCase):
         database.init_database()
         app.app.config.update(TESTING=True)
         self.client = app.app.test_client()
+
+    def _analyze_operation(self):
+        started = self.client.post("/api/onboarding/analyze")
+        self.assertEqual(202, started.status_code, started.get_data(as_text=True))
+        self.assertEqual("processing", started.get_json()["status"])
+        for _ in range(300):
+            status = self.client.get("/api/onboarding/analyze/status")
+            if status.status_code == 200:
+                payload = status.get_json()
+                if payload.get("status") == "complete":
+                    return payload
+            elif status.status_code >= 400:
+                self.fail(status.get_data(as_text=True))
+            time.sleep(0.01)
+        self.fail("Operational model generation did not complete in time.")
 
     def tearDown(self):
         if self.previous_database is None:
@@ -68,9 +84,7 @@ class OnboardingTests(unittest.TestCase):
             },
         )
         self.assertEqual(200, knowledge.status_code)
-        analyzed = self.client.post("/api/onboarding/analyze")
-        self.assertEqual(200, analyzed.status_code)
-        payload = analyzed.get_json()
+        payload = self._analyze_operation()
         self.assertEqual("1.2", payload["model"]["schema_version"])
         self.assertGreaterEqual(len(payload["model"]["rules"]), 2)
         return operation_id, payload
@@ -155,9 +169,8 @@ class OnboardingTests(unittest.TestCase):
             },
         )
         self.assertEqual(200, self.client.post("/api/onboarding/knowledge", data={}).status_code)
-        analyzed = self.client.post("/api/onboarding/analyze")
-        self.assertEqual(200, analyzed.status_code)
-        self.assertEqual(0, analyzed.get_json()["model"]["knowledge"]["source_count"])
+        analyzed = self._analyze_operation()
+        self.assertEqual(0, analyzed["model"]["knowledge"]["source_count"])
 
     def test_manager_can_edit_and_persist_the_generated_operational_document(self):
         operation_id, payload = self._configure_to_model()

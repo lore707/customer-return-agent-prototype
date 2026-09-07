@@ -154,11 +154,25 @@
     notice.className = message ? `onboarding-notice ${error ? "error" : "success"}` : "onboarding-notice hidden";
   }
 
-  async function postJSON(url, payload = {}) {
-    const response = await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)});
-    const data = await response.json();
+  async function parseResponse(response) {
+    const body = await response.text();
+    let data;
+    try { data = body ? JSON.parse(body) : {}; }
+    catch (_) {
+      throw new Error(response.ok
+        ? "The server returned an unreadable response. Please retry."
+        : "The hosting service interrupted the request. Please retry in a moment.");
+    }
     if (!response.ok) throw new Error(data.errore || "Something went wrong.");
     return data;
+  }
+
+  async function postJSON(url, payload = {}) {
+    return parseResponse(await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)}));
+  }
+
+  async function getJSON(url) {
+    return parseResponse(await fetch(url, {headers: {"Accept": "application/json"}}));
   }
 
   function showStep(step) {
@@ -255,7 +269,7 @@
     formData.append("pasted_text", document.getElementById("pastedKnowledge").value);
     try {
       const response = await fetch("/api/onboarding/knowledge", {method: "POST", body: formData});
-      const data = await response.json(); if (!response.ok) throw new Error(data.errore || "The knowledge could not be added.");
+      const data = await parseResponse(response);
       state.sources = data.sources; showStep(4);
     } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
   });
@@ -274,8 +288,16 @@
       if (index > items.length) clearInterval(timer);
     }, 360);
     try {
-      const data = await postJSON("/api/onboarding/analyze");
-      await new Promise(resolve => setTimeout(resolve, 1800));
+      let data = await postJSON("/api/onboarding/analyze");
+      const deadline = Date.now() + 6 * 60 * 1000;
+      while (!data.model && data.status === "processing") {
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        if (Date.now() > deadline) throw new Error("Claude is taking longer than expected. Please retry in a moment.");
+        document.getElementById("analysisStatus").textContent = "Claude is reconstructing your operation…";
+        document.getElementById("analysisPercent").textContent = "94%";
+        data = await getJSON("/api/onboarding/analyze/status");
+      }
+      if (!data.model) throw new Error("The operational model was not returned.");
       clearInterval(timer); items.forEach(item => { item.classList.remove("active"); item.classList.add("complete"); });
       document.getElementById("analysisPercent").textContent = "100%";
       state.operation.operational_model = data.model;

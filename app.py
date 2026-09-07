@@ -5,8 +5,10 @@ import logging
 import os
 import sys
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date, datetime, timezone
 from pathlib import Path
+from threading import Lock
 
 from flask import Flask, jsonify, make_response, redirect, render_template, request, url_for
 from dotenv import load_dotenv
@@ -37,6 +39,10 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 database.init_database()
+
+ONBOARDING_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="operational-model")
+ONBOARDING_JOB_LOCK = Lock()
+ONBOARDING_JOBS: dict[str, dict] = {}
 
 MAX_MESSAGE_LENGTH = 5_000
 DEMO_MODE = os.getenv("DEMO_MODE", "true").strip().lower() in {"1", "true", "yes", "on"}
@@ -423,6 +429,28 @@ def onboarding_remove_knowledge(source_id: str):
     return jsonify({"ok": removed})
 
 
+def _run_onboarding_analysis(workspace_id: str, operation_id: str, prepared: dict) -> None:
+    """Generate outside the request lifecycle so hosting proxy timeouts cannot abort it."""
+    try:
+        service = operational_model_service.get_operational_model_service()
+        result = service.build(prepared)
+        onboarding_store.save_generated_model(workspace_id, operation_id, result)
+        with ONBOARDING_JOB_LOCK:
+            ONBOARDING_JOBS[operation_id] = {"status": "complete", "finished_at": time.time()}
+    except Exception:  # noqa: BLE001
+        logger.exception("Asynchronous operational model generation failed")
+        try:
+            onboarding_store.set_generation_status(workspace_id, operation_id, "draft")
+        except Exception:  # pragma: no cover - preserve the original provider failure
+            logger.exception("Could not reset operational model generation status")
+        with ONBOARDING_JOB_LOCK:
+            ONBOARDING_JOBS[operation_id] = {
+                "status": "error",
+                "finished_at": time.time(),
+                "message": "Claude could not complete the operational model. Retry in a moment.",
+            }
+
+
 @app.post("/api/onboarding/analyze")
 def onboarding_analyze():
     workspace, error = _workspace_or_error()
@@ -431,25 +459,58 @@ def onboarding_analyze():
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
         return jsonify({"errore": "The operation has not been configured yet."}), 400
+    if operation.get("status") == "processing":
+        return jsonify({"ok": True, "status": "processing"}), 202
+    with ONBOARDING_JOB_LOCK:
+        current = ONBOARDING_JOBS.get(operation["id"]) or {}
+        if current.get("status") == "processing":
+            return jsonify({"ok": True, "status": "processing"}), 202
     try:
         sources = onboarding_store.list_knowledge_sources(operation["id"])
         prepared = context_privacy.prepare_operational_context(workspace, operation, sources)
         service = operational_model_service.get_operational_model_service()
         prepared["privacy"]["external_provider_used"] = service.uses_external_provider
-        result = service.build(prepared)
-        operation = onboarding_store.save_generated_model(workspace["id"], operation["id"], result)
+        onboarding_store.set_generation_status(workspace["id"], operation["id"], "processing")
+        with ONBOARDING_JOB_LOCK:
+            ONBOARDING_JOBS[operation["id"]] = {"status": "processing", "started_at": time.time()}
+        ONBOARDING_EXECUTOR.submit(
+            _run_onboarding_analysis,
+            workspace["id"],
+            operation["id"],
+            prepared,
+        )
     except Exception:  # noqa: BLE001
-        logger.exception("Operational model generation failed")
-        return jsonify({"errore": "The operational model could not be generated."}), 500
-    clarifications = onboarding_store.list_clarifications(operation["id"])
-    return jsonify(
-        {
-            "ok": True,
-            "model": operation["operational_model"],
-            "clarifications": clarifications,
-            "step": 5 if clarifications else 6,
-        }
-    )
+        logger.exception("Operational model generation could not be started")
+        return jsonify({"errore": "The operational model generation could not be started."}), 500
+    return jsonify({"ok": True, "status": "processing"}), 202
+
+
+@app.get("/api/onboarding/analyze/status")
+def onboarding_analyze_status():
+    workspace, error = _workspace_or_error()
+    if error:
+        return error
+    operation = onboarding_store.active_operation(workspace["id"])
+    if not operation:
+        return jsonify({"errore": "The operation has not been configured yet."}), 404
+    with ONBOARDING_JOB_LOCK:
+        job = dict(ONBOARDING_JOBS.get(operation["id"]) or {})
+    if job.get("status") == "error":
+        return jsonify({"errore": job.get("message"), "status": "error"}), 500
+    if operation.get("status") == "review" and operation.get("operational_model"):
+        clarifications = onboarding_store.list_clarifications(operation["id"])
+        return jsonify(
+            {
+                "ok": True,
+                "status": "complete",
+                "model": operation["operational_model"],
+                "clarifications": clarifications,
+                "step": 5 if clarifications else 6,
+            }
+        )
+    if operation.get("status") == "draft" and job.get("status") != "processing":
+        return jsonify({"errore": "Generation was interrupted. Start it again.", "status": "error"}), 409
+    return jsonify({"ok": True, "status": "processing"}), 202
 
 
 @app.post("/api/onboarding/clarifications")
