@@ -11,62 +11,46 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="landing-body">
+<body class="landing-body landing-clean">
   <span class="sr-only">Conoscenza aziendale, supporto operativo e miglioramento continuo</span>
   <div class="landing-glow landing-glow-one"></div><div class="landing-glow landing-glow-two"></div>
   <header class="landing-nav">
     <a class="landing-brand" href="{{ url_for('index') }}"><span>O</span><strong>Ops Copilot</strong></a>
-    <nav><a href="#workflow">Come funziona</a><a href="#use-cases">Configurazione</a><a href="#product">Prodotto</a></nav>
+    <nav><a href="#ciclo">Il ciclo</a><a href="{{ url_for('workspace_entry') }}">Configurazione</a></nav>
     <a class="button primary" href="{{ url_for('workspace_entry') }}">Configura la tua organizzazione <span>→</span></a>
   </header>
 
   <main class="landing-main">
-    <section class="landing-hero">
+    <section class="landing-hero landing-hero--solo">
       <div class="landing-hero-copy">
         <span class="landing-eyebrow"><i></i> Il sistema operativo della conoscenza aziendale</span>
         <h1>La tua azienda insegna.<br><em>Le persone lavorano. L’organizzazione impara.</em></h1>
         <p>Ops trasforma la conoscenza della tua organizzazione in supporto operativo per il lavoro quotidiano e usa casi, decisioni ed esiti reali per individuare lacune, migliorare le procedure e far crescere continuamente la competenza aziendale.</p>
-        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workspace_entry') }}">Configura la tua organizzazione <span>→</span></a><a class="button ghost large" href="#legacy">Guarda Ops in azione</a></div>
+        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workspace_entry') }}">Configura la tua organizzazione <span>→</span></a><a class="button ghost large" href="#ciclo">Guarda Ops in azione</a></div>
         <div class="landing-trust"><span>Conoscenza verificabile</span><b>·</b><span>Assistenza contestuale</span><b>·</b><span>Decisione umana</span><b>·</b><span>Apprendimento continuo</span></div>
       </div>
+    </section>
 
-      <div class="landing-product-preview">
-        <div class="preview-top"><div><span class="preview-logo">O</span><strong>Configurazione aziendale</strong></div><span class="preview-live"><i></i> Modello in bozza</span></div>
-        <div class="customer-bubble"><small>COME LAVORIAMO</small><p>Le richieste arrivano via email, un coordinatore raccoglie i dati mancanti e assegna il lavoro al responsabile.</p></div>
-        <div class="preview-flow"><div><span class="preview-node">01</span><strong>Casi</strong><small>3 percorsi</small></div><b>→</b><div><span class="preview-node">02</span><strong>Contesto</strong><small>5 campi</small></div><b>→</b><div><span class="preview-node">03</span><strong>Regole</strong><small>7 controlli</small></div></div>
-        <div class="decision-card"><small>MODELLO GENERATO</small><strong>Gestione richieste operative</strong><p>Percorso ordinario, casi incompleti ed eccezioni con responsabilità esplicite.</p><span>Pronto per la verifica e la revisione umana</span></div>
+    <section class="ops-loop-section" id="ciclo">
+      <div class="ops-loop-intro">
+        <span class="landing-eyebrow"><i></i> Un ciclo operativo completo</span>
+        <h2>Un sistema che migliora mentre viene utilizzato.</h2>
+        <p>Ops parte dalle procedure, dalle regole e dall’esperienza della tua organizzazione. Le trasforma in conoscenza verificabile, la utilizza per assistere le persone nei casi reali e conserva decisioni ed esiti. Analytics, Radar e Academy trasformano ciò che accade nel lavoro in procedure più chiare e competenze migliori.</p>
+      </div>
+
+      <div class="ops-loop-grid" aria-label="Il ciclo completo di Ops">
+        <article><span>01</span><h3>Conoscenza</h3><p>L’azienda inserisce procedure, regole, obiettivi ed eccezioni.</p></article>
+        <article><span>02</span><h3>Strutturazione</h3><p>Ops organizza le informazioni, mantiene visibili le fonti e segnala ciò che deve essere confermato.</p></article>
+        <article><span>03</span><h3>Assistenza</h3><p>Durante il lavoro recupera ciò che serve e suggerisce controlli, azioni e rischi.</p></article>
+        <article><span>04</span><h3>Decisione umana</h3><p>La persona verifica il suggerimento, decide e lascia un riscontro.</p></article>
+        <article><span>05</span><h3>Memoria dei casi</h3><p>Contesto, decisione ed esito rimangono disponibili e verificabili nel tempo.</p></article>
+        <article class="ops-loop-intelligence"><span>06</span><h3>Analisi e apprendimento</h3><p>Tre strumenti trasformano l’esperienza operativa in conoscenza utile.</p><div><b>Analytics</b><b>Radar</b><b>Academy</b></div></article>
+        <article><span>07</span><h3>Conoscenza migliorata</h3><p>Le evidenze diventano proposte di modifica alle procedure, approvate dall’organizzazione.</p></article>
+        <aside class="ops-loop-return"><strong>↺</strong><p>Più Ops viene utilizzato, più l’organizzazione rende esplicita, verificabile e utile la propria conoscenza.</p></aside>
       </div>
     </section>
-
-    <section class="landing-proof-strip"><div><strong>1</strong><span>operazione per iniziare</span></div><div><strong>0</strong><span>modelli imposti</span></div><div><strong>100%</strong><span>decisioni con controllo umano</span></div><div><strong>0</strong><span>azioni esterne automatiche</span></div></section>
-
-    <section class="landing-section" id="workflow">
-      <div class="landing-section-head"><span class="landing-eyebrow">Un motore, non un assistente generico</span><h2>La richiesta entra. Il processo diventa visibile.</h2><p>Il sistema non si limita a scrivere: individua il flusso, raccoglie i fatti necessari e rende verificabile la regola che guida la proposta.</p></div>
-      <div class="landing-workflow four-step-workflow">{% set steps=[('01','Richiesta','Email, nota o comunicazione non strutturata.'),('02','Contesto','Fatti mancanti raccolti uno alla volta.'),('03','Procedura','Regole, responsabilità ed eccezioni esplicite.'),('04','Azione','Risultato revisionato e approvato da una persona.')] %}{% for number,title,copy in steps %}<article><span>{{ number }}</span><h3>{{ title }}</h3><p>{{ copy }}</p></article>{% if not loop.last %}<b>→</b>{% endif %}{% endfor %}</div>
-    </section>
-
-    <section class="landing-section landing-use-cases" id="use-cases">
-      <div class="landing-section-head"><span class="landing-eyebrow">Configurazione, non modelli predefiniti</span><h2>Il software parte dalla tua azienda.</h2><p>Non scegli un settore preconfezionato: descrivi obiettivo e processo reale, aggiungi le fonti disponibili e confermi solo le ambiguità che cambiano una decisione.</p></div>
-      <div class="verification-grid three-workflow-cards">
-        <a href="{{ url_for('workspace_entry') }}"><span>01</span><h3>Contesto aziendale</h3><p>Attività, mercato e obiettivo operativo danno significato alle procedure.</p><b>Inizia la configurazione →</b></a>
-        <a href="{{ url_for('workspace_entry') }}"><span>02</span><h3>Struttura della conoscenza</h3><p>Procedure, note e politiche diventano campi, regole, eccezioni ed escalation.</p><b>Vedi il flusso →</b></a>
-        <a href="{{ url_for('workspace_entry') }}"><span>03</span><h3>Verifica della procedura</h3><p>Casi sintetici rendono visibile ciò che il sistema consiglierebbe prima dell’uso.</p><b>Configura un’operazione →</b></a>
-      </div>
-    </section>
-
-    <section class="landing-section landing-verification" id="product">
-      <div class="landing-section-head"><span class="landing-eyebrow">Ciclo di miglioramento</span><h2>Quattro sezioni, una sola memoria.</h2><p>Ogni utilizzo lascia evidenze che possono migliorare procedure, raccolta iniziale e responsabilità.</p></div>
-      <div class="verification-grid four-product-cards">
-        <a href="{{ url_for('workbench') }}"><span>01</span><h3>Area operativa</h3><p>Struttura la richiesta e prepara la prossima azione.</p><b>Crea un caso →</b></a>
-        <a href="{{ url_for('database_register') }}"><span>02</span><h3>Casi</h3><p>Conserva contesto, decisione, riscontro ed esito.</p><b>Apri la memoria →</b></a>
-        <a href="{{ url_for('analytics_view') }}"><span>03</span><h3>Analisi</h3><p>Trova volumi, attriti, modifiche ed escalation.</p><b>Leggi le indicazioni →</b></a>
-        <a href="{{ url_for('playbooks') }}"><span>04</span><h3>Procedure</h3><p>Ordina istruzioni e politiche in regole operative revisionabili.</p><b>Gestisci le procedure →</b></a>
-      </div>
-    </section>
-
-    <section class="landing-cta" id="legacy"><div><span class="landing-eyebrow">Caso verticale completo</span><h2>Il flusso resi resta una demo approfondita.</h2><p>Due scenari mostrano anche il processo e-commerce completo con Shopify, Sendcloud, magazzino e Make interamente simulati.</p></div><div><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='doa') }}">Guarda il caso DOA</a><a class="button ghost large" href="{{ url_for('guided_demo_view', scenario_slug='recesso') }}">Guarda il caso recesso</a></div></section>
   </main>
 
-  <footer class="landing-footer"><span>Ops Copilot · Prototipo dimostrativo</span><span>Nessun dato reale · Nessuna azione esterna · Controllo umano</span></footer>
+  <footer class="landing-footer"><span>Ops Copilot · Prototipo dimostrativo</span><span>Conoscenza aziendale · Decisione umana · Miglioramento continuo</span></footer>
 </body>
 </html>

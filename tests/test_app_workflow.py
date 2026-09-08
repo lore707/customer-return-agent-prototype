@@ -152,7 +152,7 @@ class AppWorkflowTests(unittest.TestCase):
         self.assertGreaterEqual(len(timeline), 10)
         landing = self.client.get("/")
         self.assertEqual(200, landing.status_code)
-        self.assertIn(b"Guarda il caso DOA", landing.data)
+        self.assertIn(b"Un sistema che migliora mentre viene utilizzato", landing.data)
         register = self.client.get("/database")
         self.assertEqual(200, register.status_code)
         self.assertIn(b"Archivio resi", register.data)
@@ -249,7 +249,7 @@ class AppWorkflowTests(unittest.TestCase):
     def test_separate_portfolio_sections_render(self):
         app.demo.ensure_showcase()
         expectations = {
-            "/": b"Dal messaggio del cliente",
+            "/": b"Un sistema che migliora mentre viene utilizzato",
             "/demo/doa": b"Dal problema alla sostituzione",
             "/demo/recesso": b"Dalla richiesta al rimborso",
             "/dashboard": b"Dashboard resi",
