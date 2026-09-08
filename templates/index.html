@@ -4,30 +4,30 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Ops Copilot trasforma richieste non strutturate in casi, decisioni verificabili e insight operativi.">
-  <title>Ops Copilot · Operazioni guidate e verificabili</title>
+  <meta name="description" content="Ops trasforma la conoscenza aziendale in supporto operativo e usa casi, decisioni ed esiti reali per migliorarla nel tempo.">
+  <title>Ops Copilot · Il sistema operativo della conoscenza aziendale</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body class="landing-body">
-  <span class="sr-only">Dal messaggio del cliente</span>
+  <span class="sr-only">Conoscenza aziendale, supporto operativo e miglioramento continuo</span>
   <div class="landing-glow landing-glow-one"></div><div class="landing-glow landing-glow-two"></div>
   <header class="landing-nav">
     <a class="landing-brand" href="{{ url_for('index') }}"><span>O</span><strong>Ops Copilot</strong></a>
     <nav><a href="#workflow">Come funziona</a><a href="#use-cases">Configurazione</a><a href="#product">Prodotto</a></nav>
-    <a class="button primary" href="{{ url_for('workspace_entry') }}">Configura lo spazio di lavoro <span>→</span></a>
+    <a class="button primary" href="{{ url_for('workspace_entry') }}">Configura la tua organizzazione <span>→</span></a>
   </header>
 
   <main class="landing-main">
     <section class="landing-hero">
       <div class="landing-hero-copy">
-        <span class="landing-eyebrow"><i></i> Flussi operativi assistiti dall’AI</span>
-        <h1>Le tue procedure.<br><em>Un sistema operativo.</em></h1>
-        <p>Descrivi come lavora la tua azienda. Il sistema struttura procedure, regole, informazioni necessarie ed escalation in un documento operativo verificabile dagli operatori.</p>
-        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workspace_entry') }}">Configura la prima operazione <span>→</span></a><a class="button ghost large" href="{{ url_for('workbench', demo=1) }}">Esplora la demo</a></div>
-        <div class="landing-trust"><span>Nessuna integrazione richiesta</span><b>·</b><span>Configurazione aziendale</span><b>·</b><span>Approvazione umana</span><b>·</b><span>Dati minimizzati</span></div>
+        <span class="landing-eyebrow"><i></i> Il sistema operativo della conoscenza aziendale</span>
+        <h1>La tua azienda insegna.<br><em>Le persone lavorano. L’organizzazione impara.</em></h1>
+        <p>Ops trasforma la conoscenza della tua organizzazione in supporto operativo per il lavoro quotidiano e usa casi, decisioni ed esiti reali per individuare lacune, migliorare le procedure e far crescere continuamente la competenza aziendale.</p>
+        <div class="landing-actions"><a class="button primary large" href="{{ url_for('workspace_entry') }}">Configura la tua organizzazione <span>→</span></a><a class="button ghost large" href="#legacy">Guarda Ops in azione</a></div>
+        <div class="landing-trust"><span>Conoscenza verificabile</span><b>·</b><span>Assistenza contestuale</span><b>·</b><span>Decisione umana</span><b>·</b><span>Apprendimento continuo</span></div>
       </div>
 
       <div class="landing-product-preview">
