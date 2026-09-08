@@ -57,6 +57,7 @@ def prepare_operational_context(
             }
         )
 
+    derived = workspace.get("derived_context") if isinstance(workspace.get("derived_context"), dict) else {}
     return {
         "company": {
             "name": clean(workspace.get("company_name") or "", 160),
@@ -65,6 +66,9 @@ def prepare_operational_context(
             "markets": workspace.get("markets") or [],
             "business_model": workspace.get("business_model") or "",
             "team_size": workspace.get("team_size") or "",
+            "core_business": clean(derived.get("core_business") or workspace.get("company_description") or ""),
+            "operational_activities": clean(derived.get("operational_activities") or operation.get("description") or "", 12_000),
+            "operational_challenges": clean(derived.get("operational_challenges") or ""),
         },
         "operation": {
             "name": clean(operation.get("name") or "", 160),

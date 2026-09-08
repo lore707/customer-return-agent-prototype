@@ -172,6 +172,48 @@ class OnboardingTests(unittest.TestCase):
         analyzed = self._analyze_operation()
         self.assertEqual(0, analyzed["model"]["knowledge"]["source_count"])
 
+    def test_simplified_onboarding_builds_company_specific_operational_memory(self):
+        started = self.client.post("/api/onboarding/start")
+        self.assertEqual(200, started.status_code)
+        company = self.client.post(
+            "/api/onboarding/company",
+            json={
+                "company_name": "MangoPeach",
+                "industry": "Professional services",
+                "markets": "Italia, Europa",
+                "team_size": "11–50",
+            },
+        )
+        self.assertEqual(200, company.status_code, company.get_data(as_text=True))
+        operation = self.client.post(
+            "/api/onboarding/operation",
+            json={
+                "core_business": "Aiutiamo aziende a ridisegnare processi operativi complessi con software, automazione e supervisione umana.",
+                "operational_activities": "Raccogliamo requisiti, ricostruiamo il processo attuale, progettiamo il processo futuro, testiamo la soluzione e documentiamo gli esiti.",
+                "operational_challenges": "Le procedure dei clienti sono spesso incomplete, contraddittorie e distribuite tra documenti e persone diverse.",
+            },
+        )
+        self.assertEqual(200, operation.status_code, operation.get_data(as_text=True))
+        state = onboarding_store.onboarding_state(started.get_json()["workspace"]["id"])
+        self.assertEqual(
+            "Le procedure dei clienti sono spesso incomplete, contraddittorie e distribuite tra documenti e persone diverse.",
+            state["workspace"]["derived_context"]["operational_challenges"],
+        )
+        self.assertEqual(200, self.client.post("/api/onboarding/knowledge", data={}).status_code)
+        analyzed = self._analyze_operation()
+        self.assertTrue(analyzed["model"]["operational_domains"])
+        self.assertNotIn("Standard request", {item["name"] for item in analyzed["model"]["case_types"]})
+
+    def test_onboarding_page_exposes_the_six_step_operational_memory_flow(self):
+        response = self.client.get("/onboarding")
+        self.assertEqual(200, response.status_code)
+        body = response.get_data(as_text=True)
+        self.assertIn("Racconta la tua azienda", body)
+        self.assertIn("Qual è il core business", body)
+        self.assertIn("Costruisci il mio Ops", body)
+        self.assertIn("MEMORIA OPERATIVA AZIENDALE", body)
+        self.assertNotIn("scenarioForm", body)
+
     def test_manager_can_edit_and_persist_the_generated_operational_document(self):
         operation_id, payload = self._configure_to_model()
         model = payload["model"]

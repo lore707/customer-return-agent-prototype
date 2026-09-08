@@ -338,7 +338,7 @@ def onboarding():
         return redirect(url_for("workbench"))
     public_state = _public_onboarding_state(state)
     if workspace and workspace.get("status") == "completed" and request.args.get("edit") == "1":
-        public_state["workspace"]["current_step"] = 6
+        public_state["workspace"]["current_step"] = 5
     return render_template("onboarding.html", onboarding_state=public_state)
 
 
@@ -507,7 +507,7 @@ def onboarding_analyze_status():
                 "status": "complete",
                 "model": operation["operational_model"],
                 "clarifications": clarifications,
-                "step": 5 if clarifications else 6,
+                "step": 5,
             }
         )
     if operation.get("status") == "draft" and job.get("status") != "processing":
@@ -535,7 +535,7 @@ def onboarding_clarifications():
     onboarding_store.resolve_clarifications(
         workspace["id"], operation["id"], answers, updated_model
     )
-    return jsonify({"ok": True, "model": updated_model, "step": 6})
+    return jsonify({"ok": True, "model": updated_model, "step": 5})
 
 
 @app.post("/api/onboarding/model-reviewed")
@@ -567,11 +567,11 @@ def onboarding_update_model():
             operation.get("operational_model") or {}, request.get_json(silent=True) or {}
         )
         onboarding_store.update_operation_model(
-            workspace["id"], operation["id"], updated_model, current_step=6
+            workspace["id"], operation["id"], updated_model, current_step=5
         )
     except ValueError as exc:
         return jsonify({"errore": str(exc)}), 400
-    return jsonify({"ok": True, "model": updated_model, "step": 6})
+    return jsonify({"ok": True, "model": updated_model, "step": 5})
 
 
 @app.post("/api/onboarding/tests")

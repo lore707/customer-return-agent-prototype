@@ -42,6 +42,7 @@ and feedback loops. Lifecycle stages must describe the actual operation, not a g
 
 The output schema uses a compact typed-element transport. Create one element for every relevant
 operational object and use these field conventions:
+- operational_domain: summary=what the area does, action=its objective, details=main activities.
 - case_type: summary=definition, details=entry conditions.
 - actor: details=responsibilities, owner=accountability.
 - system/input: summary=purpose or definition; input.required marks required facts.
@@ -69,6 +70,8 @@ Evidence discipline for every item:
 
 Quality requirements:
 - Prefer the terminology used by the company.
+- Identify the real operational domains implied by the company description, activities and sources.
+  Do not confuse departments with recurring work areas and do not invent unsupported domains.
 - A case type is a recurring operational path, not a completeness state.
 - Rules must have executable condition/action semantics.
 - Stages must be ordered, non-overlapping and collectively explain the end-to-end flow.
@@ -735,6 +738,18 @@ def _local_extraction(context: dict) -> dict:
                 f"Create a consistent and reviewable path for {name.lower()}.",
             ),
         },
+        "operational_domains": [
+            {
+                "id": _slug(name, "area_operativa"),
+                "name": name,
+                "description": _first_sentence(context["operation"].get("description") or "", name),
+                "objective": _first_sentence(context["operation"].get("objective") or "", "Obiettivo da confermare"),
+                "activities": _sentences(context["operation"].get("description") or "")[:3],
+                "origin": "model_derived",
+                "provenance": {"source_type": "derived", "confidence": .55, "evidence": [], "requires_confirmation": True},
+                "evidence": [],
+            }
+        ],
         "case_types": case_types,
         "required_fields": _extract_required_fields(text),
         "rules": _extract_rules(text, context.get("knowledge_sources", [])),
@@ -782,6 +797,37 @@ def _normalise_extraction(payload: dict, context: dict) -> dict:
     operation = payload.get("operation") if isinstance(payload.get("operation"), dict) else {}
     name = _clean_markdown(operation.get("name"))[:72] or _operation_name(context, text)
     purpose = _clean_markdown(operation.get("purpose"))[:240] or _first_sentence(context["operation"].get("objective") or "", f"Create a consistent and reviewable path for {name.lower()}.")
+
+    operational_domains = []
+    for index, item in enumerate(payload.get("operational_domains") or [], 1):
+        if not isinstance(item, dict):
+            item = {"name": str(item)}
+        label = _clean_markdown(item.get("name"))[:90]
+        if not label:
+            continue
+        operational_domains.append(
+            {
+                "id": _slug(item.get("id") or label, f"domain_{index}"),
+                "name": label,
+                "description": _clean_markdown(item.get("description"))[:240],
+                "objective": _clean_markdown(item.get("objective"))[:240],
+                "activities": [_clean_markdown(value)[:160] for value in item.get("activities") or [] if _clean_markdown(value)][:5],
+                "origin": item.get("origin") if item.get("origin") in {"knowledge", "model_derived", "human_review"} else "model_derived",
+                "provenance": item.get("provenance") if isinstance(item.get("provenance"), dict) else {},
+                "evidence": [str(value)[:220] for value in item.get("evidence") or []][:3],
+            }
+        )
+    operational_domains = _dedupe(operational_domains, "name")[:10]
+    if not operational_domains:
+        operational_domains = [
+            {
+                "id": _slug(name, "area_operativa"), "name": name,
+                "description": _first_sentence(context["operation"].get("description") or "", name),
+                "objective": purpose, "activities": [], "origin": "model_derived",
+                "provenance": {"source_type": "derived", "confidence": .45, "evidence": [], "requires_confirmation": True},
+                "evidence": [],
+            }
+        ]
 
     case_types = []
     for index, item in enumerate(payload.get("case_types") or [], 1):
@@ -918,6 +964,7 @@ def _normalise_extraction(payload: dict, context: dict) -> dict:
         )
     return {
         "operation": {"name": name, "purpose": purpose},
+        "operational_domains": operational_domains,
         "case_types": case_types,
         "required_fields": fields,
         "rules": rules[:20],
@@ -1040,6 +1087,7 @@ def _assemble_model(context: dict, payload: dict, provider_name: str) -> dict:
             "team_size": company.get("team_size"),
             "operating_environment": _infer_operating_environment(company, _all_text(context)),
         },
+        "operational_domains": extracted.get("operational_domains") or [],
         "case_types": extracted["case_types"],
         "required_fields": extracted["required_fields"],
         "rules": extracted["rules"],
@@ -1124,7 +1172,8 @@ def _assemble_model(context: dict, payload: dict, provider_name: str) -> dict:
             for item in ontology.get("outcomes") or []
         ]
         suggested = []
-        for section in ("case_types", "actors", "systems", "inputs", "lifecycle", "decision_rules", "exceptions", "escalations", "constraints", "outcomes", "metrics", "feedback_loops"):
+        model["operational_domains"] = ontology.get("operational_domains") or model.get("operational_domains") or []
+        for section in ("operational_domains", "case_types", "actors", "systems", "inputs", "lifecycle", "decision_rules", "exceptions", "escalations", "constraints", "outcomes", "metrics", "feedback_loops"):
             for item in ontology.get(section) or []:
                 provenance = item.get("provenance") or {}
                 if provenance.get("source_type") != "suggested":

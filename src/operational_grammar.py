@@ -14,7 +14,7 @@ from copy import deepcopy
 GRAMMAR_VERSION = "2.0"
 SOURCE_TYPES = ("explicit", "derived", "suggested")
 ELEMENT_KINDS = (
-    "case_type", "actor", "system", "input", "stage", "decision_rule",
+    "operational_domain", "case_type", "actor", "system", "input", "stage", "decision_rule",
     "exception", "escalation", "constraint", "outcome", "metric",
     "feedback_loop", "ambiguity", "missing_knowledge",
 )
@@ -158,7 +158,7 @@ def expand(payload: dict) -> dict:
             "completion_definition": operation["completion_definition"],
             "provenance": _provenance(operation),
         },
-        "case_types": [], "actors": [], "systems": [], "inputs": [],
+        "operational_domains": [], "case_types": [], "actors": [], "systems": [], "inputs": [],
         "lifecycle": [], "decision_rules": [], "exceptions": [],
         "escalations": [], "constraints": [], "outcomes": [], "metrics": [],
         "feedback_loops": [], "ambiguities": [], "missing_knowledge": [],
@@ -166,7 +166,9 @@ def expand(payload: dict) -> dict:
     for item in payload.get("elements") or []:
         base = {"id": item["id"], "provenance": _provenance(item)}
         kind = item["kind"]
-        if kind == "case_type":
+        if kind == "operational_domain":
+            expanded["operational_domains"].append({**base, "name": item["name"], "description": item["summary"], "objective": item["action"], "activities": item["details"]})
+        elif kind == "case_type":
             expanded["case_types"].append({**base, "name": item["name"], "description": item["summary"], "entry_conditions": item["details"]})
         elif kind == "actor":
             expanded["actors"].append({**base, "name": item["name"], "responsibilities": item["details"], "accountability": item["owner"] or item["summary"]})
@@ -212,6 +214,10 @@ def to_application_payload(payload: dict) -> dict:
         {"id": item["id"], "name": item["name"], "description": item["description"], "keywords": item.get("entry_conditions") or [], "origin": origin(item), "evidence": (item.get("provenance") or {}).get("evidence") or [], "provenance": item.get("provenance") or {}}
         for item in ontology["case_types"]
     ]
+    operational_domains = [
+        {"id": item["id"], "name": item["name"], "description": item["description"], "objective": item.get("objective") or "", "activities": item.get("activities") or [], "origin": origin(item), "evidence": (item.get("provenance") or {}).get("evidence") or [], "provenance": item.get("provenance") or {}}
+        for item in ontology["operational_domains"]
+    ]
     fields = [
         {"id": item["id"], "label": item["name"], "required": item.get("required", True), "origin": origin(item), "evidence": (item.get("provenance") or {}).get("evidence") or [], "provenance": item.get("provenance") or {}}
         for item in ontology["inputs"]
@@ -234,7 +240,7 @@ def to_application_payload(payload: dict) -> dict:
     )
     return {
         "operation": {"name": operation["name"], "purpose": operation["objective"]},
-        "case_types": case_types, "required_fields": fields, "rules": rules,
+        "operational_domains": operational_domains, "case_types": case_types, "required_fields": fields, "rules": rules,
         "escalations": escalations, "clarifications": clarifications,
         "ontology": ontology,
     }

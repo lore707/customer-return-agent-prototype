@@ -88,13 +88,21 @@ def update_workspace(workspace_id: str, values: dict, *, path=None) -> dict:
 def save_company(workspace_id: str, values: dict, *, path=None) -> dict:
     description = str(values.get("company_description") or "").strip()
     company_name = str(values.get("company_name") or "").strip()
-    if len(company_name) < 2 or len(description) < 20:
-        raise ValueError("Add a company name and a short description of at least 20 characters.")
+    industry = str(values.get("industry") or "").strip()
+    team_size = str(values.get("team_size") or "").strip()
+    if len(company_name) < 2:
+        raise ValueError("Inserisci il nome dell’azienda.")
+    if not industry:
+        raise ValueError("Seleziona il settore principale.")
+    if not team_size:
+        raise ValueError("Seleziona la dimensione indicativa dell’azienda.")
     markets = values.get("markets") or []
     if isinstance(markets, str):
         markets = [item.strip() for item in re_split_markets(markets) if item.strip()]
+    if not markets:
+        raise ValueError("Indica almeno un Paese o mercato.")
     derived = {
-        "summary": description[:240],
+        "summary": description[:240] if description else f"{company_name} opera nel settore {industry}.",
         "operating_scope": " / ".join(markets[:4]) if markets else "To be refined",
         "model": str(values.get("business_model") or "Not specified"),
     }
@@ -103,10 +111,10 @@ def save_company(workspace_id: str, values: dict, *, path=None) -> dict:
         {
             "company_name": company_name[:160],
             "company_description": description[:8_000],
-            "industry": str(values.get("industry") or "").strip()[:120],
+            "industry": industry[:120],
             "markets": markets[:12],
             "business_model": str(values.get("business_model") or "").strip()[:40],
-            "team_size": str(values.get("team_size") or "").strip()[:40],
+            "team_size": team_size[:40],
             "derived_context": derived,
             "current_step": 2,
             "completeness": max(18, int(get_workspace(workspace_id, path).get("completeness") or 0)),
@@ -120,10 +128,19 @@ def re_split_markets(value: str) -> list[str]:
 
 
 def save_operation(workspace_id: str, values: dict, *, path=None) -> dict:
-    description = str(values.get("description") or "").strip()
-    objective = str(values.get("objective") or "").strip()
+    core_business = str(values.get("core_business") or "").strip()
+    operational_activities = str(values.get("operational_activities") or "").strip()
+    operational_challenges = str(values.get("operational_challenges") or "").strip()
+    description = str(values.get("description") or operational_activities).strip()
+    objective = str(values.get("objective") or core_business).strip()
+    current_process = str(
+        values.get("current_process")
+        or (f"Attività operative attuali:\n{operational_activities}\n\nDifficoltà rilevate:\n{operational_challenges}")
+    ).strip()
     if len(description) < 20 or len(objective) < 12:
-        raise ValueError("Describe the operation and its objective in a little more detail.")
+        raise ValueError("Descrivi più nel dettaglio il core business e le attività operative.")
+    if ("core_business" in values or "operational_activities" in values) and len(operational_challenges) < 12:
+        raise ValueError("Descrivi almeno una difficoltà concreta dei processi interni.")
     workspace = get_workspace(workspace_id, path)
     if not workspace:
         raise KeyError(workspace_id)
@@ -138,7 +155,7 @@ def save_operation(workspace_id: str, values: dict, *, path=None) -> dict:
                 (
                     str(values.get("name") or "").strip()[:160] or None,
                     description[:12_000], objective[:6_000],
-                    str(values.get("current_process") or "").strip()[:12_000] or None,
+                    current_process[:12_000] or None,
                     now, operation_id,
                 ),
             )
@@ -152,13 +169,29 @@ def save_operation(workspace_id: str, values: dict, *, path=None) -> dict:
                     operation_id, workspace_id,
                     str(values.get("name") or "").strip()[:160] or None,
                     description[:12_000], objective[:6_000],
-                    str(values.get("current_process") or "").strip()[:12_000] or None,
+                    current_process[:12_000] or None,
                     now, now,
                 ),
             )
+    derived_context = dict(workspace.get("derived_context") or {})
+    if core_business or operational_activities or operational_challenges:
+        derived_context.update(
+            {
+                "core_business": core_business[:8_000],
+                "operational_activities": operational_activities[:12_000],
+                "operational_challenges": operational_challenges[:8_000],
+                "summary": core_business[:240],
+            }
+        )
     update_workspace(
         workspace_id,
-        {"active_operation_id": operation_id, "current_step": 3, "completeness": max(32, int(workspace.get("completeness") or 0))},
+        {
+            "company_description": core_business[:8_000] if core_business else workspace.get("company_description"),
+            "derived_context": derived_context,
+            "active_operation_id": operation_id,
+            "current_step": 3,
+            "completeness": max(32, int(workspace.get("completeness") or 0)),
+        },
         path=path,
     )
     return get_operation(operation_id, path)
@@ -265,7 +298,7 @@ def save_generated_model(workspace_id: str, operation_id: str, result: dict, *, 
             )
     update_workspace(
         workspace_id,
-        {"current_step": 5 if result.get("clarifications") else 6, "completeness": int(model.get("completeness") or 0)},
+        {"current_step": 5, "completeness": int(model.get("completeness") or 0)},
         path=path,
     )
     return get_operation(operation_id, path)
@@ -306,7 +339,7 @@ def resolve_clarifications(workspace_id: str, operation_id: str, answers: dict, 
         )
     update_workspace(
         workspace_id,
-        {"current_step": 6, "completeness": int(updated_model.get("completeness") or 0)},
+        {"current_step": 5, "completeness": int(updated_model.get("completeness") or 0)},
         path=path,
     )
 
@@ -352,7 +385,7 @@ def save_scenario_feedback(workspace_id: str, operation_id: str, feedback: list[
     return list_test_scenarios(operation_id, path)
 
 
-def update_operation_model(workspace_id: str, operation_id: str, model: dict, *, current_step: int = 8, path=None) -> dict:
+def update_operation_model(workspace_id: str, operation_id: str, model: dict, *, current_step: int = 5, path=None) -> dict:
     """Persist evidence-driven model changes produced after human review."""
     now = database.utc_now()
     completeness = int(model.get("completeness") or 0)
@@ -380,7 +413,7 @@ def complete_workspace(workspace_id: str, *, path=None) -> dict:
     update_workspace(
         workspace_id,
         {
-            "status": "completed", "current_step": 8, "completeness": completeness,
+            "status": "completed", "current_step": 6, "completeness": completeness,
             "completed_at": database.utc_now(),
         },
         path=path,

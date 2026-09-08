@@ -4,20 +4,20 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <meta name="description" content="Configura un sistema decisionale operativo specifico per la tua azienda, partendo da procedure e obiettivi reali.">
-  <title>Configura lo spazio di lavoro · Ops Copilot</title>
+  <meta name="description" content="Racconta la tua organizzazione e costruisci una memoria operativa verificabile che configura Ops intorno al vostro lavoro.">
+  <title>Configura la tua organizzazione · Ops Copilot</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body class="onboarding-body">
+<body class="onboarding-body onboarding-v2">
   <header class="onboarding-nav">
     <a class="landing-brand" href="{{ url_for('index') }}"><span>O</span><strong>Ops Copilot</strong></a>
     <div class="onboarding-progress" aria-label="Avanzamento della configurazione">
       <span id="progressLabel">Configurazione</span>
       <div><i id="progressBar"></i></div>
-      <b id="progressStep">0 / 8</b>
+      <b id="progressStep">0 / 6</b>
     </div>
     <span class="onboarding-safe"><i></i> Bozza privata</span>
   </header>
@@ -26,85 +26,77 @@
     <div id="onboardingNotice" class="onboarding-notice hidden" role="alert"></div>
 
     <section class="onboarding-step onboarding-welcome" data-step="0">
-      <span class="onboarding-kicker">Intelligenza decisionale operativa</span>
-      <h1>Trasforma il modo in cui lavora la tua azienda in un sistema operativo.</h1>
-      <p>Descrivi un’operazione con parole tue. Ops Copilot organizza la conoscenza, evidenzia ciò che non è chiaro e crea una prima procedura verificabile prima dell’utilizzo.</p>
-      <div class="onboarding-principles">
-        <span>Le tue procedure</span><i></i><span>Regole esplicite</span><i></i><span>Controllo umano</span>
-      </div>
-      <button class="button primary onboarding-primary" id="startWorkspace" type="button">Avvia la configurazione <span>→</span></button>
-      <small>Non servono integrazioni o configurazioni tecniche.</small>
+      <span class="onboarding-kicker">La fase zero di Ops</span>
+      <h1>Racconta la tua azienda.<br>Ops costruisce il resto.</h1>
+      <p>Tre passaggi semplici trasformano ciò che il gruppo sa già in una memoria operativa verificabile. Non devi progettare flussi, campi o dashboard.</p>
+      <div class="onboarding-principles"><span>Chi siete</span><i></i><span>Come lavorate</span><i></i><span>Cosa sapete già</span></div>
+      <button class="button primary onboarding-primary" id="startWorkspace" type="button">Configura la mia organizzazione <span>→</span></button>
+      <small>Puoi iniziare anche senza documenti e completare la conoscenza nel tempo.</small>
     </section>
 
     <section class="onboarding-step" data-step="1">
-      <div class="onboarding-step-head"><span class="onboarding-kicker">01 · Contesto aziendale</span><h1>Partiamo dall’azienda.</h1><p>Queste informazioni permettono al sistema di interpretare l’operazione senza imporre un modello rigido.</p></div>
+      <div class="onboarding-step-head"><span class="onboarding-kicker">01 · Chi siete</span><h1>Partiamo dall’organizzazione.</h1><p>Quattro informazioni danno a Ops il contesto necessario per interpretare correttamente ciò che racconterai dopo.</p></div>
       <form id="companyForm" class="onboarding-form">
-        <label class="full">Nome dell’azienda<input id="companyName" required maxlength="160" placeholder="Azienda Demo"></label>
-        <label class="full">Di cosa si occupa l’azienda?<textarea id="companyDescription" required minlength="20" maxlength="8000" rows="4" placeholder="Aiutiamo i gruppi logistici a coordinare attività urgenti tra clienti, fornitori e responsabili interni…"></textarea><small>Scrivi in modo semplice e diretto.</small></label>
+        <label class="full">Nome dell’azienda<input id="companyName" required maxlength="160" placeholder="MEA Group"></label>
         <label>Settore<select id="industry" required><option value="">Seleziona il settore</option><option value="Professional services">Servizi professionali</option><option value="Software">Software</option><option value="E-commerce">Commercio elettronico</option><option value="Logistics">Logistica</option><option value="Manufacturing">Produzione</option><option value="Healthcare">Sanità</option><option value="Financial services">Servizi finanziari</option><option value="Other">Altro</option></select></label>
-        <label>Mercati o Paesi<input id="markets" placeholder="Italia, Francia, Germania"></label>
-        <label>Modello aziendale<select id="businessModel" required><option value="">Seleziona il modello</option><option value="B2B">B2B</option><option value="B2C">B2C</option><option value="Both">Entrambi</option></select></label>
-        <label>Dimensione indicativa del gruppo<select id="teamSize" required><option value="">Seleziona la dimensione</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–1.000</option><option>1.000+</option></select></label>
+        <label>Numero di dipendenti<select id="teamSize" required><option value="">Seleziona la dimensione</option><option>1–10</option><option>11–50</option><option>51–200</option><option>201–1.000</option><option>1.000+</option></select></label>
+        <label class="full">Dove operate?<input id="markets" required placeholder="Italia, Francia, Germania"><small>Indica i principali Paesi o mercati.</small></label>
         <div class="onboarding-form-actions full"><button class="button ghost" type="button" data-back="0">Indietro</button><button class="button primary" type="submit">Continua <span>→</span></button></div>
       </form>
     </section>
 
     <section class="onboarding-step" data-step="2">
-      <div class="onboarding-step-head"><span class="onboarding-kicker">02 · Prima operazione</span><h1>Quale operazione vuoi migliorare?</h1><p>Parti da un processo ricorrente e descrivilo com’è davvero, anche se è disordinato, manuale o incoerente.</p></div>
-      <form id="operationForm" class="onboarding-form single-column">
-        <label>Quale operazione vuoi migliorare?<textarea id="operationDescription" required minlength="20" maxlength="12000" rows="3" placeholder="Coordiniamo le richieste in arrivo, decidiamo chi deve gestirle e aggiorniamo le persone coinvolte…"></textarea></label>
-        <label>Quale risultato deve ottenere il processo?<textarea id="operationObjective" required minlength="12" maxlength="6000" rows="3" placeholder="Ogni richiesta valida deve raggiungere il responsabile corretto con una prossima azione chiara entro un giorno lavorativo."></textarea></label>
-        <label>Come funziona oggi? <span>Facoltativo</span><textarea id="currentProcess" maxlength="12000" rows="4" placeholder="Le richieste arrivano via email. Un coordinatore controlla un documento condiviso, chiede i dati mancanti e assegna il lavoro…"></textarea><small>Inserisci note, eccezioni e soluzioni provvisorie esattamente come vengono usate oggi.</small></label>
+      <div class="onboarding-step-head"><span class="onboarding-kicker">02 · Come lavorate</span><h1>Raccontaci come funziona il lavoro.</h1><p>Non servono termini tecnici. Rispondi come lo spiegheresti a una nuova persona entrata in azienda.</p></div>
+      <form id="operationForm" class="onboarding-form single-column onboarding-questions">
+        <label><b>1</b><span>Qual è il core business dell’azienda?</span><textarea id="coreBusiness" required minlength="20" maxlength="8000" rows="4" placeholder="Vendiamo prodotti di elettronica di consumo attraverso diversi negozi online proprietari."></textarea></label>
+        <label><b>2</b><span>Quali attività operative svolgete oggi per far funzionare questo business?</span><textarea id="operationalActivities" required minlength="20" maxlength="12000" rows="5" placeholder="Gestione ordini, assistenza clienti, resi, logistica, catalogo, disponibilità dei prodotti e promozioni."></textarea></label>
+        <label><b>3</b><span>Quali sono oggi le principali difficoltà nei processi interni?</span><textarea id="operationalChallenges" required minlength="12" maxlength="8000" rows="5" placeholder="Molte procedure non sono documentate, le eccezioni vengono gestite in modo diverso e le nuove persone devono chiedere spesso ai responsabili."></textarea></label>
         <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="1">Indietro</button><button class="button primary" type="submit">Continua <span>→</span></button></div>
       </form>
     </section>
 
     <section class="onboarding-step" data-step="3">
-      <div class="onboarding-step-head"><span class="onboarding-kicker">03 · Conoscenza</span><h1>Aggiungi ciò che il gruppo sa già.</h1><p>Carica procedure, politiche, manuali, domande frequenti o note grezze. Il passaggio è facoltativo: il modello può partire dalla descrizione e migliorare nel tempo.</p></div>
+      <div class="onboarding-step-head"><span class="onboarding-kicker">03 · Cosa sapete già</span><h1>Aggiungi la conoscenza che utilizzate oggi.</h1><p>Procedure, politiche, manuali, domande frequenti, esempi e note grezze. Ops può iniziare anche senza documenti e segnalerà ciò che rimane da verificare.</p></div>
       <form id="knowledgeForm" class="knowledge-form">
         <label class="onboarding-dropzone" for="knowledgeFiles">
           <input id="knowledgeFiles" name="files" type="file" multiple accept=".pdf,.docx,.txt,.md">
           <span class="dropzone-icon">↑</span><strong>Trascina qui i documenti oppure selezionali</strong><small>PDF, DOCX, TXT o MD · massimo 2 MB per file</small>
         </label>
         <button class="knowledge-paste-toggle" id="pasteToggle" type="button">Oppure incolla note grezze <span>+</span></button>
-        <div class="knowledge-paste hidden" id="pastePanel"><textarea id="pastedKnowledge" name="pasted_text" rows="6" placeholder="Incolla una procedura, appunti di riunione, frammenti di politiche o decisioni ricorrenti degli operatori…"></textarea></div>
+        <div class="knowledge-paste hidden" id="pastePanel"><textarea id="pastedKnowledge" name="pasted_text" rows="7" placeholder="Incolla procedure, appunti, decisioni ricorrenti, eccezioni o esempi. Non è necessario riordinare il testo."></textarea></div>
         <div class="knowledge-files" id="knowledgeFilesList"></div>
-        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="2">Indietro</button><button class="button primary" type="submit">Struttura l’operazione <span>→</span></button></div>
+        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="2">Indietro</button><button class="button primary" type="submit">Costruisci il mio Ops <span>→</span></button></div>
       </form>
     </section>
 
     <section class="onboarding-step onboarding-analysis" data-step="4">
-      <span class="onboarding-kicker">04 · Strutturazione</span>
-      <h1>Creazione del modello operativo.</h1>
-      <p>Il sistema trasforma il contesto in elementi espliciti e verificabili. Non viene eseguita alcuna azione esterna.</p>
+      <span class="onboarding-kicker">Ricostruzione in corso</span>
+      <h1>Ops sta costruendo la memoria della tua organizzazione.</h1>
+      <p>Le informazioni vengono trasformate in elementi operativi con fonte, provenienza e stato di conferma. Nessuna azione esterna viene eseguita.</p>
       <ol class="analysis-checklist" id="analysisChecklist">
-        <li><i></i><div><strong>Comprensione del contesto aziendale</strong><span>Modello aziendale, mercato e ambiente operativo</span></div></li>
-        <li><i></i><div><strong>Lettura della conoscenza disponibile</strong><span>Procedure, note e riferimenti alle fonti</span></div></li>
-        <li><i></i><div><strong>Individuazione dei tipi di caso</strong><span>Percorsi ricorrenti ricavati dalla conoscenza fornita</span></div></li>
-        <li><i></i><div><strong>Estrazione delle regole decisionali</strong><span>Condizioni, azioni e punti di controllo umano</span></div></li>
-        <li><i></i><div><strong>Ricerca delle informazioni mancanti</strong><span>Solo le domande che modificano concretamente una decisione</span></div></li>
-        <li><i></i><div><strong>Preparazione della prima procedura</strong><span>Modello operativo versionato e pronto per la revisione</span></div></li>
+        <li><i></i><div><strong>Comprensione dell’organizzazione</strong><span>Settore, mercato, core business e obiettivi</span></div></li>
+        <li><i></i><div><strong>Ricostruzione delle aree operative</strong><span>Attività reali, responsabilità e relazioni</span></div></li>
+        <li><i></i><div><strong>Lettura della conoscenza disponibile</strong><span>Procedure, note, esempi e riferimenti alle fonti</span></div></li>
+        <li><i></i><div><strong>Strutturazione di processi e decisioni</strong><span>Input, fasi, regole, eccezioni ed escalation</span></div></li>
+        <li><i></i><div><strong>Separazione tra fatti e ipotesi</strong><span>Esplicito, dedotto, suggerito e mancante</span></div></li>
+        <li><i></i><div><strong>Preparazione dello spazio operativo</strong><span>Memoria pronta per Workbench, Casi, Analytics, Radar e Academy</span></div></li>
       </ol>
       <div class="analysis-status"><span id="analysisStatus">Preparazione del contesto…</span><b id="analysisPercent">8%</b></div>
     </section>
 
     <section class="onboarding-step" data-step="5">
-      <div class="onboarding-step-head"><span class="onboarding-kicker">05 · Chiarimenti mirati</span><h1>Alcune decisioni richiedono un responsabile.</h1><p>Queste domande compaiono perché le fonti non forniscono una risposta unica, sicura e coerente.</p></div>
-      <form id="clarificationForm">
-        <div class="clarification-list" id="clarificationList"></div>
-        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="3">Rivedi le fonti</button><button class="button primary" type="submit">Applica le risposte <span>→</span></button></div>
-      </form>
-    </section>
-
-    <section class="onboarding-step" data-step="6">
-      <div class="onboarding-step-head"><span class="onboarding-kicker">06 · Modello operativo</span><h1>La prima procedura è pronta per la revisione.</h1><p>Una vista completa di ciò che il sistema ha compreso, delle decisioni supportate e delle responsabilità che restano alle persone.</p></div>
+      <div class="onboarding-step-head"><span class="onboarding-kicker">Revisione umana</span><h1>Ecco cosa abbiamo capito.</h1><p>Controlla la memoria prima di pubblicarla. Le informazioni dedotte restano visibili e le ipotesi non diventano regole senza conferma.</p></div>
+      <section class="onboarding-clarifications hidden" id="clarificationPanel">
+        <header><span class="onboarding-kicker">Decisioni da confermare</span><h2>Alcuni punti cambiano il modo in cui Ops assisterà le persone.</h2></header>
+        <form id="clarificationForm"><div class="clarification-list" id="clarificationList"></div><div class="onboarding-form-actions"><span>Le risposte diventano conoscenza revisionata.</span><button class="button primary" type="submit">Applica le risposte</button></div></form>
+      </section>
       <div id="modelSummary"></div>
       <form id="modelEditor" class="model-editor hidden">
-        <header><div><span class="onboarding-kicker">Revisione del responsabile</span><h2>Correggi il documento operativo.</h2><p>Inserisci un elemento per riga. Nessuna modifica è nascosta: le correzioni diventano la versione revisionata della procedura.</p></div><button class="button ghost" id="cancelModelEdit" type="button">Annulla</button></header>
+        <header><div><span class="onboarding-kicker">Correzione della memoria</span><h2>Modifica ciò che Ops ha ricostruito.</h2><p>Inserisci un elemento per riga. Le correzioni umane sostituiscono le deduzioni del modello e rimangono tracciate.</p></div><button class="button ghost" id="cancelModelEdit" type="button">Annulla</button></header>
         <div class="model-editor-grid">
-          <label>Nome dell’operazione<input id="editOperationName" required maxlength="72"></label>
-          <label class="full">Scopo<textarea id="editOperationPurpose" required minlength="12" rows="2"></textarea></label>
-          <label>Tipi di caso<textarea id="editCaseTypes" required rows="7" placeholder="Un percorso operativo reale per riga"></textarea></label>
+          <label>Nome dell’area iniziale<input id="editOperationName" required maxlength="72"></label>
+          <label class="full">Obiettivo<textarea id="editOperationPurpose" required minlength="12" rows="2"></textarea></label>
+          <label>Tipi di caso o attività<textarea id="editCaseTypes" required rows="7" placeholder="Un percorso operativo per riga"></textarea></label>
           <label>Informazioni necessarie<textarea id="editRequiredFields" rows="7" placeholder="Un’informazione necessaria per riga"></textarea></label>
           <label class="full">Fasi del processo <small>Ruolo | Azione | Risultato atteso</small><textarea id="editProcessSteps" rows="9"></textarea></label>
           <label class="full">Regole decisionali <small>ID | Condizione | Azione</small><textarea id="editRules" required rows="9"></textarea></label>
@@ -114,371 +106,154 @@
           <label>Eccezioni <small>Responsabile | Evento | Gestione</small><textarea id="editExceptions" rows="6"></textarea></label>
           <label>Vincoli <small>Categoria | Vincolo</small><textarea id="editConstraints" rows="6"></textarea></label>
           <label>Metriche <small>Nome | Definizione</small><textarea id="editMetrics" rows="6"></textarea></label>
-          <label>Cicli di miglioramento <small>Segnale | Revisione | Azione di miglioramento</small><textarea id="editFeedbackLoops" rows="6"></textarea></label>
+          <label>Cicli di miglioramento <small>Segnale | Revisione | Azione</small><textarea id="editFeedbackLoops" rows="6"></textarea></label>
         </div>
-        <div class="onboarding-form-actions"><span class="model-editor-help">La revisione viene salvata come evidenza verificata.</span><button class="button primary" type="submit">Salva il documento revisionato</button></div>
+        <div class="onboarding-form-actions"><span class="model-editor-help">Ogni modifica viene salvata come revisione umana.</span><button class="button primary" type="submit">Salva le correzioni</button></div>
       </form>
-      <div class="onboarding-form-actions" id="modelActions"><button class="button ghost" id="editModel" type="button">Modifica il documento</button><button class="button primary" id="testModel" type="button">Verifica la procedura <span>→</span></button></div>
+      <div class="onboarding-form-actions" id="modelActions"><button class="button ghost" id="editModel" type="button">Correggi la memoria</button><button class="button primary" id="publishWorkspace" type="button">Conferma e crea il mio Ops <span>→</span></button></div>
     </section>
 
-    <section class="onboarding-step" data-step="7">
-      <div class="onboarding-step-head"><span class="onboarding-kicker">07 · Verifica la procedura</span><h1>Il tuo gruppo prenderebbe la stessa decisione?</h1><p>Valuta tre casi simulati. Il riscontro diventa un’evidenza per la revisione successiva e non modifica mai una regola in modo nascosto.</p></div>
-      <form id="scenarioForm">
-        <div class="scenario-list" id="scenarioList"></div>
-        <div class="onboarding-form-actions"><button class="button ghost" type="button" data-back="6">Rivedi il modello</button><button class="button primary" type="submit">Completa la configurazione <span>→</span></button></div>
-      </form>
-    </section>
-
-    <section class="onboarding-step onboarding-ready" data-step="8">
-      <span class="ready-mark">✓</span>
-      <span class="onboarding-kicker">Spazio di lavoro pronto</span>
-      <h1>La tua operazione ha ora un sistema decisionale condiviso.</h1>
-      <p>La procedura è attiva come prima versione revisionata. Potrà migliorare mentre gli operatori risolvono casi reali e documentano le eccezioni.</p>
+    <section class="onboarding-step onboarding-ready" data-step="6">
+      <span class="ready-mark">✓</span><span class="onboarding-kicker">Fondazione operativa pronta</span>
+      <h1>Ops ora conosce la prima versione della tua organizzazione.</h1>
+      <p>Workbench, Casi e i moduli di miglioramento condivideranno la stessa memoria. Ogni decisione futura potrà renderla più completa.</p>
       <div class="ready-stats" id="readyStats"></div>
-      <div class="ready-completeness"><div><span>Completezza della configurazione</span><strong id="readyCompleteness">—</strong></div><div><i id="readyBar"></i></div><p id="readyRemaining"></p></div>
-      <div class="onboarding-ready-actions"><button class="button primary onboarding-primary" id="enterWorkspace" type="button">Entra nello spazio di lavoro <span>→</span></button><a class="button ghost" href="{{ url_for('playbooks') }}">Rivedi la procedura</a></div>
+      <div class="onboarding-module-map"><article><b>Workbench</b><span>Assistenza fondata sulle fonti</span></article><article><b>Casi</b><span>Memoria di decisioni ed esiti</span></article><article><b>Analytics</b><span>Pattern interni verificabili</span></article><article><b>Radar</b><span>Lacune e opportunità</span></article><article><b>Academy</b><span>Formazione dalla conoscenza reale</span></article></div>
+      <div class="ready-completeness"><div><span>Copertura iniziale delle evidenze</span><strong id="readyCompleteness">—</strong></div><div><i id="readyBar"></i></div><p id="readyRemaining"></p></div>
+      <div class="onboarding-ready-actions"><button class="button primary onboarding-primary" id="enterWorkspace" type="button">Entra in Ops <span>→</span></button><button class="button ghost" id="reviewAgain" type="button">Rivedi la memoria</button></div>
     </section>
   </main>
 
-  <footer class="onboarding-footer"><span>I contenuti grezzi restano protetti dal livello di contesto e riservatezza.</span><span>Grammatica operativa strutturata · Configurazione revisionata da persone</span></footer>
+  <footer class="onboarding-footer"><span>Le fonti restano distinguibili dalle deduzioni e dai suggerimenti.</span><span>Memoria verificabile · Controllo umano · Miglioramento continuo</span></footer>
 
 <script>
   let state = {{ onboarding_state|tojson }};
-  let currentStep = state.workspace ? Math.min(Number(state.workspace.current_step || 1), 8) : 0;
+  const editingCompletedWorkspace = new URLSearchParams(window.location.search).get("edit") === "1";
+  let currentStep = 0;
+  if (state.workspace) {
+    if (editingCompletedWorkspace) currentStep = 5;
+    else if (state.workspace.status === "completed") currentStep = 6;
+    else if (state.operation?.operational_model?.operation) currentStep = 5;
+    else if (state.operation?.status === "processing") currentStep = 4;
+    else currentStep = Math.min(Number(state.workspace.current_step || 1), 4);
+  }
   let analysisRunning = false;
   const steps = [...document.querySelectorAll("[data-step]")];
   const notice = document.getElementById("onboardingNotice");
 
-  function setNotice(message, error = false) {
-    notice.textContent = message;
-    notice.className = message ? `onboarding-notice ${error ? "error" : "success"}` : "onboarding-notice hidden";
-  }
-
-  async function parseResponse(response) {
-    const body = await response.text();
-    let data;
-    try { data = body ? JSON.parse(body) : {}; }
-    catch (_) {
-      throw new Error(response.ok
-        ? "Il server ha restituito una risposta non leggibile. Riprova."
-        : "Il servizio di pubblicazione ha interrotto la richiesta. Riprova tra poco.");
-    }
-    if (!response.ok) throw new Error(data.errore || "Si è verificato un errore.");
-    return data;
-  }
-
-  async function postJSON(url, payload = {}) {
-    return parseResponse(await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)}));
-  }
-
-  async function getJSON(url) {
-    return parseResponse(await fetch(url, {headers: {"Accept": "application/json"}}));
-  }
+  function escapeHTML(value) { const element = document.createElement("div"); element.textContent = String(value ?? ""); return element.innerHTML; }
+  function setNotice(message, error = false) { notice.textContent = message; notice.className = message ? `onboarding-notice ${error ? "error" : "success"}` : "onboarding-notice hidden"; }
+  async function parseResponse(response) { const body = await response.text(); let data; try { data = body ? JSON.parse(body) : {}; } catch (_) { throw new Error(response.ok ? "Il server ha restituito una risposta non leggibile. Riprova." : "Il servizio ha interrotto la richiesta. Le informazioni inserite non sono state perse."); } if (!response.ok) throw new Error(data.errore || "Si è verificato un errore."); return data; }
+  async function postJSON(url, payload = {}) { return parseResponse(await fetch(url, {method: "POST", headers: {"Content-Type": "application/json"}, body: JSON.stringify(payload)})); }
+  async function getJSON(url) { return parseResponse(await fetch(url, {headers: {"Accept": "application/json"}})); }
 
   function showStep(step) {
-    currentStep = Number(step);
+    currentStep = Number(step); setNotice("");
     steps.forEach(section => section.classList.toggle("active", Number(section.dataset.step) === currentStep));
-    document.getElementById("progressStep").textContent = `${currentStep} / 8`;
-    document.getElementById("progressBar").style.width = `${Math.max(2, currentStep / 8 * 100)}%`;
-    document.getElementById("progressLabel").textContent = currentStep === 8 ? "Configurazione completata" : "Configurazione";
+    document.getElementById("progressStep").textContent = `${currentStep} / 6`;
+    document.getElementById("progressBar").style.width = `${Math.max(2, currentStep / 6 * 100)}%`;
+    document.getElementById("progressLabel").textContent = currentStep === 6 ? "Configurazione completata" : currentStep === 5 ? "Revisione" : "Configurazione";
     window.scrollTo({top: 0, behavior: "smooth"});
     if (currentStep === 4 && !analysisRunning) runAnalysis();
-    if (currentStep === 5) renderClarifications();
-    if (currentStep === 6) renderModel();
-    if (currentStep === 7) renderScenarios();
-    if (currentStep === 8) renderReady();
+    if (currentStep === 5) { renderClarifications(); renderModel(); }
+    if (currentStep === 6) renderReady();
   }
 
   function hydrate() {
-    const workspace = state.workspace || {};
-    const operation = state.operation || {};
+    const workspace = state.workspace || {}; const operation = state.operation || {}; const context = workspace.derived_context || {};
     document.getElementById("companyName").value = workspace.company_name || "";
-    document.getElementById("companyDescription").value = workspace.company_description || "";
     document.getElementById("industry").value = workspace.industry || "";
     document.getElementById("markets").value = (workspace.markets || []).join(", ");
-    document.getElementById("businessModel").value = workspace.business_model || "";
     document.getElementById("teamSize").value = workspace.team_size || "";
-    document.getElementById("operationDescription").value = operation.description || "";
-    document.getElementById("operationObjective").value = operation.objective || "";
-    document.getElementById("currentProcess").value = operation.current_process || "";
+    document.getElementById("coreBusiness").value = context.core_business || workspace.company_description || operation.objective || "";
+    document.getElementById("operationalActivities").value = context.operational_activities || operation.description || "";
+    document.getElementById("operationalChallenges").value = context.operational_challenges || "";
     renderSources();
   }
 
-  document.getElementById("startWorkspace").addEventListener("click", async event => {
-    event.currentTarget.disabled = true;
-    try {
-      const data = await postJSON("/api/onboarding/start");
-      state = {workspace: data.workspace, operation: null, sources: [], clarifications: [], scenarios: []};
-      showStep(1);
-    } catch (error) { setNotice(error.message, true); event.currentTarget.disabled = false; }
-  });
-
+  document.getElementById("startWorkspace").addEventListener("click", async event => { event.currentTarget.disabled = true; try { const data = await postJSON("/api/onboarding/start"); state = {workspace: data.workspace, operation: null, sources: [], clarifications: [], scenarios: []}; showStep(1); } catch (error) { setNotice(error.message, true); event.currentTarget.disabled = false; } });
   document.querySelectorAll("[data-back]").forEach(button => button.addEventListener("click", () => showStep(button.dataset.back)));
 
   document.getElementById("companyForm").addEventListener("submit", async event => {
-    event.preventDefault(); setNotice("");
-    const button = event.submitter; button.disabled = true;
-    try {
-      const data = await postJSON("/api/onboarding/company", {
-        company_name: document.getElementById("companyName").value,
-        company_description: document.getElementById("companyDescription").value,
-        industry: document.getElementById("industry").value,
-        markets: document.getElementById("markets").value,
-        business_model: document.getElementById("businessModel").value,
-        team_size: document.getElementById("teamSize").value
-      });
-      state.workspace = data.workspace; showStep(2);
-    } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+    event.preventDefault(); const button = event.submitter; button.disabled = true;
+    try { const data = await postJSON("/api/onboarding/company", {company_name: document.getElementById("companyName").value, industry: document.getElementById("industry").value, markets: document.getElementById("markets").value, team_size: document.getElementById("teamSize").value}); state.workspace = data.workspace; showStep(2); }
+    catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
   });
 
   document.getElementById("operationForm").addEventListener("submit", async event => {
-    event.preventDefault(); setNotice(""); const button = event.submitter; button.disabled = true;
-    try {
-      const data = await postJSON("/api/onboarding/operation", {
-        description: document.getElementById("operationDescription").value,
-        objective: document.getElementById("operationObjective").value,
-        current_process: document.getElementById("currentProcess").value
-      });
-      state.operation = data.operation; showStep(3);
-    } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+    event.preventDefault(); const button = event.submitter; button.disabled = true;
+    try { const data = await postJSON("/api/onboarding/operation", {core_business: document.getElementById("coreBusiness").value, operational_activities: document.getElementById("operationalActivities").value, operational_challenges: document.getElementById("operationalChallenges").value}); state.operation = data.operation; state.workspace.derived_context = {core_business: document.getElementById("coreBusiness").value, operational_activities: document.getElementById("operationalActivities").value, operational_challenges: document.getElementById("operationalChallenges").value}; showStep(3); }
+    catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
   });
 
-  document.getElementById("pasteToggle").addEventListener("click", event => {
-    document.getElementById("pastePanel").classList.toggle("hidden");
-    event.currentTarget.querySelector("span").textContent = document.getElementById("pastePanel").classList.contains("hidden") ? "+" : "−";
-  });
-
+  document.getElementById("pasteToggle").addEventListener("click", event => { document.getElementById("pastePanel").classList.toggle("hidden"); event.currentTarget.querySelector("span").textContent = document.getElementById("pastePanel").classList.contains("hidden") ? "+" : "−"; });
   document.getElementById("knowledgeFiles").addEventListener("change", renderSources);
-
   function renderSources() {
-    const stored = state.sources || [];
     const selected = [...document.getElementById("knowledgeFiles").files].map((file, index) => ({id: `selected-${index}`, name: file.name, source_type: file.name.split(".").pop(), status: "selected", temporary: true}));
-    const list = document.getElementById("knowledgeFilesList");
-    const values = [...stored, ...selected];
-    list.innerHTML = values.map(item => `<article class="knowledge-file"><span>${(item.source_type || "DOC").toUpperCase()}</span><div><strong>${escapeHTML(item.name)}</strong><small>${item.status === "selected" ? "Pronto per il caricamento" : "Pronto · testo estratto"}</small></div>${item.temporary ? "" : `<button type="button" data-remove-source="${item.id}" aria-label="Rimuovi ${escapeHTML(item.name)}">×</button>`}</article>`).join("");
-    document.querySelectorAll("[data-remove-source]").forEach(button => button.addEventListener("click", async () => {
-      try { await postJSON(`/api/onboarding/knowledge/${encodeURIComponent(button.dataset.removeSource)}/remove`); state.sources = state.sources.filter(item => item.id !== button.dataset.removeSource); renderSources(); }
-      catch (error) { setNotice(error.message, true); }
-    }));
+    const values = [...(state.sources || []), ...selected]; const list = document.getElementById("knowledgeFilesList");
+    list.innerHTML = values.map(item => `<article class="knowledge-file"><span>${escapeHTML((item.source_type || "DOC").toUpperCase())}</span><div><strong>${escapeHTML(item.name)}</strong><small>${item.status === "selected" ? "Pronto per il caricamento" : "Testo estratto e pronto"}</small></div>${item.temporary ? "" : `<button type="button" data-remove-source="${item.id}" aria-label="Rimuovi ${escapeHTML(item.name)}">×</button>`}</article>`).join("");
+    document.querySelectorAll("[data-remove-source]").forEach(button => button.addEventListener("click", async () => { try { await postJSON(`/api/onboarding/knowledge/${encodeURIComponent(button.dataset.removeSource)}/remove`); state.sources = state.sources.filter(item => item.id !== button.dataset.removeSource); renderSources(); } catch (error) { setNotice(error.message, true); } }));
   }
-
   document.getElementById("knowledgeForm").addEventListener("submit", async event => {
-    event.preventDefault(); setNotice(""); const button = event.submitter; button.disabled = true;
-    const formData = new FormData();
-    [...document.getElementById("knowledgeFiles").files].forEach(file => formData.append("files", file));
-    formData.append("pasted_text", document.getElementById("pastedKnowledge").value);
-    try {
-      const response = await fetch("/api/onboarding/knowledge", {method: "POST", body: formData});
-      const data = await parseResponse(response);
-      state.sources = data.sources; showStep(4);
-    } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+    event.preventDefault(); const button = event.submitter; button.disabled = true; const formData = new FormData();
+    [...document.getElementById("knowledgeFiles").files].forEach(file => formData.append("files", file)); formData.append("pasted_text", document.getElementById("pastedKnowledge").value);
+    try { const data = await parseResponse(await fetch("/api/onboarding/knowledge", {method: "POST", body: formData})); state.sources = data.sources; showStep(4); }
+    catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
   });
 
   async function runAnalysis() {
-    analysisRunning = true; setNotice("");
-    const items = [...document.querySelectorAll("#analysisChecklist li")];
-    items.forEach(item => item.className = "");
-    let index = 0;
-    const timer = setInterval(() => {
-      if (index > 0) items[index - 1]?.classList.add("complete");
-      items[index]?.classList.add("active");
-      document.getElementById("analysisStatus").textContent = items[index]?.querySelector("strong")?.textContent || "Completamento del modello…";
-      document.getElementById("analysisPercent").textContent = `${Math.min(94, 12 + index * 16)}%`;
-      index += 1;
-      if (index > items.length) clearInterval(timer);
-    }, 360);
+    analysisRunning = true; const items = [...document.querySelectorAll("#analysisChecklist li")]; items.forEach(item => item.className = ""); let index = 0;
+    const timer = setInterval(() => { if (index > 0) items[index - 1]?.classList.add("complete"); items[index]?.classList.add("active"); document.getElementById("analysisStatus").textContent = items[index]?.querySelector("strong")?.textContent || "Completamento della memoria…"; document.getElementById("analysisPercent").textContent = `${Math.min(94, 12 + index * 16)}%`; index += 1; if (index > items.length) clearInterval(timer); }, 440);
     try {
-      let data = await postJSON("/api/onboarding/analyze");
-      const deadline = Date.now() + 6 * 60 * 1000;
-      while (!data.model && data.status === "processing") {
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        if (Date.now() > deadline) throw new Error("Claude sta impiegando più tempo del previsto. Riprova tra poco.");
-        document.getElementById("analysisStatus").textContent = "Claude sta ricostruendo la tua operazione…";
-        document.getElementById("analysisPercent").textContent = "94%";
-        data = await getJSON("/api/onboarding/analyze/status");
-      }
-      if (!data.model) throw new Error("Il modello operativo non è stato restituito.");
-      clearInterval(timer); items.forEach(item => { item.classList.remove("active"); item.classList.add("complete"); });
-      document.getElementById("analysisPercent").textContent = "100%";
-      state.operation.operational_model = data.model;
-      state.operation.name = data.model.operation.name;
-      state.clarifications = data.clarifications;
-      setTimeout(() => showStep(data.step), 420);
-    } catch (error) { clearInterval(timer); setNotice(error.message, true); showStep(3); }
-    finally { analysisRunning = false; }
+      let data = await postJSON("/api/onboarding/analyze"); const deadline = Date.now() + 6 * 60 * 1000;
+      while (!data.model && data.status === "processing") { await new Promise(resolve => setTimeout(resolve, 1500)); if (Date.now() > deadline) throw new Error("La ricostruzione sta impiegando più tempo del previsto. Riprova tra poco."); document.getElementById("analysisStatus").textContent = "Ricostruzione della memoria operativa…"; document.getElementById("analysisPercent").textContent = "94%"; data = await getJSON("/api/onboarding/analyze/status"); }
+      if (!data.model) throw new Error("La memoria operativa non è stata restituita."); clearInterval(timer); items.forEach(item => { item.classList.remove("active"); item.classList.add("complete"); }); document.getElementById("analysisPercent").textContent = "100%"; state.operation.operational_model = data.model; state.operation.name = data.model.operation.name; state.clarifications = data.clarifications || []; setTimeout(() => showStep(5), 420);
+    } catch (error) { clearInterval(timer); setNotice(error.message, true); showStep(3); } finally { analysisRunning = false; }
   }
 
+  function provenanceBadge(item) { const source = item?.provenance?.source_type || (item?.origin === "knowledge" ? "explicit" : item?.origin === "human_review" ? "reviewed" : "derived"); const labels = {explicit: "Dalla fonte", derived: "Dedotto", suggested: "Da confermare", reviewed: "Revisionato"}; return `<em class="model-provenance ${escapeHTML(source)}">${escapeHTML(labels[source] || source)}</em>`; }
   function renderClarifications() {
-    const list = document.getElementById("clarificationList");
-    if (!(state.clarifications || []).length) { showStep(6); return; }
-    list.innerHTML = state.clarifications.map((item, index) => `<article class="clarification-card"><header><span>Domanda ${index + 1}</span><small>${escapeHTML(item.issue_type.replaceAll("_", " "))}</small></header><h3>${escapeHTML(item.question)}</h3>${item.details?.evidence?.length ? `<blockquote>${item.details.evidence.map(value => escapeHTML(value)).join("<br>")}</blockquote>` : ""}<div>${item.options.map(option => `<label><input type="radio" name="clarification-${item.id}" value="${escapeHTML(option)}" required><span>${escapeHTML(option)}</span></label>`).join("")}<label><input type="radio" name="clarification-${item.id}" value="__custom__" required><span>Scrivi un’altra risposta</span></label></div><input class="clarification-custom hidden" data-custom-answer="${item.id}" placeholder="Scrivi la regola, il responsabile o la risposta con parole tue"></article>`).join("");
+    const panel = document.getElementById("clarificationPanel"); const values = state.clarifications || []; panel.classList.toggle("hidden", !values.length); if (!values.length) return;
+    document.getElementById("clarificationList").innerHTML = values.map((item, index) => `<article class="clarification-card"><header><span>Conferma ${index + 1}</span><small>${escapeHTML(item.issue_type.replaceAll("_", " "))}</small></header><h3>${escapeHTML(item.question)}</h3>${item.details?.evidence?.length ? `<blockquote>${item.details.evidence.map(value => escapeHTML(value)).join("<br>")}</blockquote>` : ""}<div>${item.options.map(option => `<label><input type="radio" name="clarification-${item.id}" value="${escapeHTML(option)}" required><span>${escapeHTML(option)}</span></label>`).join("")}<label><input type="radio" name="clarification-${item.id}" value="__custom__" required><span>Scrivi un’altra risposta</span></label></div><input class="clarification-custom hidden" data-custom-answer="${item.id}" placeholder="Scrivi la risposta con parole tue"></article>`).join("");
     document.querySelectorAll('.clarification-card input[type="radio"]').forEach(input => input.addEventListener("change", () => { const id = input.name.replace("clarification-", ""); const custom = document.querySelector(`[data-custom-answer="${id}"]`); const selected = document.querySelector(`[name="${input.name}"]:checked`)?.value === "__custom__"; custom.classList.toggle("hidden", !selected); custom.required = selected; if (selected) custom.focus(); }));
   }
-
   document.getElementById("clarificationForm").addEventListener("submit", async event => {
-    event.preventDefault(); const answers = {};
-    (state.clarifications || []).forEach(item => { const selected = document.querySelector(`[name="clarification-${item.id}"]:checked`)?.value; answers[item.id] = selected === "__custom__" ? document.querySelector(`[data-custom-answer="${item.id}"]`)?.value : selected; });
-    try { const data = await postJSON("/api/onboarding/clarifications", {answers}); state.operation.operational_model = data.model; showStep(6); }
-    catch (error) { setNotice(error.message, true); }
+    event.preventDefault(); const answers = {}; (state.clarifications || []).forEach(item => { const selected = document.querySelector(`[name="clarification-${item.id}"]:checked`)?.value; answers[item.id] = selected === "__custom__" ? document.querySelector(`[data-custom-answer="${item.id}"]`)?.value : selected; });
+    try { const data = await postJSON("/api/onboarding/clarifications", {answers}); state.operation.operational_model = data.model; state.clarifications = []; renderClarifications(); renderModel(); setNotice("Conferme applicate alla memoria operativa."); } catch (error) { setNotice(error.message, true); }
   });
 
   function renderModel() {
-    const model = state.operation?.operational_model || {};
-    if (!model.operation) return;
-    const unresolved = (model.ambiguities || []).filter(item => !item.resolved).length;
-    const caseTypes = model.case_types || [];
-    const fields = model.required_fields || [];
-    const rules = model.rules || [];
-    const escalations = model.escalations || [];
-    const process = model.process || {};
-    const processSteps = process.steps || [];
-    const outcomes = model.outcomes || [];
-    const assumptions = model.assumptions || [];
-    const actors = model.actors || [];
-    const systems = Array.isArray(model.systems) ? model.systems : [];
-    const exceptions = model.exceptions || [];
-    const constraints = model.constraints || [];
-    const metrics = model.metrics || [];
-    const feedbackLoops = model.feedback_loops || [];
-    const generation = model.generation || {};
-    const provider = String(model.provider || "");
-    const engineNote = provider === "anthropic_operational_model"
-      ? `Claude ${generation.model || ""} · ricostruzione strutturata · ${(generation.input_tokens || 0).toLocaleString()} token in ingresso / ${(generation.output_tokens || 0).toLocaleString()} token in uscita`
-      : provider.includes("after_provider_error")
-        ? "Motore locale di riserva · Claude non disponibile · revisione necessaria"
-        : "Estrattore locale delle evidenze · nessuna chiamata AI esterna";
-    const provenanceBadge = item => {
-      const source = item?.provenance?.source_type || (item?.origin === "knowledge" ? "explicit" : item?.origin === "human_review" ? "reviewed" : "derived");
-      const labels = {explicit: "Dalla fonte", derived: "Dedotto", suggested: "Da confermare", reviewed: "Revisionato"};
-      return `<em class="model-provenance ${escapeHTML(source)}">${escapeHTML(labels[source] || source)}</em>`;
-    };
-    const fieldPreview = fields.slice(0, 8);
-    const rulePreview = rules.slice(0, 6);
-    const scoreRows = model.completeness_breakdown || [];
-    const scoreLabels = {"Company context":"Contesto aziendale","Operation and objective":"Operazione e obiettivo","Knowledge coverage":"Copertura della conoscenza","Domain-specific case types":"Tipi di caso specifici","Required information":"Informazioni necessarie","Source-backed decision rules":"Regole decisionali sostenute dalle fonti","Escalation ownership":"Responsabilità delle escalation","Resolved ambiguities":"Ambiguità risolte","Validated test scenarios":"Scenari di verifica validati"};
+    const model = state.operation?.operational_model || {}; if (!model.operation) return;
+    const domains = model.operational_domains || []; const caseTypes = model.case_types || []; const fields = model.required_fields || []; const rules = model.rules || []; const escalations = model.escalations || []; const processSteps = model.process?.steps || []; const actors = model.actors || []; const systems = Array.isArray(model.systems) ? model.systems : []; const exceptions = model.exceptions || []; const metrics = model.metrics || []; const feedbackLoops = model.feedback_loops || []; const assumptions = model.assumptions || []; const sources = state.sources || [];
+    const provider = String(model.provider || ""); const generation = model.generation || {}; const engineNote = provider === "anthropic_operational_model" ? `Claude ${generation.model || ""} · ricostruzione strutturata` : provider.includes("after_provider_error") ? "Estrattore locale di riserva · revisione necessaria" : "Estrattore locale delle evidenze · nessuna chiamata esterna";
+    const domainCards = (domains.length ? domains : [{name: model.operation.name, description: model.operation.purpose, origin: "model_derived"}]).map(item => `<article><header><strong>${escapeHTML(item.name)}</strong>${provenanceBadge(item)}</header><p>${escapeHTML(item.description || item.objective || "Area ricostruita dal contesto disponibile")}</p></article>`).join("");
     document.getElementById("modelSummary").innerHTML = `
-      <section class="model-hero">
-        <div><span>DOCUMENTO OPERATIVO REVISIONABILE · ${escapeHTML(model.schema_version || "1.0")}</span><h2>${escapeHTML(model.operation.name)}</h2><p>${escapeHTML(model.operation.purpose)}</p><small class="model-engine-note">${escapeHTML(engineNote)}</small></div>
-        <strong>${model.completeness || 0}%<small>copertura delle evidenze, non sicurezza dichiarata dall’AI</small></strong>
-      </section>
-      <section class="model-metrics">
-        <article><strong>${caseTypes.length}</strong><span>Tipi di caso</span></article>
-        <article><strong>${fields.length}</strong><span>Informazioni necessarie</span></article>
-        <article><strong>${rules.filter(item => ["knowledge", "human_review"].includes(item.origin)).length}</strong><span>Regole verificate</span></article>
-        <article><strong>${escalations.length}</strong><span>Responsabili umani</span></article>
-        <article><strong>${unresolved}</strong><span>Ambiguità aperte</span></article>
-      </section>
-      <div class="model-columns">
-        <section><span class="onboarding-kicker">Tipi di caso compresi</span>${caseTypes.map(item => `<article><header><strong>${escapeHTML(item.name)}</strong>${provenanceBadge(item)}</header><p>${escapeHTML(item.description)}</p></article>`).join("")}</section>
-        <section><span class="onboarding-kicker">Responsabilità umane</span>${escalations.map(item => `<article><header><strong>${escapeHTML(item.owner)}</strong>${provenanceBadge(item)}</header><p>${escapeHTML(item.trigger)}</p></article>`).join("")}</section>
-      </div>
-      <section class="model-process-panel">
-        <header><div><span class="onboarding-kicker">Sequenza operativa</span><h3>Come si sviluppa il lavoro</h3></div><small>${processSteps.length} fasi documentate</small></header>
-        <ol class="model-process-list">${processSteps.length ? processSteps.map((item, index) => `<li><b>${String(index + 1).padStart(2, "0")}</b><div><span>${escapeHTML(item.stage || item.actor)} ${provenanceBadge(item)}</span><strong>${escapeHTML(item.action)}</strong><small>${escapeHTML(item.actor)} · ${escapeHTML(item.result)}</small></div></li>`).join("") : `<li class="model-empty"><div><strong>Sequenza non ancora documentata</strong><small>Aggiungi le fasi reali durante la revisione.</small></div></li>`}</ol>
-        <div class="model-process-meta"><span><b>Canali</b>${escapeHTML((process.channels || []).join(", ") || "Da confermare")}</span><span><b>Sistemi</b>${escapeHTML((process.systems || []).join(", ") || "Da confermare")}</span><span><b>Ruoli</b>${escapeHTML((process.roles || []).join(", ") || "Da confermare")}</span></div>
-      </section>
-      <div class="model-evidence-grid">
-        <section class="model-semantic-panel"><span class="onboarding-kicker">Informazioni necessarie</span><div class="model-field-list">${fieldPreview.map(item => `<span>${escapeHTML(item.label)}</span>`).join("")}</div>${fields.length > fieldPreview.length ? `<small>+${fields.length - fieldPreview.length} altre informazioni necessarie</small>` : ""}</section>
-        <section class="model-semantic-panel"><span class="onboarding-kicker">Regole decisionali ricostruite</span><ol class="model-rule-preview">${rulePreview.map(item => `<li><b>${escapeHTML(item.id)}</b><span><strong>${escapeHTML(item.condition || item.statement)}</strong><small>Azione: ${escapeHTML(item.action || "Da confermare")} ${provenanceBadge(item)}</small></span></li>`).join("")}</ol>${rules.length > rulePreview.length ? `<small>+${rules.length - rulePreview.length} altre regole nella procedura</small>` : ""}</section>
-      </div>
-      <section class="model-grammar-panel">
-        <header><div><span class="onboarding-kicker">Grammatica operativa</span><h3>Il modello operativo completo</h3></div><small>Struttura fissa · contenuti aziendali ricostruiti</small></header>
-        <div class="model-grammar-grid">
-          <article><strong>Attori e sistemi</strong><ul>${actors.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.accountability || (item.responsibilities || []).join("; "))}</small></li>`).join("")}${systems.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.purpose)}</small></li>`).join("") || "<li>Non documentati</li>"}</ul></article>
-          <article><strong>Eccezioni e vincoli</strong><ul>${exceptions.map(item => `<li>${escapeHTML(item.trigger)} <small>${escapeHTML(item.handling)} · ${escapeHTML(item.owner)}</small></li>`).join("")}${constraints.map(item => `<li>${escapeHTML(item.category)} <small>${escapeHTML(item.statement)}</small></li>`).join("") || "<li>Non documentati</li>"}</ul></article>
-          <article><strong>Metriche e cicli di miglioramento</strong><ul>${metrics.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.definition)}</small></li>`).join("")}${feedbackLoops.map(item => `<li>${escapeHTML(item.signal)} <small>${escapeHTML(item.review)} · ${escapeHTML(item.improvement_action)}</small></li>`).join("") || "<li>Non documentati</li>"}</ul></article>
-        </div>
-      </section>
-      <div class="model-evidence-grid model-outcome-grid">
-        <section class="model-semantic-panel"><span class="onboarding-kicker">Risultati attesi</span><ul class="model-clean-list">${outcomes.length ? outcomes.map(item => `<li><strong>${escapeHTML(item.name)}</strong><small>${escapeHTML(item.description)}</small></li>`).join("") : `<li><strong>Risultato da confermare</strong><small>Definisci quando un caso può essere considerato risolto correttamente.</small></li>`}</ul></section>
-        <section class="model-semantic-panel"><span class="onboarding-kicker">Ipotesi da confermare</span><ul class="model-clean-list">${assumptions.length ? assumptions.map(item => `<li><strong>${escapeHTML(item.statement)}</strong><small>Proposta per contesto mancante · non è una regola attiva</small></li>`).join("") : `<li><strong>Nessuna ipotesi contestuale</strong><small>La struttura è sostenuta dalle fonti fornite o dalla revisione umana.</small></li>`}</ul></section>
-      </div>
-      <details class="model-details"><summary>Evidenze e completezza <span>+</span></summary><div><p class="model-score-intro">La completezza deriva dalla copertura delle fonti, dalle ambiguità risolte e dagli scenari validati. Non è un valore di sicurezza dichiarato dall’AI.</p><div class="model-score-list">${scoreRows.map(item => `<article><span>${escapeHTML(scoreLabels[item.label] || item.label)}</span><div><i style="width:${Math.round((item.earned / item.maximum) * 100)}%"></i></div><b>${item.earned}/${item.maximum}</b></article>`).join("")}</div><h3>Contesto aziendale</h3><p>${escapeHTML(model.company_context?.summary || "Non specificato")}</p><p>${escapeHTML(model.company_context?.operating_environment || "")}</p><h3>Tutte le informazioni necessarie</h3><ul>${fields.map(item => `<li>${escapeHTML(item.label)}</li>`).join("")}</ul><h3>Tutte le regole decisionali</h3><ol>${rules.map(item => `<li><b>${escapeHTML(item.id)}</b> ${escapeHTML(item.statement)} → ${escapeHTML(item.action || "Da confermare")} <small>${escapeHTML(item.source)}</small></li>`).join("")}</ol></div></details>`;
+      <section class="model-hero"><div><span>MEMORIA OPERATIVA AZIENDALE · ${escapeHTML(model.schema_version || "1.0")}</span><h2>${escapeHTML(model.operation.name)}</h2><p>${escapeHTML(model.operation.purpose)}</p><small class="model-engine-note">${escapeHTML(engineNote)}</small></div><strong>${model.completeness || 0}%<small>copertura delle evidenze, non sicurezza dichiarata dall’AI</small></strong></section>
+      <section class="model-metrics"><article><strong>${domains.length || 1}</strong><span>Aree operative</span></article><article><strong>${caseTypes.length}</strong><span>Percorsi riconosciuti</span></article><article><strong>${rules.filter(item => item.origin !== "model_suggestion").length}</strong><span>Regole strutturate</span></article><article><strong>${sources.length}</strong><span>Fonti disponibili</span></article><article><strong>${assumptions.length}</strong><span>Ipotesi visibili</span></article></section>
+      <section class="model-domain-panel"><span class="onboarding-kicker">Aree operative comprese</span><div class="model-domain-grid">${domainCards}</div></section>
+      <section class="model-process-panel"><header><div><span class="onboarding-kicker">Sequenza operativa iniziale</span><h3>Come si sviluppa il lavoro</h3></div><small>${processSteps.length} fasi documentate</small></header><ol class="model-process-list">${processSteps.length ? processSteps.map((item, index) => `<li><b>${String(index + 1).padStart(2, "0")}</b><div><span>${escapeHTML(item.stage || item.actor)} ${provenanceBadge(item)}</span><strong>${escapeHTML(item.action)}</strong><small>${escapeHTML(item.actor)} · ${escapeHTML(item.result)}</small></div></li>`).join("") : `<li class="model-empty"><div><strong>Sequenza ancora da confermare</strong><small>Ops chiederà chiarimenti quando un caso reale richiederà questo processo.</small></div></li>`}</ol></section>
+      <div class="model-evidence-grid"><section class="model-semantic-panel"><span class="onboarding-kicker">Informazioni necessarie</span><div class="model-field-list">${fields.slice(0, 10).map(item => `<span>${escapeHTML(item.label)}</span>`).join("") || "<small>Nessuna informazione ancora confermata.</small>"}</div></section><section class="model-semantic-panel"><span class="onboarding-kicker">Regole decisionali</span><ol class="model-rule-preview">${rules.slice(0, 8).map(item => `<li><b>${escapeHTML(item.id)}</b><span><strong>${escapeHTML(item.condition || item.statement)}</strong><small>Azione: ${escapeHTML(item.action || "Da confermare")} ${provenanceBadge(item)}</small></span></li>`).join("")}</ol></section></div>
+      <section class="model-grammar-panel"><header><div><span class="onboarding-kicker">Struttura della memoria</span><h3>Ciò che Ops può utilizzare nel lavoro</h3></div><small>Fonti e deduzioni restano separate</small></header><div class="model-grammar-grid"><article><strong>Attori e sistemi</strong><ul>${actors.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.accountability || "")}</small></li>`).join("")}${systems.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.purpose || "")}</small></li>`).join("") || "<li>Da documentare</li>"}</ul></article><article><strong>Eccezioni ed escalation</strong><ul>${exceptions.map(item => `<li>${escapeHTML(item.trigger)} <small>${escapeHTML(item.handling || "")}</small></li>`).join("")}${escalations.map(item => `<li>${escapeHTML(item.owner)} <small>${escapeHTML(item.trigger)}</small></li>`).join("") || "<li>Da documentare</li>"}</ul></article><article><strong>Misurazione e apprendimento</strong><ul>${metrics.map(item => `<li>${escapeHTML(item.name)} <small>${escapeHTML(item.definition || "")}</small></li>`).join("")}${feedbackLoops.map(item => `<li>${escapeHTML(item.signal)} <small>${escapeHTML(item.improvement_action || "")}</small></li>`).join("") || "<li>Da costruire dai primi casi</li>"}</ul></article></div></section>
+      <details class="model-details"><summary>Provenienza, ipotesi e completezza <span>+</span></summary><div><p>La completezza deriva dalla copertura delle fonti e dai punti confermati. Non misura quanto l’AI sembri sicura.</p><h3>Ipotesi da confermare nel tempo</h3><ul>${assumptions.map(item => `<li>${escapeHTML(item.statement)}</li>`).join("") || "<li>Nessuna ipotesi contestuale aperta.</li>"}</ul><h3>Fonti disponibili</h3><ul>${sources.map(item => `<li>${escapeHTML(item.name)}</li>`).join("") || "<li>Descrizione fornita durante l’onboarding.</li>"}</ul></div></details>`;
     populateModelEditor(model);
   }
 
   function lineValues(value) { return String(value || "").split("\n").map(item => item.trim()).filter(Boolean); }
   function pipeParts(value, count) { const parts = value.split("|").map(item => item.trim()); while (parts.length < count) parts.push(""); return parts; }
   function populateModelEditor(model) {
-    document.getElementById("editOperationName").value = model.operation?.name || "";
-    document.getElementById("editOperationPurpose").value = model.operation?.purpose || "";
-    document.getElementById("editCaseTypes").value = (model.case_types || []).map(item => item.name).join("\n");
-    document.getElementById("editRequiredFields").value = (model.required_fields || []).map(item => item.label).join("\n");
-    document.getElementById("editProcessSteps").value = (model.process?.steps || []).map(item => `${item.actor || ""} | ${item.action || ""} | ${item.result || ""}`).join("\n");
-    document.getElementById("editRules").value = (model.rules || []).map(item => `${item.id || ""} | ${item.statement || ""} | ${item.action || ""}`).join("\n");
-    document.getElementById("editEscalations").value = (model.escalations || []).map(item => `${item.owner || ""} | ${item.trigger || ""}`).join("\n");
-    document.getElementById("editActors").value = (model.actors || []).map(item => `${item.name || ""} | ${item.accountability || ""}`).join("\n");
-    document.getElementById("editSystems").value = (model.systems || []).map(item => `${item.name || ""} | ${item.purpose || ""}`).join("\n");
-    document.getElementById("editExceptions").value = (model.exceptions || []).map(item => `${item.owner || ""} | ${item.trigger || ""} | ${item.handling || ""}`).join("\n");
-    document.getElementById("editConstraints").value = (model.constraints || []).map(item => `${item.category || ""} | ${item.statement || ""}`).join("\n");
-    document.getElementById("editMetrics").value = (model.metrics || []).map(item => `${item.name || ""} | ${item.definition || ""}`).join("\n");
-    document.getElementById("editFeedbackLoops").value = (model.feedback_loops || []).map(item => `${item.signal || ""} | ${item.review || ""} | ${item.improvement_action || ""}`).join("\n");
+    document.getElementById("editOperationName").value = model.operation?.name || ""; document.getElementById("editOperationPurpose").value = model.operation?.purpose || ""; document.getElementById("editCaseTypes").value = (model.case_types || []).map(item => item.name).join("\n"); document.getElementById("editRequiredFields").value = (model.required_fields || []).map(item => item.label).join("\n"); document.getElementById("editProcessSteps").value = (model.process?.steps || []).map(item => `${item.actor || ""} | ${item.action || ""} | ${item.result || ""}`).join("\n"); document.getElementById("editRules").value = (model.rules || []).map(item => `${item.id || ""} | ${item.statement || ""} | ${item.action || ""}`).join("\n"); document.getElementById("editEscalations").value = (model.escalations || []).map(item => `${item.owner || ""} | ${item.trigger || ""}`).join("\n"); document.getElementById("editActors").value = (model.actors || []).map(item => `${item.name || ""} | ${item.accountability || ""}`).join("\n"); document.getElementById("editSystems").value = (model.systems || []).map(item => `${item.name || ""} | ${item.purpose || ""}`).join("\n"); document.getElementById("editExceptions").value = (model.exceptions || []).map(item => `${item.owner || ""} | ${item.trigger || ""} | ${item.handling || ""}`).join("\n"); document.getElementById("editConstraints").value = (model.constraints || []).map(item => `${item.category || ""} | ${item.statement || ""}`).join("\n"); document.getElementById("editMetrics").value = (model.metrics || []).map(item => `${item.name || ""} | ${item.definition || ""}`).join("\n"); document.getElementById("editFeedbackLoops").value = (model.feedback_loops || []).map(item => `${item.signal || ""} | ${item.review || ""} | ${item.improvement_action || ""}`).join("\n");
   }
   function toggleModelEditor(editing) { document.getElementById("modelSummary").classList.toggle("hidden", editing); document.getElementById("modelActions").classList.toggle("hidden", editing); document.getElementById("modelEditor").classList.toggle("hidden", !editing); }
-  document.getElementById("editModel").addEventListener("click", () => toggleModelEditor(true));
-  document.getElementById("cancelModelEdit").addEventListener("click", () => { populateModelEditor(state.operation?.operational_model || {}); toggleModelEditor(false); });
+  document.getElementById("editModel").addEventListener("click", () => toggleModelEditor(true)); document.getElementById("cancelModelEdit").addEventListener("click", () => { populateModelEditor(state.operation?.operational_model || {}); toggleModelEditor(false); });
   document.getElementById("modelEditor").addEventListener("submit", async event => {
     event.preventDefault(); const button = event.submitter; button.disabled = true;
-    const payload = {
-      operation: {name: document.getElementById("editOperationName").value, purpose: document.getElementById("editOperationPurpose").value},
-      case_types: lineValues(document.getElementById("editCaseTypes").value).map(name => ({name})),
-      required_fields: lineValues(document.getElementById("editRequiredFields").value).map(label => ({label})),
-      process_steps: lineValues(document.getElementById("editProcessSteps").value).map(line => { const [actor, action, result] = pipeParts(line, 3); return {actor, action, result}; }),
-      rules: lineValues(document.getElementById("editRules").value).map(line => { const [id, statement, action] = pipeParts(line, 3); return {id, statement, action}; }),
-      escalations: lineValues(document.getElementById("editEscalations").value).map(line => { const [owner, trigger] = pipeParts(line, 2); return {owner, trigger}; }),
-      actors: lineValues(document.getElementById("editActors").value).map(line => { const [name, accountability] = pipeParts(line, 2); return {name, accountability}; }),
-      systems: lineValues(document.getElementById("editSystems").value).map(line => { const [name, purpose] = pipeParts(line, 2); return {name, purpose}; }),
-      exceptions: lineValues(document.getElementById("editExceptions").value).map(line => { const [owner, trigger, handling] = pipeParts(line, 3); return {owner, trigger, handling}; }),
-      constraints: lineValues(document.getElementById("editConstraints").value).map(line => { const [category, statement] = pipeParts(line, 2); return {category, statement}; }),
-      metrics: lineValues(document.getElementById("editMetrics").value).map(line => { const [name, definition] = pipeParts(line, 2); return {name, definition}; }),
-      feedback_loops: lineValues(document.getElementById("editFeedbackLoops").value).map(line => { const [signal, review, improvement_action] = pipeParts(line, 3); return {signal, review, improvement_action}; })
-    };
-    try { const data = await postJSON("/api/onboarding/model", payload); state.operation.operational_model = data.model; toggleModelEditor(false); renderModel(); setNotice("Documento operativo revisionato e salvato."); }
-    catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
+    const payload = {operation: {name: document.getElementById("editOperationName").value, purpose: document.getElementById("editOperationPurpose").value}, case_types: lineValues(document.getElementById("editCaseTypes").value).map(name => ({name})), required_fields: lineValues(document.getElementById("editRequiredFields").value).map(label => ({label})), process_steps: lineValues(document.getElementById("editProcessSteps").value).map(line => { const [actor, action, result] = pipeParts(line, 3); return {actor, action, result}; }), rules: lineValues(document.getElementById("editRules").value).map(line => { const [id, statement, action] = pipeParts(line, 3); return {id, statement, action}; }), escalations: lineValues(document.getElementById("editEscalations").value).map(line => { const [owner, trigger] = pipeParts(line, 2); return {owner, trigger}; }), actors: lineValues(document.getElementById("editActors").value).map(line => { const [name, accountability] = pipeParts(line, 2); return {name, accountability}; }), systems: lineValues(document.getElementById("editSystems").value).map(line => { const [name, purpose] = pipeParts(line, 2); return {name, purpose}; }), exceptions: lineValues(document.getElementById("editExceptions").value).map(line => { const [owner, trigger, handling] = pipeParts(line, 3); return {owner, trigger, handling}; }), constraints: lineValues(document.getElementById("editConstraints").value).map(line => { const [category, statement] = pipeParts(line, 2); return {category, statement}; }), metrics: lineValues(document.getElementById("editMetrics").value).map(line => { const [name, definition] = pipeParts(line, 2); return {name, definition}; }), feedback_loops: lineValues(document.getElementById("editFeedbackLoops").value).map(line => { const [signal, review, improvement_action] = pipeParts(line, 3); return {signal, review, improvement_action}; })};
+    try { const data = await postJSON("/api/onboarding/model", payload); state.operation.operational_model = data.model; toggleModelEditor(false); renderModel(); setNotice("Correzioni salvate nella memoria operativa."); } catch (error) { setNotice(error.message, true); } finally { button.disabled = false; }
   });
 
-  document.getElementById("testModel").addEventListener("click", async event => {
-    event.currentTarget.disabled = true;
-    try { const data = await postJSON("/api/onboarding/model-reviewed"); state.scenarios = data.scenarios; showStep(7); }
-    catch (error) { setNotice(error.message, true); } finally { event.currentTarget.disabled = false; }
-  });
-
-  function renderScenarios() {
-    document.getElementById("scenarioList").innerHTML = (state.scenarios || []).map((item, index) => `<article class="scenario-card"><header><span>VERIFICA ${String(index + 1).padStart(2, "0")}</span><h3>${escapeHTML(item.title)}</h3></header><p>${escapeHTML(item.input_summary)}</p><div class="scenario-recommendation"><small>RACCOMANDAZIONE</small><strong>${escapeHTML(item.recommendation)}</strong><p>${escapeHTML(item.rationale)}</p></div><div class="scenario-verdict"><label><input type="radio" name="scenario-${item.id}" value="correct" required><span>✓ Corretta</span></label><label><input type="radio" name="scenario-${item.id}" value="adjustment" required><span>Da correggere</span></label></div><textarea class="hidden" data-scenario-feedback="${item.id}" rows="2" placeholder="Che cosa dovrebbe cambiare?"></textarea></article>`).join("");
-    document.querySelectorAll(".scenario-verdict input").forEach(input => input.addEventListener("change", () => {
-      const scenarioId = input.name.replace("scenario-", "");
-      const feedback = document.querySelector(`[data-scenario-feedback="${scenarioId}"]`);
-      const needsReason = input.value === "adjustment";
-      feedback.classList.toggle("hidden", !needsReason);
-      feedback.required = needsReason;
-      if (needsReason) feedback.focus();
-    }));
-  }
-
-  document.getElementById("scenarioForm").addEventListener("submit", async event => {
-    event.preventDefault();
-    const feedback = (state.scenarios || []).map(item => ({id: item.id, status: document.querySelector(`[name="scenario-${item.id}"]:checked`)?.value, feedback: document.querySelector(`[data-scenario-feedback="${item.id}"]`)?.value || ""}));
-    try { const data = await postJSON("/api/onboarding/tests", {feedback}); state.scenarios = data.scenarios; state.operation.operational_model = data.model; showStep(8); }
-    catch (error) { setNotice(error.message, true); }
-  });
-
-  function renderReady() {
-    const model = state.operation?.operational_model || {};
-    const sources = state.sources || [];
-    document.getElementById("readyStats").innerHTML = `<article><strong>${model.case_types?.length || 0}</strong><span>Tipi di caso mappati</span></article><article><strong>${model.rules?.length || 0}</strong><span>Regole strutturate</span></article><article><strong>${sources.length}</strong><span>Fonti di conoscenza</span></article><article><strong>${state.scenarios?.length || 0}</strong><span>Scenari revisionati</span></article>`;
-    const completeness = model.completeness || state.workspace?.completeness || 0;
-    document.getElementById("readyCompleteness").textContent = `${completeness}%`;
-    document.getElementById("readyBar").style.width = `${completeness}%`;
-    document.getElementById("readyRemaining").textContent = (model.remaining_setup || []).length ? `Da completare: ${model.remaining_setup.slice(0, 2).join(" · ")}` : "Nessuna attività bloccante. Aggiungi conoscenza mentre l’operazione evolve.";
-  }
-
-  document.getElementById("enterWorkspace").addEventListener("click", async event => {
-    event.currentTarget.disabled = true;
-    try { const data = await postJSON("/api/onboarding/complete"); window.location.assign(data.redirect); }
-    catch (error) { setNotice(error.message, true); event.currentTarget.disabled = false; }
-  });
-
-  function escapeHTML(value) { const element = document.createElement("div"); element.textContent = String(value ?? ""); return element.innerHTML; }
+  document.getElementById("publishWorkspace").addEventListener("click", async event => { if ((state.clarifications || []).length) { setNotice("Conferma prima i punti che influenzano le decisioni.", true); document.getElementById("clarificationPanel").scrollIntoView({behavior: "smooth"}); return; } event.currentTarget.disabled = true; try { const data = await postJSON("/api/onboarding/complete"); state.workspace = data.workspace; state.redirect = data.redirect; showStep(6); } catch (error) { setNotice(error.message, true); event.currentTarget.disabled = false; } });
+  function renderReady() { const model = state.operation?.operational_model || {}; const sources = state.sources || []; const open = (model.assumptions || []).length; document.getElementById("readyStats").innerHTML = `<article><strong>${model.operational_domains?.length || 1}</strong><span>Aree operative iniziali</span></article><article><strong>${model.rules?.length || 0}</strong><span>Regole strutturate</span></article><article><strong>${sources.length}</strong><span>Fonti disponibili</span></article><article><strong>${open}</strong><span>Ipotesi ancora visibili</span></article>`; const completeness = model.completeness || state.workspace?.completeness || 0; document.getElementById("readyCompleteness").textContent = `${completeness}%`; document.getElementById("readyBar").style.width = `${completeness}%`; document.getElementById("readyRemaining").textContent = (model.remaining_setup || []).length ? `Da approfondire nel tempo: ${model.remaining_setup.slice(0, 2).join(" · ")}` : "Nessun punto bloccante. La memoria continuerà a crescere dai casi reali."; }
+  document.getElementById("enterWorkspace").addEventListener("click", () => window.location.assign(state.redirect || "/workbench")); document.getElementById("reviewAgain").addEventListener("click", () => showStep(5));
   hydrate(); showStep(currentStep);
 </script>
 </body>

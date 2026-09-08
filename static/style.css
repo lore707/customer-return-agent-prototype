@@ -2175,3 +2175,116 @@ textarea::placeholder, input::placeholder { color: #8490a9; opacity: 1; }
   .ops-loop-grid article, .ops-loop-return { min-height: 0; padding: 23px; }
   .ops-loop-grid h3 { margin-top: 28px; }
 }
+
+/* Onboarding v2: dalla descrizione dell'azienda alla memoria operativa. */
+.onboarding-v2 .onboarding-shell { width: min(1120px, calc(100% - 48px)); }
+.onboarding-v2 .onboarding-welcome { max-width: 980px; }
+.onboarding-v2 .onboarding-welcome h1 { max-width: 940px; }
+.onboarding-v2 .onboarding-step-head { max-width: 940px; }
+.onboarding-v2 .onboarding-step-head > p { max-width: 820px; }
+
+.onboarding-questions { gap: 14px; }
+.onboarding-questions > label {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 8px 16px;
+  padding: 22px;
+  border: 1px solid rgba(179, 195, 233, .2);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #17233a, #121b2e);
+}
+.onboarding-questions > label > b {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  grid-row: 1 / span 2;
+  place-items: center;
+  border-radius: 11px;
+  color: #c6b6ff;
+  background: rgba(126, 79, 239, .2);
+  font: 700 12px var(--font-display);
+}
+.onboarding-questions > label > span {
+  align-self: center;
+  color: #f5f7fc;
+  font: 700 18px/1.35 var(--font-display);
+  letter-spacing: -.02em;
+}
+.onboarding-questions > label > textarea {
+  grid-column: 2;
+  min-height: 128px;
+  margin-top: 8px;
+  font-size: 15px;
+  line-height: 1.65;
+}
+.onboarding-questions .onboarding-form-actions { margin-top: 10px; }
+
+.onboarding-clarifications {
+  margin: 0 0 20px;
+  padding: 26px;
+  border: 1px solid rgba(241, 188, 87, .3);
+  border-radius: 18px;
+  background: linear-gradient(145deg, rgba(63, 48, 24, .72), rgba(23, 29, 48, .96));
+}
+.onboarding-clarifications > header { max-width: 760px; margin-bottom: 18px; }
+.onboarding-clarifications h2 { margin: 8px 0 0; font-size: 25px; letter-spacing: -.03em; }
+
+.model-domain-panel {
+  margin: 16px 0;
+  padding: 26px;
+  border: 1px solid rgba(179, 195, 233, .22);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #17243d, #121d33);
+}
+.model-domain-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+  margin-top: 17px;
+}
+.model-domain-grid article {
+  min-height: 132px;
+  padding: 18px;
+  border: 1px solid rgba(179, 195, 233, .17);
+  border-radius: 13px;
+  background: rgba(35, 49, 78, .66);
+}
+.model-domain-grid article header { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; }
+.model-domain-grid article strong { color: #f4f6fb; font: 700 16px/1.35 var(--font-display); }
+.model-domain-grid article p { margin: 14px 0 0; color: #aeb9cf; font-size: 13px; line-height: 1.6; }
+
+.onboarding-module-map {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  width: 100%;
+  gap: 10px;
+  margin: 26px 0 18px;
+}
+.onboarding-module-map article {
+  min-height: 112px;
+  padding: 18px;
+  border: 1px solid rgba(179, 195, 233, .2);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #192641, #121c31);
+  text-align: left;
+}
+.onboarding-module-map article:nth-child(3),
+.onboarding-module-map article:nth-child(4),
+.onboarding-module-map article:nth-child(5) { border-top-color: rgba(148, 111, 255, .65); }
+.onboarding-module-map b { display: block; color: #f4f6fb; font: 700 15px var(--font-display); }
+.onboarding-module-map span { display: block; margin-top: 9px; color: #aab5ca; font-size: 12px; line-height: 1.5; }
+
+@media (max-width: 900px) {
+  .model-domain-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .onboarding-module-map { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 650px) {
+  .onboarding-v2 .onboarding-shell { width: calc(100% - 24px); }
+  .onboarding-questions > label { grid-template-columns: 36px minmax(0, 1fr); padding: 18px 15px; }
+  .onboarding-questions > label > b { width: 34px; height: 34px; }
+  .onboarding-questions > label > span { font-size: 16px; }
+  .onboarding-questions > label > textarea { grid-column: 1 / -1; }
+  .model-domain-grid, .onboarding-module-map { grid-template-columns: 1fr; }
+  .onboarding-module-map article { min-height: 0; }
+}

@@ -2,16 +2,14 @@
 
 Prototipo di Operational Decision Intelligence configurato sulle procedure di
 una singola azienda. Non impone un workflow di customer care, agenzia o back
-office: l’azienda descrive il proprio contesto, l’operazione da migliorare e la
-conoscenza disponibile; il sistema costruisce un primo modello operativo
-esplicito e verificabile.
+office: l’azienda descrive chi è, come lavora e ciò che sa già; il sistema
+costruisce una prima memoria operativa esplicita, modificabile e verificabile.
 
 ```text
-Company context + operation + knowledge
+Company context + operational activities + knowledge
 → context/privacy layer
-→ structured operational model
+→ structured operational memory
 → smart clarifications
-→ synthetic tests
 → active human-guided workspace
 ```
 
@@ -19,19 +17,20 @@ Non sono necessarie integrazioni o credenziali Shopify e il prototipo non esegue
 azioni esterne. La ricostruzione può funzionare con il motore locale gratuito
 oppure, quando configurato esplicitamente, con Claude tramite API Anthropic.
 
-## Onboarding 0–8
+## Onboarding 0–6
 
 Il percorso `/onboarding` salva progressivamente ogni passaggio in SQLite:
 
 0. benvenuto e creazione del workspace;
-1. contesto aziendale;
-2. prima operazione e obiettivo;
+1. identità essenziale dell’azienda;
+2. core business, attività operative e difficoltà interne;
 3. documenti o note operative facoltativi;
-4. strutturazione del modello;
-5. chiarimenti generati soltanto sui punti non univoci;
-6. review manageriale modificabile di case type, campi, sequenza, regole ed escalation;
-7. valutazione di tre scenari sintetici;
-8. attivazione del workspace con un livello di completezza non forzato al 100%.
+4. ricostruzione della memoria operativa;
+5. chiarimenti e revisione umana di aree, processi, campi, regole ed escalation;
+6. attivazione del workspace con un livello di completezza non forzato al 100%.
+
+La verifica tramite scenari non appesantisce più l’onboarding: verrà proposta
+successivamente come simulazione guidata usando la stessa memoria pubblicata.
 
 Gli upload supportano PDF, DOCX, TXT e MD. Il contenuto resta server-side; il
 browser riceve soltanto metadati e stato dell’elaborazione. La generazione con
@@ -47,7 +46,7 @@ quali processi debba usare un'azienda. Gli oggetti principali sono:
 - `Workspace` e relativo contesto aziendale;
 - `Operation` e modello operativo attivo;
 - `KnowledgeSource`;
-- `CaseType`, `Actor`, `System`, `Input`, `LifecycleStage` e `DecisionRule`;
+- `OperationalDomain`, `CaseType`, `Actor`, `System`, `Input`, `LifecycleStage` e `DecisionRule`;
 - `Exception`, `Escalation`, `Constraint`, `Outcome`, `Metric` e `FeedbackLoop`;
 - `Clarification` e `TestScenario`;
 - casi, messaggi, feedback e audit trail già presenti nel prodotto.
