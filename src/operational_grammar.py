@@ -217,7 +217,7 @@ def to_application_payload(payload: dict) -> dict:
         for item in ontology["inputs"]
     ]
     rules = [
-        {"id": item["id"], "label": item["name"], "statement": item["condition"], "condition": item["condition"], "action": item["action"], "source": "Claude operational reconstruction", "confidence": (item.get("provenance") or {}).get("confidence", 0), "status": "draft" if (item.get("provenance") or {}).get("requires_confirmation") else "active", "origin": origin(item), "evidence": (item.get("provenance") or {}).get("evidence") or [], "provenance": item.get("provenance") or {}}
+        {"id": item["id"], "label": item["name"], "statement": item["condition"], "condition": item["condition"], "action": item["action"], "source": "Ricostruzione operativa di Claude", "confidence": (item.get("provenance") or {}).get("confidence", 0), "status": "draft" if (item.get("provenance") or {}).get("requires_confirmation") else "active", "origin": origin(item), "evidence": (item.get("provenance") or {}).get("evidence") or [], "provenance": item.get("provenance") or {}}
         for item in ontology["decision_rules"]
     ]
     escalations = [
@@ -225,11 +225,11 @@ def to_application_payload(payload: dict) -> dict:
         for item in ontology["escalations"]
     ]
     clarifications = [
-        {"issue_type": item["id"], "question": item["question"], "options": item.get("options") or ["Add to the playbook", "Leave unresolved"], "details": {"issue": item["issue"], "evidence": item.get("evidence") or []}}
+        {"issue_type": item["id"], "question": item["question"], "options": item.get("options") or ["Aggiungi alla procedura", "Lascia irrisolto"], "details": {"issue": item["issue"], "evidence": item.get("evidence") or []}}
         for item in ontology["ambiguities"]
     ]
     clarifications.extend(
-        {"issue_type": item["id"], "question": item["question"], "options": ["Add the missing rule", "Keep as an open gap"], "details": {"topic": item["topic"], "why_it_matters": item["why_it_matters"], "blocking": item["blocking"]}}
+        {"issue_type": item["id"], "question": item["question"], "options": ["Aggiungi la regola mancante", "Mantieni il punto aperto"], "details": {"topic": item["topic"], "why_it_matters": item["why_it_matters"], "blocking": item["blocking"]}}
         for item in ontology["missing_knowledge"] if item["blocking"]
     )
     return {

@@ -274,7 +274,7 @@ def save_generated_model(workspace_id: str, operation_id: str, result: dict, *, 
 def set_generation_status(workspace_id: str, operation_id: str, status: str, *, path=None) -> None:
     """Persist the asynchronous generation state without storing provider errors."""
     if status not in {"draft", "processing", "review"}:
-        raise ValueError("Invalid operational model generation status.")
+        raise ValueError("Stato di generazione del modello operativo non valido.")
     with database.session(path) as conn:
         conn.execute(
             "UPDATE operations SET status = ?, updated_at = ? WHERE id = ? AND workspace_id = ?",
@@ -375,7 +375,7 @@ def complete_workspace(workspace_id: str, *, path=None) -> dict:
     workspace = get_workspace(workspace_id, path)
     operation = active_operation(workspace_id, path)
     if not workspace or not operation or not operation.get("operational_model"):
-        raise ValueError("Complete the operational model before entering the workspace.")
+        raise ValueError("Completa il modello operativo prima di entrare nello spazio di lavoro.")
     completeness = max(int(workspace.get("completeness") or 0), int(operation.get("completeness") or 0))
     update_workspace(
         workspace_id,

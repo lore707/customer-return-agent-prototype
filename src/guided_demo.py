@@ -1,9 +1,9 @@
-"""Due demo guidate end-to-end basate sul workflow operativo reale.
+"""Due demo guidate dall’inizio alla fine basate sul flusso operativo reale.
 
-Le demo usano dati sintetici e provider mock, ma fanno avanzare una vera
-ReturnCase attraverso la state machine e registrano ogni passaggio nell'audit
-trail. In questo modo il percorso guidato resta verificabile nel Workbench e
-nel Database senza eseguire azioni esterne.
+Le demo usano dati sintetici e servizi simulati, ma fanno avanzare una vera
+pratica attraverso la macchina a stati e registrano ogni passaggio nel registro
+delle attività. In questo modo il percorso guidato resta verificabile nell’area
+operativa e nell’archivio senza eseguire azioni esterne.
 """
 
 from __future__ import annotations
@@ -31,8 +31,8 @@ GUIDED_SCENARIOS = {
         "category": "doa",
         "eyebrow": "Caso 01 · DOA / Garanzia",
         "title": "Dal problema alla sostituzione",
-        "description": "Un prodotto smette di funzionare. Il sistema verifica cliente, garanzia e prove, poi coordina rientro, controllo e swap.",
-        "resolution": "Swap",
+        "description": "Un prodotto smette di funzionare. Il sistema verifica cliente, garanzia e prove, poi coordina rientro, controllo e sostituzione.",
+        "resolution": "Sostituzione",
         "lookup_method": "Email di conferma acquisto",
         "customer_history": {
             "orders_total": 5,
@@ -55,20 +55,20 @@ GUIDED_SCENARIOS = {
         "approved_response": "Ciao Davide, abbiamo verificato le prove e preso in carico la richiesta. Ti inviamo l’etichetta di reso; la sostituzione partirà dopo il rientro e il controllo del dispositivo.",
         "steps": [
             {"actor": "Cliente", "system": "Conversazione", "title": "Il cliente segnala il problema", "description": "L’aspirapolvere non si accende più e il cliente fornisce l’email della conferma d’acquisto.", "proof": "Richiesta acquisita", "action": "initial"},
-            {"actor": "Shopify", "system": "Customer lookup", "title": "Cliente e ordine identificati", "description": "La ricerca tramite email collega il cliente all’ordine #1015 e al prodotto corretto.", "proof": "Ordine #1015", "action": "identity_resolved"},
-            {"actor": "Shopify", "system": "Customer 360", "title": "Storico cliente verificato", "description": "Vengono controllati ordini, resi e sostituzioni precedenti, compresi quelli dello stesso SKU.", "proof": "5 ordini · storico regolare", "action": "history_loaded"},
-            {"actor": "Policy engine", "system": "Garanzia", "title": "Garanzia valida", "description": "Il prodotto è stato consegnato 25 giorni fa: rientra nei 730 giorni di garanzia.", "proof": "25 / 730 giorni", "action": "eligibility_checked"},
-            {"actor": "Operatore", "system": "Human gate", "title": "Richieste foto e video", "description": "La risposta preparata dall’AI viene approvata e chiede video del problema e foto del seriale.", "proof": "Prove obbligatorie", "action": "evidence_requested"},
-            {"actor": "Operatore", "system": "Evidence center", "title": "Prove ricevute e valutate", "description": "Il video mostra il difetto e il seriale coincide con il prodotto acquistato.", "proof": "2 allegati verificati", "action": "evidence_reviewed"},
-            {"actor": "Operatore", "system": "Human gate", "title": "Reso preso in carico", "description": "L’operatore approva la risposta finale. La pratica viene aperta con risoluzione proposta: swap.", "proof": "Approvazione umana", "action": "human_approved"},
-            {"actor": "Sendcloud + Shopify", "system": "Reverse logistics", "title": "Etichetta e tracking creati", "description": "Sendcloud genera l’etichetta mock e il tracking viene registrato nello snapshot Shopify.", "proof": "Etichetta creata", "action": "label_created"},
-            {"actor": "Corriere", "system": "Tracking", "title": "Il cliente spedisce il prodotto", "description": "Il tracking mock rileva la presa in carico e aggiorna automaticamente la pratica.", "proof": "Reso in transito", "action": "in_transit"},
-            {"actor": "Magazzino", "system": "Inbound", "title": "Il prodotto arriva in sede", "description": "L’arrivo viene registrato, ma swap e rimborso restano bloccati fino al test fisico.", "proof": "Arrivato · da testare", "action": "received"},
-            {"actor": "Operatore", "system": "Inspection", "title": "DOA confermato dal test", "description": "Condizioni, seriale, accessori e problema dichiarato vengono verificati fisicamente.", "proof": "Controllo superato", "action": "inspected"},
-            {"actor": "Shopify", "system": "Return processing", "title": "Reso chiuso senza rimborso", "description": "Il reso viene segnato come elaborato successivamente: nessun rimborso viene emesso.", "proof": "Rimborso €0", "action": "shopify_deferred"},
-            {"actor": "Shopify", "system": "Replacement order", "title": "Ordine sostitutivo creato", "description": "L’ordine originale viene duplicato per spedire lo stesso dispositivo al cliente.", "proof": "Nuovo ordine #1051", "action": "replacement_created"},
-            {"actor": "Make", "system": "Automation", "title": "Automazione logistica avviata", "description": "Make riceve il nuovo ordine e lo inoltra alla sede logistica senza intervento manuale.", "proof": "Scenario eseguito", "action": "make_triggered"},
-            {"actor": "Logistica", "system": "Fulfillment", "title": "Swap completato", "description": "La logistica prende in carico il sostitutivo e il database chiude la pratica con esito Swap.", "proof": "Chiuso · Swap", "action": "complete_swap"},
+            {"actor": "Shopify", "system": "Ricerca cliente", "title": "Cliente e ordine identificati", "description": "La ricerca tramite email collega il cliente all’ordine #1015 e al prodotto corretto.", "proof": "Ordine #1015", "action": "identity_resolved"},
+            {"actor": "Shopify", "system": "Profilo cliente", "title": "Storico cliente verificato", "description": "Vengono controllati ordini, resi e sostituzioni precedenti, compresi quelli dello stesso SKU.", "proof": "5 ordini · storico regolare", "action": "history_loaded"},
+            {"actor": "Motore delle regole", "system": "Garanzia", "title": "Garanzia valida", "description": "Il prodotto è stato consegnato 25 giorni fa: rientra nei 730 giorni di garanzia.", "proof": "25 / 730 giorni", "action": "eligibility_checked"},
+            {"actor": "Operatore", "system": "Controllo umano", "title": "Richieste foto e video", "description": "La risposta preparata dall’AI viene approvata e chiede video del problema e foto del seriale.", "proof": "Prove obbligatorie", "action": "evidence_requested"},
+            {"actor": "Operatore", "system": "Centro prove", "title": "Prove ricevute e valutate", "description": "Il video mostra il difetto e il seriale coincide con il prodotto acquistato.", "proof": "2 allegati verificati", "action": "evidence_reviewed"},
+            {"actor": "Operatore", "system": "Controllo umano", "title": "Reso preso in carico", "description": "L’operatore approva la risposta finale. La pratica viene aperta con risoluzione proposta: sostituzione.", "proof": "Approvazione umana", "action": "human_approved"},
+            {"actor": "Sendcloud + Shopify", "system": "Logistica inversa", "title": "Etichetta e tracciamento creati", "description": "Sendcloud genera l’etichetta simulata e il tracciamento viene registrato nella copia Shopify.", "proof": "Etichetta creata", "action": "label_created"},
+            {"actor": "Corriere", "system": "Tracciamento", "title": "Il cliente spedisce il prodotto", "description": "Il tracciamento simulato rileva la presa in carico e aggiorna automaticamente la pratica.", "proof": "Reso in transito", "action": "in_transit"},
+            {"actor": "Magazzino", "system": "Ricezione", "title": "Il prodotto arriva in sede", "description": "L’arrivo viene registrato, ma sostituzione e rimborso restano bloccati fino al controllo fisico.", "proof": "Arrivato · da controllare", "action": "received"},
+            {"actor": "Operatore", "system": "Controllo fisico", "title": "DOA confermato dal controllo", "description": "Condizioni, seriale, accessori e problema dichiarato vengono verificati fisicamente.", "proof": "Controllo superato", "action": "inspected"},
+            {"actor": "Shopify", "system": "Gestione del reso", "title": "Reso chiuso senza rimborso", "description": "Il reso viene segnato come elaborato successivamente: nessun rimborso viene emesso.", "proof": "Rimborso €0", "action": "shopify_deferred"},
+            {"actor": "Shopify", "system": "Ordine sostitutivo", "title": "Ordine sostitutivo creato", "description": "L’ordine originale viene duplicato per spedire lo stesso dispositivo al cliente.", "proof": "Nuovo ordine #1051", "action": "replacement_created"},
+            {"actor": "Make", "system": "Automazione", "title": "Automazione logistica avviata", "description": "Make riceve il nuovo ordine e lo inoltra alla sede logistica senza intervento manuale.", "proof": "Scenario eseguito", "action": "make_triggered"},
+            {"actor": "Logistica", "system": "Evasione", "title": "Sostituzione completata", "description": "La logistica prende in carico il sostitutivo e l’archivio chiude la pratica con esito Sostituzione.", "proof": "Chiuso · Sostituzione", "action": "complete_swap"},
         ],
     },
     "recesso": {
@@ -94,23 +94,23 @@ GUIDED_SCENARIOS = {
         "evidence": {
             "files": [],
             "assessment": "Foto/video non richiesti per il ripensamento",
-            "reviewed_by": "Policy engine",
+            "reviewed_by": "Motore delle regole",
         },
         "draft": "Ciao Anna, la richiesta per l’ordine #1008 rientra nei 14 giorni previsti. Il rimborso verrà elaborato dopo il rientro e il controllo del prodotto.",
         "approved_response": "Ciao Anna, abbiamo preso in carico il recesso dell’ordine #1008. Ti inviamo l’etichetta da applicare sull’imballo esterno. Il costo di €7,90 sarà detratto dal rimborso.",
         "steps": [
             {"actor": "Cliente", "system": "Conversazione", "title": "Il cliente chiede il recesso", "description": "Il prodotto funziona, ma il cliente ha cambiato idea e comunica il numero d’ordine.", "proof": "Richiesta acquisita", "action": "initial"},
-            {"actor": "Shopify", "system": "Order lookup", "title": "Ordine identificato", "description": "Shopify collega l’ordine #1008 al cliente e recupera prodotto, pagamento e consegna.", "proof": "Ordine #1008", "action": "identity_resolved"},
-            {"actor": "Shopify", "system": "Customer 360", "title": "Storico cliente verificato", "description": "Il sistema controlla ordini, resi e sostituzioni precedenti prima della decisione.", "proof": "2 ordini · 0 resi", "action": "history_loaded"},
-            {"actor": "Policy engine", "system": "Recesso", "title": "Richiesta entro i termini", "description": "Sono trascorsi 4 giorni dalla consegna: il recesso rientra nella finestra di 14 giorni.", "proof": "4 / 14 giorni", "action": "eligibility_checked"},
-            {"actor": "AI", "system": "Draft", "title": "Risposta pronta per la revisione", "description": "L’AI prepara la risposta, ma non può inviarla né autorizzare il rimborso.", "proof": "Bozza generata", "action": "draft_ready"},
-            {"actor": "Operatore", "system": "Human gate", "title": "Reso preso in carico", "description": "L’operatore approva la risposta e conferma al cliente condizioni e costo dell’etichetta.", "proof": "Approvazione umana", "action": "human_approved"},
-            {"actor": "Sendcloud + Shopify", "system": "Reverse logistics", "title": "Etichetta e tracking creati", "description": "L’etichetta mock viene creata e il tracking viene associato all’ordine Shopify.", "proof": "Costo €7,90", "action": "label_created"},
-            {"actor": "Corriere", "system": "Tracking", "title": "Il cliente spedisce il prodotto", "description": "Il tracking mock registra la presa in carico del pacco di reso.", "proof": "Reso in transito", "action": "in_transit"},
-            {"actor": "Magazzino", "system": "Inbound", "title": "Il prodotto arriva in sede", "description": "L’arrivo non autorizza ancora il rimborso: il prodotto deve essere controllato.", "proof": "Arrivato · da controllare", "action": "received"},
-            {"actor": "Operatore", "system": "Inspection", "title": "Condizioni del reso verificate", "description": "Prodotto, accessori, seriale e confezione risultano integri e rivendibili.", "proof": "Reso conforme", "action": "inspected"},
-            {"actor": "Shopify", "system": "Refund", "title": "Rimborso predisposto", "description": "Il reso viene chiuso e il rimborso viene preparato al netto del costo di spedizione.", "proof": "€149,90 − €7,90", "action": "refund_pending"},
-            {"actor": "Shopify", "system": "Refund", "title": "Rimborso completato", "description": "Il rimborso mock di €142,00 viene registrato e il database chiude la pratica.", "proof": "Chiuso · Rimborso", "action": "complete_refund"},
+            {"actor": "Shopify", "system": "Ricerca ordine", "title": "Ordine identificato", "description": "Shopify collega l’ordine #1008 al cliente e recupera prodotto, pagamento e consegna.", "proof": "Ordine #1008", "action": "identity_resolved"},
+            {"actor": "Shopify", "system": "Profilo cliente", "title": "Storico cliente verificato", "description": "Il sistema controlla ordini, resi e sostituzioni precedenti prima della decisione.", "proof": "2 ordini · 0 resi", "action": "history_loaded"},
+            {"actor": "Motore delle regole", "system": "Recesso", "title": "Richiesta entro i termini", "description": "Sono trascorsi 4 giorni dalla consegna: il recesso rientra nella finestra di 14 giorni.", "proof": "4 / 14 giorni", "action": "eligibility_checked"},
+            {"actor": "AI", "system": "Bozza", "title": "Risposta pronta per la revisione", "description": "L’AI prepara la risposta, ma non può inviarla né autorizzare il rimborso.", "proof": "Bozza generata", "action": "draft_ready"},
+            {"actor": "Operatore", "system": "Controllo umano", "title": "Reso preso in carico", "description": "L’operatore approva la risposta e conferma al cliente condizioni e costo dell’etichetta.", "proof": "Approvazione umana", "action": "human_approved"},
+            {"actor": "Sendcloud + Shopify", "system": "Logistica inversa", "title": "Etichetta e tracciamento creati", "description": "L’etichetta simulata viene creata e il tracciamento viene associato all’ordine Shopify.", "proof": "Costo €7,90", "action": "label_created"},
+            {"actor": "Corriere", "system": "Tracciamento", "title": "Il cliente spedisce il prodotto", "description": "Il tracciamento simulato registra la presa in carico del pacco di reso.", "proof": "Reso in transito", "action": "in_transit"},
+            {"actor": "Magazzino", "system": "Ricezione", "title": "Il prodotto arriva in sede", "description": "L’arrivo non autorizza ancora il rimborso: il prodotto deve essere controllato.", "proof": "Arrivato · da controllare", "action": "received"},
+            {"actor": "Operatore", "system": "Controllo fisico", "title": "Condizioni del reso verificate", "description": "Prodotto, accessori, seriale e confezione risultano integri e rivendibili.", "proof": "Reso conforme", "action": "inspected"},
+            {"actor": "Shopify", "system": "Rimborso", "title": "Rimborso predisposto", "description": "Il reso viene chiuso e il rimborso viene preparato al netto del costo di spedizione.", "proof": "€149,90 − €7,90", "action": "refund_pending"},
+            {"actor": "Shopify", "system": "Rimborso", "title": "Rimborso completato", "description": "Il rimborso simulato di €142,00 viene registrato e l’archivio chiude la pratica.", "proof": "Chiuso · Rimborso", "action": "complete_refund"},
         ],
     },
 }
@@ -167,7 +167,7 @@ def _decision(scenario: dict, order: dict, *, evidence_received: bool = False) -
 def _integration_state() -> dict:
     return {
         "shopify": {"label": "Shopify", "status": "pending", "detail": "In attesa"},
-        "database": {"label": "Database", "status": "complete", "detail": "Pratica creata"},
+        "database": {"label": "Archivio", "status": "complete", "detail": "Pratica creata"},
         "sendcloud": {"label": "Sendcloud", "status": "pending", "detail": "In attesa"},
         "make": {"label": "Make", "status": "pending", "detail": "In attesa"},
         "logistics": {"label": "Logistica", "status": "pending", "detail": "In attesa"},
@@ -213,7 +213,7 @@ def start(slug: str, *, path=None) -> dict:
             "suggested_resolution": "pending_analysis",
             "original_suggested_response": scenario["draft"],
             "analysis_duration_ms": 940,
-            "data_source": "Shopify demo dataset",
+            "data_source": "Archivio dimostrativo Shopify",
             "source_mode": "recorded_fixture",
             "source_fetched_at": manifest.get("completed_at") or manifest.get("created_at"),
             "source_payload": {
@@ -377,8 +377,8 @@ def _apply_step(return_case: dict, scenario: dict, step: dict, *, path=None) -> 
         shipment = return_shipping.get_provider().create_return(return_case)
         integrations = _merge_integrations(
             return_case,
-            sendcloud={"status": "complete", "detail": "Etichetta mock creata"},
-            shopify={"status": "complete", "detail": "Tracking associato all’ordine"},
+            sendcloud={"status": "complete", "detail": "Etichetta simulata creata"},
+            shopify={"status": "complete", "detail": "Tracciamento associato all’ordine"},
         )
         database.update_case(
             case_id,
@@ -529,7 +529,7 @@ def _apply_step(return_case: dict, scenario: dict, step: dict, *, path=None) -> 
     if action == "complete_refund":
         integrations = _merge_integrations(
             return_case,
-            shopify={"status": "complete", "detail": "Rimborso mock €142,00"},
+            shopify={"status": "complete", "detail": "Rimborso simulato €142,00"},
             logistics={"status": "complete", "detail": "Prodotto rientrato"},
             database={"status": "complete", "detail": "Chiuso · Rimborso"},
         )

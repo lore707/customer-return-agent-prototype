@@ -13,12 +13,12 @@ from context_privacy import _redact
 
 
 GENERIC_OUTCOMES = {
-    "informazioni_richieste": "Information requested",
-    "assegnato": "Assigned",
-    "approvato": "Approved",
-    "rifiutato": "Rejected",
-    "escalation": "Escalated",
-    "completato": "Completed",
+    "informazioni_richieste": "Informazioni richieste",
+    "assegnato": "Assegnato",
+    "approvato": "Approvato",
+    "rifiutato": "Rifiutato",
+    "escalation": "Inoltrato al responsabile",
+    "completato": "Completato",
 }
 
 
@@ -62,9 +62,9 @@ def _field_definitions(model: dict) -> dict:
     return {
         item["id"]: {
             "label": item["label"],
-            "question": f"Is {item['label'].lower()} available and verified for this case?",
+            "question": f"L’informazione «{item['label'].lower()}» è disponibile e verificata per questo caso?",
             "type": "choice",
-            "options": [["available", "Available"], ["missing", "Missing"], ["not_applicable", "Not applicable"]],
+            "options": [["available", "Disponibile"], ["missing", "Mancante"], ["not_applicable", "Non applicabile"]],
         }
         for item in model.get("required_fields") or []
     }
@@ -85,7 +85,7 @@ def _evaluate(case_type: dict, facts: dict, model: dict) -> dict:
             "eligibility": "needs_information",
             "outcome": "raccogli_contesto",
             "rule_id": "INTAKE-01",
-            "motivation": f"{len(missing)} required fields still need verification.",
+            "motivation": f"Devono ancora essere verificate {len(missing)} informazioni necessarie.",
             "next_action": fields[missing[0]]["question"],
             "draft": None,
         }
@@ -96,37 +96,37 @@ def _evaluate(case_type: dict, facts: dict, model: dict) -> dict:
             "eligibility": "needs_information",
             "outcome": "informazioni_richieste",
             "rule_id": "INTAKE-02",
-            "motivation": f"The case cannot proceed until the missing information is supplied: {', '.join(unavailable)}.",
-            "next_action": "Ask for the missing information.",
-            "draft": f"Thanks for the request. Before we can confirm the next step, we need: {', '.join(unavailable)}. Once available, the case can be reviewed against the playbook.",
+            "motivation": f"Il caso non può proseguire finché non vengono fornite queste informazioni: {', '.join(unavailable)}.",
+            "next_action": "Richiedere le informazioni mancanti.",
+            "draft": f"Grazie per la richiesta. Prima di confermare il prossimo passaggio ci servono: {', '.join(unavailable)}. Quando saranno disponibili, potremo verificare il caso rispetto alla procedura.",
         }
     if case_type.get("id") in {"exception", "urgent", "budget_exception", "incomplete_escalation", "unclassified_operation"}:
-        escalation = (model.get("escalations") or [{"owner": "Process owner", "action": "Escalate for review."}])[0]
+        escalation = (model.get("escalations") or [{"owner": "Responsabile del processo", "action": "Sottoporre il caso a revisione."}])[0]
         return {
             **base,
             "eligibility": "manual_review",
             "outcome": "escalation",
             "rule_id": escalation.get("id") or "ESC-01",
-            "motivation": escalation.get("trigger") or "This case requires explicit ownership outside the standard path.",
-            "next_action": escalation.get("action") or f"Escalate to {escalation.get('owner', 'the process owner')}.",
-            "draft": f"The request has been structured and the required information is available. Because it falls outside the standard path, it should now be reviewed by {escalation.get('owner', 'the process owner')}.",
+            "motivation": escalation.get("trigger") or "Questo caso richiede una responsabilità esplicita fuori dal percorso standard.",
+            "next_action": escalation.get("action") or f"Sottoporre il caso a {escalation.get('owner', 'responsabile del processo')}.",
+            "draft": f"La richiesta è stata strutturata e le informazioni necessarie sono disponibili. Poiché non rientra nel percorso standard, deve essere revisionata da {escalation.get('owner', 'responsabile del processo')}.",
         }
-    rule = (model.get("rules") or [{"id": "RULE-01", "statement": "Follow the reviewed playbook.", "action": "Proceed with human confirmation."}])[0]
+    rule = (model.get("rules") or [{"id": "RULE-01", "statement": "Seguire la procedura revisionata.", "action": "Procedere con la conferma umana."}])[0]
     return {
         **base,
         "eligibility": "eligible",
         "outcome": "approvato",
         "rule_id": rule.get("id") or "RULE-01",
-        "motivation": rule.get("statement") or "The case follows the reviewed standard path.",
-        "next_action": rule.get("action") or "Proceed with human confirmation.",
-        "draft": "The request has been reviewed against the current playbook. The required information is complete and the recommended next action is ready for human confirmation.",
+        "motivation": rule.get("statement") or "Il caso segue il percorso standard revisionato.",
+        "next_action": rule.get("action") or "Procedere con la conferma umana.",
+        "draft": "La richiesta è stata verificata rispetto alla procedura attiva. Le informazioni necessarie sono complete e la prossima azione consigliata è pronta per la conferma umana.",
     }
 
 
-def create_case(message: str, operation: dict, *, operator: str = "Workspace operator", path=None) -> dict:
+def create_case(message: str, operation: dict, *, operator: str = "Operatore dello spazio di lavoro", path=None) -> dict:
     model = operation.get("operational_model") or {}
     if not model.get("operation"):
-        raise ValueError("This operation does not have an active operational model.")
+        raise ValueError("Questa operazione non dispone di un modello operativo attivo.")
     sanitized, redactions = _redact(message)
     sanitized = sanitized[:5000]
     case_type = _case_type(sanitized, model)
@@ -148,7 +148,7 @@ def create_case(message: str, operation: dict, *, operator: str = "Workspace ope
             "suggested_resolution": result["outcome"],
             "original_suggested_response": result["draft"],
             "analysis_duration_ms": 480,
-            "data_source": "Operator input",
+            "data_source": "Inserimento dell’operatore",
             "source_mode": "policy_copilot_configured",
             "workflow_key": workflow_key(operation["id"]),
             "source_fetched_at": database.utc_now(),
@@ -180,11 +180,11 @@ def update_fact(case_id: str, field: str, raw_value, *, path=None) -> dict:
     model = operation.get("operational_model") or {}
     definitions = _field_definitions(model)
     if field not in definitions:
-        raise ValueError("This information is not part of the active playbook.")
+        raise ValueError("Questa informazione non fa parte della procedura attiva.")
     value = str(raw_value or "")
     allowed = {item[0] for item in definitions[field]["options"]}
     if value not in allowed:
-        raise ValueError("Select one of the available values.")
+        raise ValueError("Seleziona uno dei valori disponibili.")
     facts = {**(case.get("case_facts") or {}), field: value}
     case_type = (case.get("policy_decision") or {}).get("case_type") or _case_type(case["customer_message"], model)
     result = _evaluate(case_type, facts, model)
@@ -227,18 +227,18 @@ def view_model(case: dict) -> dict:
     case_type = decision.get("case_type") or {}
     workflow = {
         "key": case.get("workflow_key"),
-        "label": (model.get("operation") or {}).get("name") or "Configured operation",
-        "short": "Company playbook",
+        "label": (model.get("operation") or {}).get("name") or "Operazione configurata",
+        "short": "Procedura aziendale",
         "description": (model.get("operation") or {}).get("purpose") or "",
-        "input_label": "Operational request",
-        "output_label": "Recommended next action",
-        "playbook": (model.get("operation") or {}).get("name") or "Active playbook",
+        "input_label": "Richiesta operativa",
+        "output_label": "Prossima azione consigliata",
+        "playbook": (model.get("operation") or {}).get("name") or "Procedura attiva",
         "examples": [],
     }
     return {
         "case": case,
         "question": question,
-        "category_label": case_type.get("name") or case.get("return_reason", "Operational case").replace("_", " ").title(),
+        "category_label": case_type.get("name") or case.get("return_reason", "Caso operativo").replace("_", " ").title(),
         "outcome_labels": GENERIC_OUTCOMES,
         "workflow": workflow,
         "fact_rows": fact_rows,
@@ -247,6 +247,6 @@ def view_model(case: dict) -> dict:
 
 def operation_labels(path=None) -> dict[str, str]:
     return {
-        workflow_key(operation["id"]): (operation.get("operational_model") or {}).get("operation", {}).get("name") or operation.get("name") or "Configured operation"
+        workflow_key(operation["id"]): (operation.get("operational_model") or {}).get("operation", {}).get("name") or operation.get("name") or "Operazione configurata"
         for operation in onboarding_store.list_operations(path=path)
     }

@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="dark">
-  <title>{{ scenario.title }} · Return Agent</title>
+  <title>{{ scenario.title }} · Assistente resi</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
@@ -13,9 +13,9 @@
 <body class="guided-body guided-{{ scenario.slug }}">
   <div class="guided-glow guided-glow-one"></div><div class="guided-glow guided-glow-two"></div>
   <header class="guided-nav">
-    <a class="landing-brand" href="{{ url_for('index') }}"><span>R</span><strong>Return Agent</strong></a>
+    <a class="landing-brand" href="{{ url_for('index') }}"><span>R</span><strong>Assistente resi</strong></a>
     <div class="guided-nav-center"><span class="guided-live"><i></i> Demo guidata</span><b>{{ scenario.eyebrow }}</b></div>
-    <a class="button ghost" href="{{ url_for('dashboard') }}">Esplora la sandbox <span>→</span></a>
+    <a class="button ghost" href="{{ url_for('dashboard') }}">Esplora l’area dimostrativa <span>→</span></a>
   </header>
 
   <main class="guided-main">
@@ -45,8 +45,8 @@
         <div class="guided-focus-top"><span class="guided-actor" id="activeActor">Sistema</span><span class="guided-system" id="activeSystem">Preparazione</span></div>
         <div class="guided-focus-copy">
           <span class="guided-step-number" id="activeNumber">00</span>
-          <h2 id="activeTitle">Preparazione del workflow</h2>
-          <p id="activeDescription">Stiamo creando una pratica verificabile nel database.</p>
+          <h2 id="activeTitle">Preparazione del flusso</h2>
+          <p id="activeDescription">Stiamo creando una pratica verificabile nell’archivio.</p>
           <div class="guided-proof" id="activeProof">Demo sicura</div>
         </div>
         <div class="guided-case-state">
@@ -57,7 +57,7 @@
       </article>
 
       <article class="guided-flow-card">
-        <div class="guided-card-head"><div><span class="section-label">Live workflow</span><h2>Passaggi operativi</h2></div><span class="guided-auto-status" id="autoStatus"><i></i> Autoplay attivo</span></div>
+        <div class="guided-card-head"><div><span class="section-label">Flusso in esecuzione</span><h2>Passaggi operativi</h2></div><span class="guided-auto-status" id="autoStatus"><i></i> Riproduzione automatica</span></div>
         <div class="guided-step-list" id="guidedStepList">
           {% for step in scenario.steps %}<div data-step-index="{{ loop.index0 }}"><span>{{ '%02d'|format(loop.index) }}</span><div><strong>{{ step.title }}</strong><small>{{ step.actor }} · {{ step.system }}</small></div><i></i></div>{% endfor %}
         </div>
@@ -75,37 +75,37 @@
       </article>
 
       <article class="guided-data-card">
-        <div class="guided-card-head"><div><span class="section-label">Customer 360</span><h2>Storico cliente</h2></div><span class="integration-pill" id="historyAssessment">Non verificato</span></div>
+        <div class="guided-card-head"><div><span class="section-label">Profilo cliente</span><h2>Storico cliente</h2></div><span class="integration-pill" id="historyAssessment">Non verificato</span></div>
         <div class="guided-history locked" id="historyGrid"><div><strong>—</strong><span>Ordini</span></div><div><strong>—</strong><span>Resi</span></div><div><strong>—</strong><span>Swap</span></div><div><strong>—</strong><span>Stesso SKU</span></div></div>
         <p class="guided-data-note" id="historyNote">Lo storico apparirà dopo l’identificazione del cliente.</p>
       </article>
 
       <article class="guided-data-card">
-        <div class="guided-card-head"><div><span class="section-label">Evidence &amp; inspection</span><h2>Prove e controllo fisico</h2></div><span class="integration-pill" id="evidenceAssessment">In attesa</span></div>
+        <div class="guided-card-head"><div><span class="section-label">Prove e verifica</span><h2>Prove e controllo fisico</h2></div><span class="integration-pill" id="evidenceAssessment">In attesa</span></div>
         <div class="guided-files" id="evidenceFiles"><p>Nessuna prova ancora disponibile.</p></div>
         <div class="guided-checks" id="inspectionChecks"><span>Condizioni prodotto</span><span>Seriale e accessori</span><span>Confezione</span></div>
       </article>
 
       <article class="guided-data-card integrations-card">
-        <div class="guided-card-head"><div><span class="section-label">Orchestration</span><h2>Stato integrazioni</h2></div><span class="demo-safe-chip">Solo mock</span></div>
+        <div class="guided-card-head"><div><span class="section-label">Coordinamento</span><h2>Stato integrazioni</h2></div><span class="demo-safe-chip">Solo simulazione</span></div>
         <div class="guided-integrations" id="integrationList"></div>
       </article>
     </section>
 
     <section class="guided-audit-card">
-      <div class="guided-card-head"><div><span class="section-label">Audit trail</span><h2>Ogni azione lascia una prova</h2></div><span id="auditCount">0 eventi</span></div>
+      <div class="guided-card-head"><div><span class="section-label">Registro delle attività</span><h2>Ogni azione lascia una prova</h2></div><span id="auditCount">0 eventi</span></div>
       <div class="guided-audit-list" id="auditList"><p>Gli eventi compariranno durante l’esecuzione.</p></div>
     </section>
 
     <section class="guided-complete hidden" id="completeCard">
       <div class="guided-complete-mark">✓</div>
-      <div><span class="landing-eyebrow">Workflow completato</span><h2>La pratica è stata chiusa con esito {{ scenario.resolution }}.</h2><p>Il percorso ha usato la macchina a stati reale, registrando decisioni, passaggi umani e integrazioni simulate nel database.</p></div>
-      <div class="guided-result-metrics"><span><strong>{{ scenario.steps|length }}</strong><small>passaggi</small></span><span><strong>5</strong><small>sistemi coordinati</small></span><span><strong>1</strong><small>human gate</small></span><span><strong>0</strong><small>azioni reali</small></span></div>
-      <div class="guided-complete-actions"><a class="button primary large" id="openWorkbench" href="#">Apri nel Workbench</a><a class="button ghost large" href="{{ url_for('database_register') }}">Consulta il database</a></div>
+      <div><span class="landing-eyebrow">Flusso completato</span><h2>La pratica è stata chiusa con esito {{ scenario.resolution }}.</h2><p>Il percorso ha usato la macchina a stati reale, registrando decisioni, passaggi umani e integrazioni simulate nell’archivio.</p></div>
+      <div class="guided-result-metrics"><span><strong>{{ scenario.steps|length }}</strong><small>passaggi</small></span><span><strong>5</strong><small>sistemi coordinati</small></span><span><strong>1</strong><small>controllo umano</small></span><span><strong>0</strong><small>azioni reali</small></span></div>
+      <div class="guided-complete-actions"><a class="button primary large" id="openWorkbench" href="#">Apri nell’area operativa</a><a class="button ghost large" href="{{ url_for('database_register') }}">Consulta l’archivio</a></div>
     </section>
   </main>
 
-  <footer class="guided-footer"><span>Dati sintetici · Shopify snapshot · Sendcloud e Make mock</span><span>Puoi mettere in pausa e ispezionare ogni passaggio.</span></footer>
+  <footer class="guided-footer"><span>Dati sintetici · copia Shopify · Sendcloud e Make simulati</span><span>Puoi mettere in pausa e ispezionare ogni passaggio.</span></footer>
 
   <script>
     const scenarioSlug = {{ scenario.slug|tojson }};
@@ -261,7 +261,7 @@
     function updateControls() {
       $("toggleDemo").innerHTML = playing ? "Ⅱ <span>Pausa</span>" : "▶ <span>Riprendi</span>";
       $("toggleDemo").setAttribute("aria-label", playing ? "Metti in pausa" : "Riprendi demo");
-      $("autoStatus").innerHTML = playing ? "<i></i> Autoplay attivo" : "<i></i> Demo in pausa";
+      $("autoStatus").innerHTML = playing ? "<i></i> Riproduzione automatica" : "<i></i> Demo in pausa";
       $("autoStatus").classList.toggle("paused", !playing);
     }
 

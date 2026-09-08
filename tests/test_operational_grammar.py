@@ -119,7 +119,7 @@ class OperationalGrammarTests(unittest.TestCase):
     def test_provider_validation_error_has_safe_public_message(self):
         code, message = public_provider_error(ValueError("Invalid operational grammar"))
         self.assertEqual("invalid_model", code)
-        self.assertIn("did not pass validation", message)
+        self.assertIn("non ha superato la validazione", message)
 
     def test_schema_uses_supported_compact_shape(self):
         value = json.dumps(operational_grammar.schema())

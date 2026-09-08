@@ -1,8 +1,8 @@
 {% extends "base.html" %}
 
-{% block title %}Workbench · Ops Copilot{% endblock %}
+{% block title %}Area operativa · Ops Copilot{% endblock %}
 {% block page_kicker %}Area operativa{% endblock %}
-{% block page_title %}Workbench{% endblock %}
+{% block page_title %}Area operativa{% endblock %}
 {% block page_subtitle %}Trasforma una richiesta non strutturata in un caso, una decisione e una prossima azione verificabile.{% endblock %}
 {% block header_actions %}
   {% if case %}<a class="button ghost" href="{{ url_for('workbench') }}">+ Nuovo caso</a>{% endif %}
@@ -15,20 +15,20 @@
 
 {% if not case %}
   <section class="copilot-start" aria-labelledby="workbench-title">
-    <span class="sr-only">AI draft response</span>
+    <span class="sr-only">Bozza di risposta generata dall’AI</span>
     <div class="copilot-start-icon" aria-hidden="true">✦</div>
     <span class="section-label">Nuova analisi</span>
     <h2 id="workbench-title">Quale richiesta vuoi trasformare in un caso?</h2>
     {% if configured_operation %}
-      <p>Incolla una comunicazione o una nota. Verrà analizzata usando l’operazione e il playbook configurati dalla tua azienda.</p>
+      <p>Incolla una comunicazione o una nota. Verrà analizzata usando l’operazione e la procedura configurate dalla tua azienda.</p>
       <div class="configured-operation-card">
-        <span>PLAYBOOK ATTIVO</span>
+        <span>PROCEDURA ATTIVA</span>
         <div><strong>{{ workflows[selected_workflow].label }}</strong><small>{{ workflows[selected_workflow].description }}</small></div>
-        <a href="{{ url_for('playbooks') }}">Review →</a>
+        <a href="{{ url_for('playbooks') }}">Rivedi →</a>
       </div>
     {% else %}
-      <p>Questa è la sandbox dimostrativa. Scegli un workflow e incolla una comunicazione o una nota.</p>
-    <div class="workflow-picker" role="group" aria-label="Seleziona il workflow demo">
+      <p>Questa è l’area dimostrativa. Scegli un flusso e incolla una comunicazione o una nota.</p>
+    <div class="workflow-picker" role="group" aria-label="Seleziona il flusso dimostrativo">
       {% for key, item in workflows.items() %}
         <button type="button" data-workflow="{{ key }}" class="{% if key == selected_workflow %}active{% endif %}">
           <span>0{{ loop.index }}</span><strong>{{ item.label }}</strong><small>{{ item.short }}</small>
@@ -52,7 +52,7 @@
       <div class="copilot-recent-grid">
         {% for item in recent_cases %}
           <a href="{{ url_for('workbench_case', case_id=item.id) }}">
-            <span>{{ workflow_labels.get(item.workflow_key or 'customer_care', 'Operational workflow') }} · {{ category_labels.get(item.return_reason, item.return_reason.replace('_', ' ')|title) }}</span>
+            <span>{{ workflow_labels.get(item.workflow_key or 'customer_care', 'Flusso operativo') }} · {{ category_labels.get(item.return_reason, item.return_reason.replace('_', ' ')|title) }}</span>
             <strong>{{ item.customer_message|truncate(82) }}</strong>
             <small>{{ item.id }} · {{ status_labels.get(item.status, item.status) }}</small>
           </a>
@@ -69,7 +69,7 @@
         <p>{{ workflow.label }} · {{ case.id }} · creato {{ case.created_at[8:10] }}/{{ case.created_at[5:7] }} alle {{ case.created_at[11:16] }}</p>
       </div>
       <div class="copilot-case-badges">
-        {% if (case.source_mode or '').startswith('policy_copilot') %}<span class="privacy-badge">● Identificatori comuni rimossi</span>{% else %}<span class="soft-badge">Scenario portfolio legacy</span>{% endif %}
+        {% if (case.source_mode or '').startswith('policy_copilot') %}<span class="privacy-badge">● Identificatori comuni rimossi</span>{% else %}<span class="soft-badge">Scenario dimostrativo precedente</span>{% endif %}
         <span class="status status-{{ case.status|lower }}">{{ status_labels.get(case.status, case.status) }}</span>
       </div>
     </header>
@@ -81,7 +81,7 @@
             <article class="copilot-message {{ message.role }}">
               <div class="copilot-avatar">{% if message.role == 'cliente' %}C{% else %}O{% endif %}</div>
               <div>
-                <small>{% if message.role == 'cliente' %}{{ workflow.input_label }}{% else %}Output approvato dall’operatore{% endif %} · {{ message.created_at[11:16] }}</small>
+                <small>{% if message.role == 'cliente' %}{{ workflow.input_label }}{% else %}Risultato approvato dall’operatore{% endif %} · {{ message.created_at[11:16] }}</small>
                 <p>{{ message.message }}</p>
               </div>
             </article>
@@ -118,10 +118,10 @@
                 <section class="copilot-decision">
                   <div class="copilot-decision-head">
                     <div><span class="section-label">Decisione proposta</span><h3>{{ decision.next_action or 'Revisione dell’operatore' }}</h3></div>
-                    <span class="eligibility eligibility-{{ case.eligibility_result }}">{{ case.eligibility_result.replace('_', ' ') }}</span>
+                    <span class="eligibility eligibility-{{ case.eligibility_result }}">{{ eligibility_labels.get(case.eligibility_result, case.eligibility_result.replace('_', ' ')) }}</span>
                   </div>
                   <p>{{ decision.motivation or case.policy_applied }}</p>
-                  <div class="copilot-rule-proof"><span>Regola applicata</span><strong>{{ decision.rule_id or 'Revisione manuale' }}</strong><a href="{{ url_for('playbooks', playbook=workflow.key) }}">Apri playbook →</a></div>
+                  <div class="copilot-rule-proof"><span>Regola applicata</span><strong>{{ decision.rule_id or 'Revisione manuale' }}</strong><a href="{{ url_for('playbooks', playbook=workflow.key) }}">Apri procedura →</a></div>
                 </section>
 
                 <section class="copilot-draft">
@@ -135,13 +135,13 @@
 
                 <section class="copilot-outcome {% if not case.actual_outcome %}hidden{% endif %}" id="outcomePanel">
                   <span class="section-label">Cosa è successo davvero?</span>
-                  <h3>Chiudi il ciclo e alimenta gli Analytics</h3>
+                  <h3>Chiudi il ciclo e alimenta le analisi</h3>
                   <p>Il sistema non esegue operazioni esterne: registra soltanto l’esito indicato dalla persona responsabile.</p>
                   <div class="copilot-outcome-grid">
                     {% for value, label in outcome_labels.items() %}<button type="button" data-outcome="{{ value }}" class="{% if case.actual_outcome == value %}active{% endif %}">{{ label }}</button>{% endfor %}
                   </div>
                   <label class="copilot-check"><input id="draftModified" type="checkbox" {% if case.human_decision == 'modified_and_approved' %}checked{% endif %}> Ho modificato la bozza prima di usarla</label>
-                  <label class="copilot-field">Motivo della modifica <span>facoltativo, ma rende utili gli Analytics</span><select id="outcomeReason"><option value="">Nessun motivo</option><option value="tone_style" {% if case.human_reason == 'tone_style' %}selected{% endif %}>Tono e stile</option><option value="missing_information" {% if case.human_reason == 'missing_information' %}selected{% endif %}>Informazioni mancanti</option><option value="policy_interpretation" {% if case.human_reason == 'policy_interpretation' %}selected{% endif %}>Interpretazione policy</option><option value="too_verbose" {% if case.human_reason == 'too_verbose' %}selected{% endif %}>Troppo prolissa</option><option value="incorrect_action" {% if case.human_reason == 'incorrect_action' %}selected{% endif %}>Azione non corretta</option><option value="other" {% if case.human_reason == 'other' %}selected{% endif %}>Altro</option></select></label>
+                  <label class="copilot-field">Motivo della modifica <span>facoltativo, ma rende utili le analisi</span><select id="outcomeReason"><option value="">Nessun motivo</option><option value="tone_style" {% if case.human_reason == 'tone_style' %}selected{% endif %}>Tono e stile</option><option value="missing_information" {% if case.human_reason == 'missing_information' %}selected{% endif %}>Informazioni mancanti</option><option value="policy_interpretation" {% if case.human_reason == 'policy_interpretation' %}selected{% endif %}>Interpretazione della procedura</option><option value="too_verbose" {% if case.human_reason == 'too_verbose' %}selected{% endif %}>Troppo prolissa</option><option value="incorrect_action" {% if case.human_reason == 'incorrect_action' %}selected{% endif %}>Azione non corretta</option><option value="other" {% if case.human_reason == 'other' %}selected{% endif %}>Altro</option></select></label>
                 </section>
               {% endif %}
             </div>
@@ -173,19 +173,19 @@
             <h3>Casi disponibili</h3>
             <p>Solo messaggi inviati</p>
             <strong>Dati Shopify usati nella decisione</strong>
-            <small>Snapshot ordine verificabile</small>
+            <small>Copia verificabile dell’ordine</small>
             <dl class="copilot-facts">
               <div><dt>Ordine</dt><dd>#{{ case.shopify_order_number or '—' }}</dd></div>
               <div><dt>SKU</dt><dd>{{ case.sku or '—' }}</dd></div>
             </dl>
-            {% if case.customer_history %}<strong>Customer 360</strong><p>{{ case.customer_history.orders_total }} ordini · {{ case.customer_history.returns_total }} resi</p>{% endif %}
+            {% if case.customer_history %}<strong>Profilo cliente</strong><p>{{ case.customer_history.orders_total }} ordini · {{ case.customer_history.returns_total }} resi</p>{% endif %}
             {% if case.replacement_order_number %}<strong>Ordine sostitutivo Shopify</strong><p>#{{ case.replacement_order_number }}</p>{% endif %}
           </div>
         </details>
         {% endif %}
         <details>
-          <summary>Audit trail <span>{{ timeline|length }}</span></summary>
-          <ol class="copilot-audit">{% for event in timeline|reverse %}<li><i></i><div><strong>{{ event.event_type.replace('_', ' ') }}</strong><small>{{ event.created_at[11:16] }}</small></div></li>{% endfor %}</ol>
+          <summary>Registro delle attività <span>{{ timeline|length }}</span></summary>
+          <ol class="copilot-audit">{% for event in timeline|reverse %}<li><i></i><div><strong>{{ event_labels.get(event.event_type, event.event_type.replace('_', ' ')) }}</strong><small>{{ event.created_at[11:16] }}</small></div></li>{% endfor %}</ol>
         </details>
         <div class="copilot-safety"><strong>Controllo umano obbligatorio</strong><p>Il copilot struttura e propone. La persona verifica, esegue l’azione e registra l’esito.</p></div>
       </aside>

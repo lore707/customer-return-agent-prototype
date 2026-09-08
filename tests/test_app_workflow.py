@@ -91,7 +91,7 @@ class AppWorkflowTests(unittest.TestCase):
         self.assertEqual("WAITING_HUMAN_APPROVAL", database.get_case(case_id)["status"])
         detail = self.client.get(f"/cases/{case_id}")
         self.assertEqual(200, detail.status_code)
-        self.assertIn(b"Return Operations", detail.data)
+        self.assertIn(b"Gestione resi", detail.data)
 
         approval = self.client.post(
             "/conferma",
@@ -155,7 +155,7 @@ class AppWorkflowTests(unittest.TestCase):
         self.assertIn(b"Guarda il caso DOA", landing.data)
         register = self.client.get("/database")
         self.assertEqual(200, register.status_code)
-        self.assertIn(b"Database resi", register.data)
+        self.assertIn(b"Archivio resi", register.data)
         self.assertIn(case_id.encode(), register.data)
         self.assertGreaterEqual(len(database.get_case_messages(case_id)), 2)
 
@@ -253,10 +253,10 @@ class AppWorkflowTests(unittest.TestCase):
             "/demo/doa": b"Dal problema alla sostituzione",
             "/demo/recesso": b"Dalla richiesta al rimborso",
             "/dashboard": b"Dashboard resi",
-            "/workbench": b"AI draft response",
+            "/workbench": b"Bozza di risposta generata dall",
             "/policies": b"Flusso decisionale",
-            "/database": b"Database resi",
-            "/analytics": b"Performance agente",
+            "/database": b"Archivio resi",
+            "/analytics": b"Prestazioni dell",
         }
         for url, marker in expectations.items():
             with self.subTest(url=url):
@@ -328,7 +328,7 @@ class AppWorkflowTests(unittest.TestCase):
         self.assertEqual("agency_ops", case["workflow_key"])
         self.assertEqual("AGY-04", case["policy_decision"]["rule_id"])
         page = self.client.get(f"/workbench/{case_id}")
-        self.assertIn(b"Agency Delivery", page.data)
+        self.assertIn(b"Progetti di agenzia", page.data)
         self.assertEqual(200, self.client.get("/playbooks").status_code)
 
     def test_workbench_exposes_case_picker_and_shopify_evidence(self):
@@ -340,7 +340,7 @@ class AppWorkflowTests(unittest.TestCase):
         self.assertIn(b"Casi disponibili", response.data)
         self.assertIn(b"Solo messaggi inviati", response.data)
         self.assertIn(b"Dati Shopify usati nella decisione", response.data)
-        self.assertIn(b"Snapshot ordine verificabile", response.data)
+        self.assertIn(b"Copia verificabile dell", response.data)
         self.assertIn(b"HAIR-AIR-PRO", response.data)
 
     def test_policy_import_preview_requires_human_confirmation(self):

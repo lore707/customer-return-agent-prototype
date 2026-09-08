@@ -26,9 +26,9 @@ CATEGORY_LABELS = {
     "reclamo": "Reclamo",
     "altro": "Da classificare",
     "agency_project": "Nuovo progetto",
-    "agency_change": "Cambio di scope",
+    "agency_change": "Cambio di perimetro",
     "agency_approval": "Approvazione cliente",
-    "agency_blocker": "Blocco di delivery",
+    "agency_blocker": "Blocco di consegna",
     "ops_purchase": "Richiesta di acquisto",
     "ops_access": "Richiesta di accesso",
     "ops_incident": "Incidente operativo",
@@ -106,10 +106,10 @@ FACTS = {
         "options": [("true", "Sì"), ("false", "No")],
     },
     "scope_clear": {
-        "label": "Scope definito",
+        "label": "Perimetro definito",
         "question": "Obiettivo e perimetro della richiesta sono chiari?",
         "type": "choice",
-        "options": [("true", "Sì, sono chiari"), ("false", "No, manca un brief")],
+        "options": [("true", "Sì, sono chiari"), ("false", "No, mancano le informazioni iniziali")],
     },
     "deadline_confirmed": {
         "label": "Scadenza confermata",
@@ -195,12 +195,15 @@ OUTCOME_LABELS = {
     "respinto": "Richiesta respinta",
     "escalation": "Escalation",
     "risolto": "Risolto",
-    "brief_creato": "Brief creato",
+    "brief_creato": "Scheda operativa creata",
     "proposta_inviata": "Proposta inviata",
     "approvato": "Approvato",
     "rifiutato": "Rifiutato",
     "assegnato": "Assegnato",
     "completato": "Completato",
+    "Approved": "Approvato",
+    "Escalated": "Escalato",
+    "Information requested": "Informazioni richieste",
 }
 
 WORKFLOW_OUTCOMES = {
@@ -211,42 +214,42 @@ WORKFLOW_OUTCOMES = {
 
 WORKFLOWS = {
     "customer_care": {
-        "label": "Customer care",
+        "label": "Assistenza clienti",
         "short": "Assistenza e resi",
         "description": "Richieste clienti, garanzie, spedizioni e pagamenti.",
         "input_label": "Comunicazione cliente",
         "output_label": "Risposta da revisionare",
-        "playbook": "Customer Care & Resi",
+        "playbook": "Assistenza clienti e resi",
         "examples": [
             ("Prodotto difettoso", "Il prodotto non si accende più e vorrei capire come usare la garanzia."),
             ("Recesso", "Ho cambiato idea e vorrei restituire il prodotto che ho ricevuto."),
-            ("Spedizione", "Il tracking dice consegnato ma io non ho ricevuto il pacco."),
+            ("Spedizione", "Il tracciamento indica consegnato ma io non ho ricevuto il pacco."),
         ],
     },
     "agency_ops": {
-        "label": "Agenzia & delivery",
-        "short": "Brief e cambi di scope",
-        "description": "Nuovi progetti, change request, approvazioni e blocchi.",
-        "input_label": "Richiesta del cliente o del team",
-        "output_label": "Brief e prossima azione",
-        "playbook": "Agency Delivery",
+        "label": "Progetti di agenzia",
+        "short": "Informazioni iniziali e cambi di perimetro",
+        "description": "Nuovi progetti, richieste di modifica, approvazioni e blocchi.",
+        "input_label": "Richiesta del cliente o del gruppo di lavoro",
+        "output_label": "Sintesi e prossima azione",
+        "playbook": "Progetti di agenzia",
         "examples": [
             ("Nuovo progetto", "Il cliente chiede una landing page per il lancio di ottobre e vorrebbe partire subito."),
-            ("Cambio di scope", "Il cliente vuole aggiungere una seconda lingua al sito già approvato senza spostare la consegna."),
-            ("Blocco delivery", "Il team non può procedere perché mancano gli asset definitivi del cliente."),
+            ("Cambio di perimetro", "Il cliente vuole aggiungere una seconda lingua al sito già approvato senza spostare la consegna."),
+            ("Blocco di consegna", "Il gruppo di lavoro non può procedere perché mancano i materiali definitivi del cliente."),
         ],
     },
     "internal_ops": {
-        "label": "Operations interne",
+        "label": "Operazioni interne",
         "short": "Richieste e approvazioni",
         "description": "Acquisti, accessi, incidenti ed eccezioni di processo.",
         "input_label": "Richiesta interna",
-        "output_label": "Nota operativa e handoff",
-        "playbook": "Internal Operations",
+        "output_label": "Nota operativa e passaggio di consegne",
+        "playbook": "Operazioni interne",
         "examples": [
-            ("Acquisto", "Serve acquistare tre nuove licenze software per il team commerciale."),
-            ("Accesso", "Una nuova collega deve accedere al gestionale prima dell’onboarding di lunedì."),
-            ("Incidente", "Il sistema di reportistica è bloccato e tutto il team finance non riesce a lavorare."),
+            ("Acquisto", "Serve acquistare tre nuove licenze software per il gruppo commerciale."),
+            ("Accesso", "Una nuova collega deve accedere al gestionale prima del suo inserimento di lunedì."),
+            ("Incidente", "Il sistema di reportistica è bloccato e tutto il gruppo amministrativo non riesce a lavorare."),
         ],
     },
 }
@@ -330,7 +333,7 @@ def _base_result(category: str, facts: dict) -> dict:
             "outcome": "raccogli_contesto",
             "rule_id": "INTAKE-01",
             "policy_sections": ["Raccolta informazioni"],
-            "motivation": f"Mancano {len(missing)} fatti necessari prima di applicare la policy.",
+            "motivation": f"Mancano {len(missing)} fatti necessari prima di applicare la procedura.",
             "next_action": FACTS[next_field]["question"],
             "draft": None,
             "missing": missing,
@@ -356,33 +359,33 @@ def evaluate(category: str, facts: dict) -> dict:
 
     if category == "agency_project":
         if not facts["scope_clear"]:
-            return _result("needs_information", "raccogli_brief", "AGY-01", "Obiettivo e perimetro non sono ancora abbastanza chiari.", "Preparare le domande per completare il brief.", "Ciao, per trasformare la richiesta in un brief operativo ci servono obiettivo, deliverable attesi, pubblico e materiali disponibili. Appena li riceviamo possiamo confermare il prossimo passaggio.")
+            return _result("needs_information", "raccogli_brief", "AGY-01", "Obiettivo e perimetro non sono ancora abbastanza chiari.", "Preparare le domande per completare la scheda operativa.", "Ciao, per trasformare la richiesta in una scheda operativa ci servono obiettivo, risultati attesi, pubblico e materiali disponibili. Appena li riceviamo possiamo confermare il prossimo passaggio.")
         if not facts["deadline_confirmed"] or facts["budget_status"] == "pending":
-            return _result("manual_review", "valuta_fattibilita", "AGY-02", "Scope chiaro, ma tempi o copertura economica richiedono conferma.", "Preparare il brief e sottoporlo al responsabile di delivery.", "Abbiamo strutturato il brief iniziale. Prima di confermare l’avvio dobbiamo validare tempistiche e copertura economica con il responsabile di delivery.")
+            return _result("manual_review", "valuta_fattibilita", "AGY-02", "Perimetro chiaro, ma tempi o copertura economica richiedono conferma.", "Preparare la scheda operativa e sottoporla al responsabile della consegna.", "Abbiamo strutturato la scheda iniziale. Prima di confermare l’avvio dobbiamo validare tempistiche e copertura economica con il responsabile della consegna.")
         if not facts["owner_assigned"]:
-            return _result("manual_review", "assegna_owner", "AGY-03", "La richiesta è completa ma non ha ancora un responsabile.", "Assegnare un owner prima del kickoff.", "La richiesta è completa e pronta per la pianificazione. Stiamo assegnando il responsabile che confermerà kickoff e prossimi passaggi.")
-        return _result("eligible", "crea_brief", "AGY-04", "Scope, scadenza, copertura e responsabilità sono verificati.", "Creare il brief e preparare il kickoff.", "Abbiamo verificato le informazioni: la richiesta è pronta per essere trasformata in brief operativo e pianificata con il team.")
+            return _result("manual_review", "assegna_owner", "AGY-03", "La richiesta è completa ma non ha ancora un responsabile.", "Assegnare un responsabile prima dell’avvio.", "La richiesta è completa e pronta per la pianificazione. Stiamo assegnando il responsabile che confermerà avvio e prossimi passaggi.")
+        return _result("eligible", "crea_brief", "AGY-04", "Perimetro, scadenza, copertura e responsabilità sono verificati.", "Creare la scheda operativa e preparare l’avvio.", "Abbiamo verificato le informazioni: la richiesta è pronta per essere trasformata in una scheda operativa e pianificata con il gruppo di lavoro.")
 
     if category == "agency_change":
         if not facts["deadline_confirmed"] or facts["budget_status"] == "pending":
             return _result("manual_review", "valuta_change_request", "CHG-01", "La modifica può incidere sul piano e richiede una nuova valutazione.", "Stimare impatto su tempi, costi e attività prima di confermare.", "Abbiamo registrato la modifica richiesta. Prima di confermarla valuteremo l’impatto su tempi, costi e attività già pianificate.")
         if facts["impact_level"] == "high":
-            return _result("manual_review", "approvazione_change", "CHG-02", "L’impatto stimato è alto e supera il percorso standard.", "Sottoporre la change request al responsabile di delivery.", "La modifica ha un impatto rilevante sul piano approvato. La sottoponiamo al responsabile di delivery prima di aggiornare la pianificazione.")
-        return _result("eligible", "aggiorna_piano", "CHG-03", "Impatto, scadenza e copertura sono stati verificati.", "Aggiornare brief e piano di lavoro.", "La modifica è stata valutata e può essere inserita nel piano. Condivideremo il brief aggiornato prima dell’esecuzione.")
+            return _result("manual_review", "approvazione_change", "CHG-02", "L’impatto stimato è alto e supera il percorso ordinario.", "Sottoporre la richiesta di modifica al responsabile della consegna.", "La modifica ha un impatto rilevante sul piano approvato. La sottoponiamo al responsabile della consegna prima di aggiornare la pianificazione.")
+        return _result("eligible", "aggiorna_piano", "CHG-03", "Impatto, scadenza e copertura sono stati verificati.", "Aggiornare la scheda operativa e il piano di lavoro.", "La modifica è stata valutata e può essere inserita nel piano. Condivideremo la scheda aggiornata prima dell’esecuzione.")
 
     if category == "agency_approval":
         if facts["approval_status"] == "pending":
             return _result("needs_information", "sollecita_approvazione", "APR-01", "Il referente non ha ancora espresso un esito.", "Inviare un riepilogo con una richiesta di approvazione esplicita.", "Per procedere abbiamo bisogno di una conferma esplicita sul materiale condiviso. Puoi approvarlo oppure indicarci le modifiche necessarie?")
         if facts["approval_status"] == "changes":
-            return _result("manual_review", "registra_feedback", "APR-02", "Sono state richieste modifiche che devono essere strutturate.", "Trasformare il feedback in attività e assegnarlo al responsabile.", "Abbiamo registrato le modifiche richieste. Le stiamo trasformando in attività verificabili e condivideremo il nuovo passaggio di revisione.")
+            return _result("manual_review", "registra_feedback", "APR-02", "Sono state richieste modifiche che devono essere strutturate.", "Trasformare il riscontro in attività e assegnarlo al responsabile.", "Abbiamo registrato le modifiche richieste. Le stiamo trasformando in attività verificabili e condivideremo il nuovo passaggio di revisione.")
         if not facts["owner_assigned"]:
-            return _result("manual_review", "assegna_owner", "APR-03", "L’approvazione è presente ma manca il responsabile dell’handoff.", "Assegnare il responsabile della fase successiva.", "L’approvazione è registrata. Prima di procedere assegniamo il responsabile della fase successiva.")
-        return _result("eligible", "procedi_delivery", "APR-04", "Approvazione e responsabilità sono confermate.", "Avviare la fase di delivery prevista.", "L’approvazione è stata registrata e il lavoro può passare alla fase successiva del piano.")
+            return _result("manual_review", "assegna_owner", "APR-03", "L’approvazione è presente ma manca il responsabile del passaggio di consegne.", "Assegnare il responsabile della fase successiva.", "L’approvazione è registrata. Prima di procedere assegniamo il responsabile della fase successiva.")
+        return _result("eligible", "procedi_delivery", "APR-04", "Approvazione e responsabilità sono confermate.", "Avviare la fase di consegna prevista.", "L’approvazione è stata registrata e il lavoro può passare alla fase successiva del piano.")
 
     if category == "agency_blocker":
         if facts["impact_level"] == "high" or not facts["owner_assigned"]:
-            return _result("manual_review", "escalation_delivery", "BLK-01", "Il blocco ha impatto alto oppure non ha ancora un responsabile.", "Assegnare un owner ed escalare al responsabile di delivery.", "Abbiamo registrato il blocco e il suo impatto. Il caso viene assegnato al responsabile di delivery per definire una soluzione e aggiornare il piano.")
-        return _result("eligible", "piano_sblocco", "BLK-02", "Il blocco è circoscritto e ha un responsabile.", "Registrare azione, owner e nuova data di verifica.", "Il blocco è stato preso in carico. Abbiamo registrato il responsabile e il prossimo controllo sul piano di risoluzione.")
+            return _result("manual_review", "escalation_delivery", "BLK-01", "Il blocco ha impatto alto oppure non ha ancora un responsabile.", "Assegnare un responsabile e sottoporre il caso al responsabile della consegna.", "Abbiamo registrato il blocco e il suo impatto. Il caso viene assegnato al responsabile della consegna per definire una soluzione e aggiornare il piano.")
+        return _result("eligible", "piano_sblocco", "BLK-02", "Il blocco è circoscritto e ha un responsabile.", "Registrare azione, responsabile e nuova data di verifica.", "Il blocco è stato preso in carico. Abbiamo registrato il responsabile e il prossimo controllo sul piano di risoluzione.")
 
     if category == "ops_purchase":
         if not facts["business_reason_clear"]:
@@ -391,22 +394,22 @@ def evaluate(category: str, facts: dict) -> dict:
             return _result("not_eligible", "richiesta_respinta", "PUR-02", "Il responsabile ha rifiutato la richiesta.", "Registrare il rifiuto e comunicarne la motivazione.", "La richiesta non è stata approvata dal responsabile e non può procedere nel flusso di acquisto.")
         if facts["budget_status"] == "pending" or facts["manager_approval"] == "pending":
             return _result("manual_review", "richiedi_approvazione", "PUR-03", "Budget o approvazione sono ancora sospesi.", "Preparare il riepilogo per l’approvazione.", "La richiesta è stata strutturata ed è pronta per la verifica di budget e l’approvazione del responsabile.")
-        return _result("eligible", "avvia_acquisto", "PUR-04", "Motivazione, copertura e approvazione risultano valide.", "Creare l’handoff verso procurement.", "La richiesta contiene le informazioni e le approvazioni necessarie. Può essere inoltrata al processo di acquisto.")
+        return _result("eligible", "avvia_acquisto", "PUR-04", "Motivazione, copertura e approvazione risultano valide.", "Creare il passaggio di consegne verso l’ufficio acquisti.", "La richiesta contiene le informazioni e le approvazioni necessarie. Può essere inoltrata al processo di acquisto.")
 
     if category == "ops_access":
         if not facts["business_reason_clear"]:
             return _result("needs_information", "completa_accesso", "ACC-01", "Sistema, ruolo o motivazione dell’accesso non sono definiti.", "Richiedere sistema, ruolo, durata e motivazione.", "Per valutare l’accesso servono sistema interessato, ruolo richiesto, durata e motivazione operativa.")
         if facts["manager_approval"] in {"pending", "rejected"}:
-            return _result("manual_review", "verifica_approvazione", "ACC-02", "L’approvazione richiesta non è disponibile.", "Ottenere una conferma valida prima dell’abilitazione.", "La richiesta è stata registrata, ma prima di procedere serve l’approvazione prevista dal playbook degli accessi.")
+            return _result("manual_review", "verifica_approvazione", "ACC-02", "L’approvazione richiesta non è disponibile.", "Ottenere una conferma valida prima dell’abilitazione.", "La richiesta è stata registrata, ma prima di procedere serve l’approvazione prevista dalla procedura degli accessi.")
         if not facts["owner_assigned"]:
-            return _result("manual_review", "assegna_system_owner", "ACC-03", "Manca il responsabile autorizzato a eseguire l’abilitazione.", "Assegnare il system owner.", "La richiesta è completa. Stiamo identificando il responsabile autorizzato che potrà eseguire l’abilitazione.")
-        return _result("eligible", "abilita_accesso", "ACC-04", "Motivazione, approvazione e responsabile sono verificati.", "Creare l’handoff per l’abilitazione.", "La richiesta di accesso è completa e può essere inoltrata al responsabile del sistema per l’esecuzione.")
+            return _result("manual_review", "assegna_system_owner", "ACC-03", "Manca il responsabile autorizzato a eseguire l’abilitazione.", "Assegnare il responsabile del sistema.", "La richiesta è completa. Stiamo identificando il responsabile autorizzato che potrà eseguire l’abilitazione.")
+        return _result("eligible", "abilita_accesso", "ACC-04", "Motivazione, approvazione e responsabile sono verificati.", "Creare il passaggio di consegne per l’abilitazione.", "La richiesta di accesso è completa e può essere inoltrata al responsabile del sistema per l’esecuzione.")
 
     if category == "ops_incident":
         if facts["urgency"] == "critical" or facts["incident_impact"] == "business_blocked":
-            return _result("manual_review", "escalation_incidente", "INC-01", "L’incidente è critico o blocca un’attività aziendale.", "Escalare immediatamente e assegnare un incident owner.", "L’incidente è stato classificato come prioritario e deve essere preso in carico immediatamente dal responsabile previsto.")
+            return _result("manual_review", "escalation_incidente", "INC-01", "L’incidente è critico o blocca un’attività aziendale.", "Sottoporre immediatamente il caso e assegnare un responsabile dell’incidente.", "L’incidente è stato classificato come prioritario e deve essere preso in carico immediatamente dal responsabile previsto.")
         if not facts["owner_assigned"]:
-            return _result("manual_review", "assegna_incidente", "INC-02", "Impatto verificato, ma manca un responsabile.", "Assegnare un owner e una prossima verifica.", "L’incidente è stato registrato. Serve assegnare il responsabile prima di avviare il piano di risoluzione.")
+            return _result("manual_review", "assegna_incidente", "INC-02", "Impatto verificato, ma manca un responsabile.", "Assegnare un responsabile e una prossima verifica.", "L’incidente è stato registrato. Serve assegnare il responsabile prima di avviare il piano di risoluzione.")
         return _result("eligible", "avvia_risoluzione", "INC-03", "Impatto e responsabilità sono definiti.", "Avviare il piano operativo e fissare il prossimo controllo.", "L’incidente è stato classificato e assegnato. Il piano di risoluzione può essere avviato con una prossima verifica tracciata.")
 
     if category == "ops_exception":
@@ -415,7 +418,7 @@ def evaluate(category: str, facts: dict) -> dict:
         if facts["manager_approval"] == "approved":
             return _result("eligible", "registra_eccezione", "EXC-02", "La deroga è motivata e approvata.", "Registrare validità, responsabile e data di revisione.", "L’eccezione è stata approvata. Deve essere registrata con durata, responsabile e data di revisione.")
         if facts["manager_approval"] == "rejected":
-            return _result("not_eligible", "eccezione_respinta", "EXC-03", "La deroga è stata rifiutata.", "Applicare il processo standard.", "L’eccezione non è stata approvata: la richiesta deve seguire il processo standard.")
+            return _result("not_eligible", "eccezione_respinta", "EXC-03", "La deroga è stata rifiutata.", "Applicare il processo ordinario.", "L’eccezione non è stata approvata: la richiesta deve seguire il processo ordinario.")
         return _result("manual_review", "approva_eccezione", "EXC-04", "La motivazione è presente, ma manca l’approvazione.", "Inviare la deroga al responsabile.", "La richiesta di eccezione è stata strutturata ed è pronta per la valutazione del responsabile.")
 
     if category == "doa":
@@ -447,7 +450,7 @@ def evaluate(category: str, facts: dict) -> dict:
         messages = {
             "in_transit": ("needs_information", "attendi_tracking", "SHP-01", "La spedizione risulta ancora in transito.", "Comunicare lo stato e la prossima verifica.", "Ciao, la spedizione risulta ancora in transito. Continueremo a monitorarla e ti aggiorneremo se non verranno registrati nuovi movimenti."),
             "delayed": ("manual_review", "apri_verifica_corriere", "SHP-02", "La consegna risulta in ritardo.", "Aprire una verifica con il corriere.", "Ciao, la consegna risulta in ritardo. Abbiamo avviato una verifica e ti aggiorneremo non appena riceveremo nuove informazioni."),
-            "delivered": ("manual_review", "verifica_consegna", "SHP-03", "Il tracking indica consegnato ma il cliente contesta la ricezione.", "Verificare prova di consegna e indirizzo.", "Ciao, il tracking indica che la spedizione è stata consegnata. Avviamo una verifica sulla prova di consegna e sull’indirizzo utilizzato."),
+            "delivered": ("manual_review", "verifica_consegna", "SHP-03", "Il tracciamento indica consegnato ma il cliente contesta la ricezione.", "Verificare prova di consegna e indirizzo.", "Ciao, il tracciamento indica che la spedizione è stata consegnata. Avviamo una verifica sulla prova di consegna e sull’indirizzo utilizzato."),
             "not_found": ("needs_information", "chiedi_riferimento", "SHP-04", "La spedizione non è stata identificata.", "Chiedere il riferimento dell’ordine.", "Ciao, non riusciamo ancora a identificare la spedizione. Inviaci il numero d’ordine o l’email di conferma dell’acquisto."),
         }
         return _result(*messages[status])
@@ -463,7 +466,7 @@ def evaluate(category: str, facts: dict) -> dict:
     if category == "reclamo":
         return _result("manual_review", "escalation_operatore", "ESC-01", "Il contenuto richiede gestione umana prioritaria.", "Assegnare il caso a un responsabile.", "Ciao, abbiamo preso in carico la tua segnalazione e l’abbiamo inoltrata a un responsabile per una verifica prioritaria.")
 
-    return _result("manual_review", "classificazione_manuale", "INTAKE-03", "La richiesta non rientra nei workflow pubblicati.", "Classificare manualmente o creare una nuova regola.", "Ciao, abbiamo ricevuto la tua richiesta. Un operatore la esaminerà per fornirti una risposta corretta.")
+    return _result("manual_review", "classificazione_manuale", "INTAKE-03", "La richiesta non rientra nei flussi pubblicati.", "Classificare manualmente o creare una nuova regola.", "Ciao, abbiamo ricevuto la tua richiesta. Un operatore la esaminerà per fornirti una risposta corretta.")
 
 
 def _result(eligibility: str, outcome: str, rule_id: str, motivation: str, next_action: str, draft: str) -> dict:
@@ -471,7 +474,7 @@ def _result(eligibility: str, outcome: str, rule_id: str, motivation: str, next_
         "eligibility": eligibility,
         "outcome": outcome,
         "rule_id": rule_id,
-        "policy_sections": [CATEGORY_LABELS.get(rule_id.split("-")[0].lower(), "Policy operativa")],
+        "policy_sections": [CATEGORY_LABELS.get(rule_id.split("-")[0].lower(), "Procedura operativa")],
         "motivation": motivation,
         "next_action": next_action,
         "draft": draft,
@@ -491,7 +494,7 @@ def create_case(
     path=None,
 ) -> dict:
     if workflow_key not in WORKFLOWS:
-        raise ValueError("Workflow non valido.")
+        raise ValueError("Flusso non valido.")
     sanitized, redactions = anonymize_message(message)
     classification = classify(sanitized, workflow_key)
     category = classification["category"]
@@ -674,7 +677,7 @@ DEMO_CASES = [
     },
     {
         "slug": "copilot-demo-spedizione",
-        "message": "La spedizione è ferma da molti giorni e il tracking non si aggiorna.",
+        "message": "La spedizione è ferma da molti giorni e il tracciamento non si aggiorna.",
         "facts": {"purchase_verified": True, "order_status": "delayed"},
         "outcome": "escalation",
     },
@@ -731,14 +734,14 @@ DEMO_CASES = [
     {
         "slug": "copilot-demo-internal-purchase",
         "workflow": "internal_ops",
-        "message": "Serve acquistare tre nuove licenze software per il team commerciale.",
+        "message": "Serve acquistare tre nuove licenze software per il gruppo commerciale.",
         "facts": {"business_reason_clear": True, "budget_status": "approved", "manager_approval": "approved"},
         "outcome": "approvato",
     },
     {
         "slug": "copilot-demo-internal-incident",
         "workflow": "internal_ops",
-        "message": "Il sistema di reportistica è bloccato e il team finance non riesce a lavorare.",
+        "message": "Il sistema di reportistica è bloccato e il gruppo amministrativo non riesce a lavorare.",
         "facts": {"urgency": "critical", "incident_impact": "business_blocked", "owner_assigned": False},
         "outcome": "escalation",
     },

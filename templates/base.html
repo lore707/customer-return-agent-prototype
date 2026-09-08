@@ -11,6 +11,28 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  {% set eligibility_labels = {'eligible':'Idoneo', 'ineligible':'Non idoneo', 'not_eligible':'Non idoneo', 'needs_information':'Servono informazioni', 'human_review':'Revisione umana', 'manual_review':'Revisione manuale', 'unclear':'Da chiarire', 'policy_exception':'Eccezione alla procedura'} %}
+  {% set source_mode_labels = {'recorded_fixture':'Copia registrata', 'live_api':'API in tempo reale', 'policy_copilot':'Assistente sulle procedure', 'policy_copilot_demo':'Demo assistente sulle procedure', 'policy_copilot_configured':'Assistente configurato', 'configured_local_service':'Motore locale configurato', 'guided_demo':'Demo guidata'} %}
+  {% set event_labels = {
+    'customer_request_received':'Richiesta ricevuta', 'customer_followup_received':'Aggiornamento del cliente ricevuto',
+    'customer_followup_analyzed':'Aggiornamento del cliente analizzato', 'message_analyzed':'Messaggio analizzato',
+    'ai_analysis_completed':'Analisi AI completata', 'context_requested':'Informazioni richieste',
+    'case_fact_recorded':'Informazione del caso registrata', 'policy_evaluated':'Procedura valutata',
+    'policy_decision_ready':'Decisione pronta per la revisione', 'human_approval_recorded':'Approvazione umana registrata',
+    'human_decision_recorded':'Decisione umana registrata', 'waiting_human_approval':'In attesa di approvazione umana',
+    'case_escalated':'Caso assegnato per escalation', 'photo_video_requested':'Foto e video richiesti',
+    'evidence_reviewed':'Prove revisionate', 'return_case_opened':'Pratica di reso aperta',
+    'return_label_generated':'Etichetta di reso generata', 'label_created':'Etichetta creata',
+    'waiting_for_customer_return':'In attesa della spedizione del cliente', 'carrier_tracking_updated':'Tracciamento del corriere aggiornato',
+    'warehouse_return_received':'Reso ricevuto in magazzino', 'physical_inspection_passed':'Controllo fisico superato',
+    'shopify_return_closed_deferred':'Reso Shopify chiuso con elaborazione differita',
+    'shopify_replacement_order_created':'Ordine sostitutivo Shopify creato', 'replacement_started':'Sostituzione avviata',
+    'make_fulfillment_triggered':'Invio alla logistica avviato', 'replacement_completed':'Sostituzione completata',
+    'refund_completed':'Rimborso completato', 'case_closed':'Caso chiuso',
+    'customer_history_reviewed':'Storico cliente revisionato', 'shopify_customer_order_resolved':'Ordine e cliente Shopify identificati',
+    'operator_decision_recorded':'Decisione dell’operatore registrata', 'waiting_for_customer':'In attesa del cliente'
+  } %}
+  {% set request_type_labels = {'right_of_withdrawal':'Diritto di recesso', 'withdrawal':'Diritto di recesso', 'defective_product':'Prodotto difettoso', 'doa':'Prodotto difettoso / DOA', 'damaged_delivery':'Arrivato danneggiato', 'wrong_item':'Articolo errato', 'operations_case':'Caso operativo'} %}
   <div class="ambient ambient-one"></div>
   <div class="ambient ambient-two"></div>
   <div class="app-shell">
@@ -18,38 +40,38 @@
       <a class="brand-mark" href="{{ url_for('index') }}" aria-label="Ops Copilot home"><span>O</span></a>
       <nav class="side-nav">
         <a class="nav-item {% if request.path.startswith('/workbench') %}active{% endif %}" href="/workbench">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H7l-3 3V5Z"/><path d="M8 9h8M8 12h5"/></svg><span>Workbench</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H7l-3 3V5Z"/><path d="M8 9h8M8 12h5"/></svg><span>Area operativa</span>
         </a>
         <a class="nav-item {% if request.endpoint == 'database_register' or request.path.startswith('/cases/') %}active{% endif %}" href="{{ url_for('database_register') }}">
           <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg><span>Casi</span>
         </a>
         <a class="nav-item {% if request.path.startswith('/analytics') %}active{% endif %}" href="/analytics">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg><span>Analytics</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg><span>Analisi</span>
         </a>
         <a class="nav-item {% if request.path.startswith('/policies') or request.path.startswith('/playbooks') %}active{% endif %}" href="{{ url_for('playbooks') }}">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Playbooks</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Procedure</span>
         </a>
       </nav>
       {% if active_workspace and active_workspace.status == 'completed' and active_workspace.completeness < 100 %}
       <a class="workspace-setup-card" href="{{ url_for('onboarding', edit=1) }}">
-        <span>SETUP {{ active_workspace.completeness }}%</span>
+        <span>CONFIGURAZIONE {{ active_workspace.completeness }}%</span>
         <div><i style="width: {{ active_workspace.completeness }}%"></i></div>
-        <strong>{{ active_operation.name or 'Workspace' }}</strong>
-        <small>Review remaining knowledge gaps →</small>
+        <strong>{{ active_operation.name or 'Spazio di lavoro' }}</strong>
+        <small>Rivedi le informazioni mancanti →</small>
       </a>
       {% endif %}
-      <div class="sidebar-foot"><a href="{{ url_for('index') }}">Panoramica</a><span><i class="pulse-dot"></i> Demo safe</span></div>
+      <div class="sidebar-foot"><a href="{{ url_for('index') }}">Panoramica</a><span><i class="pulse-dot"></i> Demo sicura</span></div>
     </aside>
 
     <div class="workspace">
       {% block workspace_header %}<header class="workspace-header">
         <div>
-          <span class="page-kicker">{% block page_kicker %}Operations Copilot{% endblock %}</span>
-          <h1>{% block page_title %}Operational Workflows{% endblock %}</h1>
-          <p>{% block page_subtitle %}Human-in-the-loop decision support{% endblock %}</p>
+          <span class="page-kicker">{% block page_kicker %}Assistente operativo{% endblock %}</span>
+          <h1>{% block page_title %}Flussi operativi{% endblock %}</h1>
+          <p>{% block page_subtitle %}Supporto decisionale con controllo umano{% endblock %}</p>
         </div>
         <div class="header-actions">
-          {% block header_actions %}<span class="mode-chip"><i></i> Portfolio demo</span>{% endblock %}
+          {% block header_actions %}<span class="mode-chip"><i></i> Demo dimostrativa</span>{% endblock %}
         </div>
       </header>{% endblock %}
       <main class="page {% block page_class %}{% endblock %}">{% block content %}{% endblock %}</main>

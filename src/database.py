@@ -1040,7 +1040,7 @@ def copilot_analytics(
                 "title": "Processo più frequente",
                 "value": top["key"],
                 "evidence": f"{top['count']} casi su {total} ({top['percentage']}%).",
-                "action": "Verifica che intake, policy e macro risposta coprano bene questo flusso.",
+                "action": "Verifica che raccolta iniziale, procedura e risposta predefinita coprano bene questo flusso.",
             }
         )
     if context:
@@ -1051,7 +1051,7 @@ def copilot_analytics(
                 "title": "Contesto richiesto più spesso",
                 "value": top["key"],
                 "evidence": f"Necessario in {top['count']} casi.",
-                "action": "Può diventare una domanda standard o un campo obbligatorio nell’intake.",
+                "action": "Può diventare una domanda ricorrente o un campo obbligatorio nella raccolta iniziale.",
             }
         )
     modification_rate = round(modified * 100 / reviewed) if reviewed else 0
@@ -1061,14 +1061,14 @@ def copilot_analytics(
             "title": "Aderenza delle bozze",
             "value": f"{modification_rate}% modificate",
             "evidence": f"{modified} revisioni sostanziali su {reviewed} casi valutati.",
-            "action": "Analizza i motivi di modifica prima di cambiare prompt o policy." if modified else "Le bozze registrate non hanno ancora richiesto modifiche sostanziali.",
+            "action": "Analizza i motivi di modifica prima di cambiare le istruzioni del modello o la procedura." if modified else "Le bozze registrate non hanno ancora richiesto modifiche sostanziali.",
         }
     )
     if escalated:
         insights.append(
             {
                 "type": "risk",
-                "title": "Casi fuori dal percorso standard",
+                "title": "Casi fuori dal percorso ordinario",
                 "value": f"{escalated} escalation",
                 "evidence": "Questi casi hanno richiesto responsabilità o verifica aggiuntiva.",
                 "action": "Controlla se serve una nuova eccezione, senza automatizzare il rischio.",

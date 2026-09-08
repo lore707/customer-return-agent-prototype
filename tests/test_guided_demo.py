@@ -54,7 +54,7 @@ class GuidedDemoTests(unittest.TestCase):
         self.assertTrue(state["completed"])
         workbench = self.client.get(f"/workbench/{return_case['id']}")
         self.assertEqual(200, workbench.status_code)
-        self.assertIn(b"Customer 360", workbench.data)
+        self.assertIn(b"Profilo cliente", workbench.data)
         self.assertIn(b"Ordine sostitutivo Shopify", workbench.data)
         self.assertIn(b"#1051", workbench.data)
         register = self.client.get("/database")

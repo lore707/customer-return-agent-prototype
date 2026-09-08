@@ -11,13 +11,13 @@
 {% block page_class %}cases-page{% endblock %}
 
 {% block content %}
-{% if legacy_alias %}<span class="sr-only">Database resi</span>{% endif %}
+{% if legacy_alias %}<span class="sr-only">Archivio resi</span>{% endif %}
 <section class="cases-explainer">
-  <div><span>01</span><strong>Workbench</strong><small>crea o aggiorna il caso</small></div>
+  <div><span>01</span><strong>Area operativa</strong><small>crea o aggiorna il caso</small></div>
   <i>→</i>
   <div><span>02</span><strong>Casi</strong><small>conserva la memoria operativa</small></div>
   <i>→</i>
-  <div><span>03</span><strong>Analytics</strong><small>aggrega soltanto questi dati</small></div>
+  <div><span>03</span><strong>Analisi</strong><small>aggrega soltanto questi dati</small></div>
 </section>
 
 <section class="cases-metrics" aria-label="Riepilogo casi">
@@ -30,12 +30,12 @@
 
 <section class="cases-register">
   <div class="cases-register-head">
-    <div><span class="section-label">Database operativo</span><h2>Memoria dei casi</h2><p>Customer care, agenzia e processi interni condividono la stessa struttura: richiesta, contesto, regola, decisione ed esito.</p></div>
+    <div><span class="section-label">Archivio operativo</span><h2>Memoria dei casi</h2><p>Assistenza clienti, agenzie e processi interni condividono la stessa struttura: richiesta, contesto, regola, decisione ed esito.</p></div>
     <span class="soft-badge">{{ cases|length }} risultati</span>
   </div>
   <form class="cases-filters" method="get" action="{{ url_for('database_register') }}">
     <label><span>Cerca</span><input name="q" value="{{ filters.query or '' }}" placeholder="ID, testo, regola o esito…"></label>
-    <label><span>Workflow</span><select name="workflow"><option value="">Tutti i workflow</option>{% for key, item in workflows.items() %}<option value="{{ key }}" {% if filters.workflow_key == key %}selected{% endif %}>{{ item.label }}</option>{% endfor %}</select></label>
+    <label><span>Flusso</span><select name="workflow"><option value="">Tutti i flussi</option>{% for key, item in workflows.items() %}<option value="{{ key }}" {% if filters.workflow_key == key %}selected{% endif %}>{{ item.label }}</option>{% endfor %}</select></label>
     <label><span>Stato</span><select name="status"><option value="">Tutti gli stati</option>{% for status in statuses %}<option value="{{ status }}" {% if filters.status == status %}selected{% endif %}>{{ status_labels.get(status, status) }}</option>{% endfor %}</select></label>
     <label><span>Categoria</span><select name="reason"><option value="">Tutte le categorie</option>{% for reason in reasons %}<option value="{{ reason }}" {% if filters.reason == reason %}selected{% endif %}>{{ category_labels.get(reason, reason) }}</option>{% endfor %}</select></label>
     <button class="button primary" type="submit">Filtra</button>
@@ -44,24 +44,25 @@
 
   <div class="cases-table-wrap">
     <table class="cases-table">
-      <thead><tr><th>Caso</th><th>Richiesta</th><th>Workflow e contesto</th><th>Regola</th><th>Esito reale</th><th>Stato</th><th></th></tr></thead>
+      <thead><tr><th>Caso</th><th>Richiesta</th><th>Flusso e contesto</th><th>Regola</th><th>Esito reale</th><th>Stato</th><th></th></tr></thead>
       <tbody>
       {% for item in cases %}
+        {% set display_id = item.id|replace('REFUND','RIMBORSO')|replace('COMPLETED','COMPLETATO')|replace('WITHDRAWAL','RECESSO')|replace('APPROVED','APPROVATO')|replace('EVIDENCE','PROVE')|replace('REJECTED','RESPINTO') %}
         <tr>
-          <td><a class="case-id-link" href="{{ url_for('workbench_case', case_id=item.id) }}">{{ item.id }}</a><small>{{ item.created_at[8:10] }}/{{ item.created_at[5:7] }}/{{ item.created_at[:4] }} · {{ item.created_at[11:16] }}</small>{% if item.source_mode == 'policy_copilot_demo' %}<span class="demo-data-badge">Dati demo</span>{% endif %}</td>
-          <td><strong>{{ item.customer_message|truncate(108) }}</strong><small>{{ item.message_count }} {% if item.message_count == 1 %}messaggio{% else %}messaggi{% endif %} · identificatori rimossi</small></td>
+          <td><a class="case-id-link" href="{{ url_for('workbench_case', case_id=item.id) }}">{{ display_id }}</a><small>{{ item.created_at[8:10] }}/{{ item.created_at[5:7] }}/{{ item.created_at[:4] }} · {{ item.created_at[11:16] }}</small>{% if item.source_mode == 'policy_copilot_demo' %}<span class="demo-data-badge">Dati demo</span>{% endif %}</td>
+          <td><strong>{{ item.customer_message|replace('tracking','tracciamento')|replace('Tracking','Tracciamento')|truncate(108) }}</strong><small>{{ item.message_count }} {% if item.message_count == 1 %}messaggio{% else %}messaggi{% endif %} · identificatori rimossi</small></td>
           <td><span class="workflow-chip">{{ workflows.get(item.workflow_key or 'customer_care').label }}</span><span class="category-chip">{{ category_labels.get(item.return_reason, item.return_reason) }}</span><small>{% if item.missing_information %}{{ item.missing_information|length }} informazioni mancanti{% else %}Contesto completo{% endif %}</small></td>
-          <td><strong>{{ item.rule_id or 'In raccolta' }}</strong><small>{{ item.eligibility_result.replace('_', ' ') }}</small></td>
-          <td>{% if item.actual_outcome %}<strong>{{ outcome_labels.get(item.actual_outcome, item.actual_outcome) }}</strong><small>registrato dall’operatore</small>{% elif legacy_alias and item.integration_state and item.integration_state.make %}<strong>{{ item.integration_state.make.detail }}</strong><small>scenario portfolio precedente</small>{% else %}<span class="muted-dash">Da registrare</span>{% endif %}</td>
+          <td><strong>{{ item.rule_id or 'In raccolta' }}</strong><small>{{ eligibility_labels.get(item.eligibility_result, item.eligibility_result.replace('_', ' ')) }}</small></td>
+          <td>{% if item.actual_outcome %}<strong>{{ outcome_labels.get(item.actual_outcome, item.actual_outcome) }}</strong><small>registrato dall’operatore</small>{% elif legacy_alias and item.integration_state and item.integration_state.make %}<strong>{{ item.integration_state.make.detail }}</strong><small>scenario dimostrativo precedente</small>{% else %}<span class="muted-dash">Da registrare</span>{% endif %}</td>
           <td><span class="status status-{{ item.status|lower }}">{{ status_labels.get(item.status, item.status) }}</span></td>
           <td><a class="row-arrow" href="{{ url_for('workbench_case', case_id=item.id) }}" aria-label="Apri {{ item.id }}">→</a></td>
         </tr>
       {% else %}
-        <tr><td colspan="7"><div class="cases-empty"><strong>Nessun caso trovato</strong><p>Prova a cambiare i filtri oppure crea una nuova analisi nel Workbench.</p><a class="button primary" href="{{ url_for('workbench') }}">Apri Workbench</a></div></td></tr>
+        <tr><td colspan="7"><div class="cases-empty"><strong>Nessun caso trovato</strong><p>Prova a cambiare i filtri oppure crea una nuova analisi nell’area operativa.</p><a class="button primary" href="{{ url_for('workbench') }}">Apri l’area operativa</a></div></td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
-  <footer class="cases-register-foot"><span>Il prototipo rimuove email, telefoni e riferimenti comuni. Prima di incollare una richiesta, evita comunque altri dati sensibili.</span><a href="{{ url_for('analytics_view') }}">Apri gli Analytics generati da questi casi →</a></footer>
+  <footer class="cases-register-foot"><span>Il prototipo rimuove email, telefoni e riferimenti comuni. Prima di incollare una richiesta, evita comunque altri dati sensibili.</span><a href="{{ url_for('analytics_view') }}">Apri le analisi generate da questi casi →</a></footer>
 </section>
 {% endblock %}

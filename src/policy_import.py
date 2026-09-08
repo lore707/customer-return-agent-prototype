@@ -159,21 +159,21 @@ def _generic_playbook_extraction(cleaned: str, lowered: str) -> dict:
 
     if kind == "agency":
         values = [
-            ("intake_scope", "Scope minimo", detected(("scope", "obiettivo", "deliverable", "brief"), "Obiettivo e deliverable espliciti")),
+            ("intake_scope", "Perimetro minimo", detected(("scope", "obiettivo", "deliverable", "brief"), "Obiettivo e risultati attesi espliciti")),
             ("intake_deadline", "Scadenza", detected(("scadenza", "deadline", "consegna"), "Da verificare prima della pianificazione")),
-            ("budget_gate", "Copertura economica", detected(("budget", "preventivo", "costo"), "Approvazione prima del kickoff")),
-            ("change_control", "Cambio di scope", detected(("modifica", "change", "extra", "fuori scope"), "Valutare impatto su tempi e costi")),
-            ("delivery_owner", "Responsabile", detected(("owner", "responsabile", "project manager"), "Owner obbligatorio")),
+            ("budget_gate", "Copertura economica", detected(("budget", "preventivo", "costo"), "Approvazione prima dell’avvio")),
+            ("change_control", "Cambio di perimetro", detected(("modifica", "change", "extra", "fuori scope"), "Valutare impatto su tempi e costi")),
+            ("delivery_owner", "Responsabile", detected(("owner", "responsabile", "project manager"), "Responsabile obbligatorio")),
             ("approval_gate", "Approvazione finale", detected(("approv", "via libera", "conferma"), "Conferma umana esplicita")),
         ]
         sections = [
             ("Intake del lavoro", values[:3]),
-            ("Delivery e controllo", values[3:]),
+            ("Consegna e controllo", values[3:]),
         ]
     elif kind == "internal":
         values = [
             ("request_reason", "Motivazione", detected(("motiv", "necessità", "obiettivo"), "Motivazione operativa obbligatoria")),
-            ("request_owner", "Responsabile", detected(("owner", "responsabile", "assegn"), "Owner identificato")),
+            ("request_owner", "Responsabile", detected(("owner", "responsabile", "assegn"), "Responsabile identificato")),
             ("approval_gate", "Approvazione", detected(("approv", "manager", "responsabile"), "Approvazione prima dell’esecuzione")),
             ("priority_rule", "Priorità", detected(("urgente", "priorità", "critico", "impatto"), "Definita da urgenza e impatto")),
             ("exception_rule", "Eccezioni", detected(("eccezione", "deroga", "fuori processo"), "Motivazione e scadenza obbligatorie")),
@@ -238,7 +238,7 @@ def extract_structured_rules(text: str) -> dict:
     window = f"{day_match.group(1)} giorni" if day_match else "Da confermare"
 
     starts_from = (
-        "Data di consegna / tracking"
+        "Data di consegna / tracciamento"
         if _contains(lowered, "data di consegna", "dalla consegna", "tracking")
         else "Da confermare"
     )

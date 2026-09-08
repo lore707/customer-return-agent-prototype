@@ -80,7 +80,7 @@ class SupportCopilotTests(unittest.TestCase):
         self.assertEqual("AGY-04", case["policy_decision"]["rule_id"])
         self.assertEqual("crea_brief", case["suggested_resolution"])
         view = support_copilot.view_model(case)
-        self.assertEqual("Agenzia & delivery", view["workflow"]["label"])
+        self.assertEqual("Progetti di agenzia", view["workflow"]["label"])
         self.assertIn("brief_creato", view["outcome_labels"])
         self.assertNotIn("rimborso", view["outcome_labels"])
 

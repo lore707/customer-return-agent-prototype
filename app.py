@@ -88,9 +88,9 @@ def inject_app_shell():
         "demo_mode": DEMO_MODE,
         "live_intake_available": live_available,
         "integration_status": {
-            "shopify": "Live API" if _has_shopify_credentials() else "Non collegato",
-            "claude": "Claude live" if _has_anthropic_credentials() else "Motore locale",
-            "shipping": "Provider mock",
+            "shopify": "API in tempo reale" if _has_shopify_credentials() else "Non collegato",
+            "claude": "Claude attivo" if _has_anthropic_credentials() else "Motore locale",
+            "shipping": "Servizio simulato",
         },
         "policy_status": policy_config.summary(),
         "active_workspace": workspace,
@@ -116,7 +116,7 @@ def _public_onboarding_state(state: dict) -> dict:
 def _workspace_or_error() -> tuple[dict | None, tuple | None]:
     workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
     if not workspace:
-        return None, (jsonify({"errore": "Start the workspace setup first."}), 404)
+        return None, (jsonify({"errore": "Avvia prima la configurazione dello spazio di lavoro."}), 404)
     return workspace, None
 
 
@@ -190,7 +190,7 @@ def _create_return_case(
             "suggested_resolution": action["esito_proposto"],
             "original_suggested_response": package.get("bozza_risposta"),
             "analysis_duration_ms": analysis_duration_ms,
-            "data_source": "Shopify Admin API",
+            "data_source": "API amministrativa Shopify",
             "source_mode": "live_api",
             "source_fetched_at": database.utc_now(),
             "source_payload": _sanitized_order_snapshot(order, context),
@@ -388,14 +388,14 @@ def onboarding_knowledge():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "Describe the operation before adding knowledge."}), 400
+        return jsonify({"errore": "Descrivi l’operazione prima di aggiungere la conoscenza."}), 400
     added = []
     try:
         pasted = str(request.form.get("pasted_text") or "").strip()
         if pasted:
             added.append(
                 onboarding_store.add_knowledge_source(
-                    workspace["id"], operation["id"], name="Pasted operating notes",
+                    workspace["id"], operation["id"], name="Note operative incollate",
                     source_type="text", content=pasted,
                 )
             )
@@ -460,7 +460,7 @@ def onboarding_analyze():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "The operation has not been configured yet."}), 400
+        return jsonify({"errore": "L’operazione non è ancora stata configurata."}), 400
     if operation.get("status") == "processing":
         return jsonify({"ok": True, "status": "processing"}), 202
     with ONBOARDING_JOB_LOCK:
@@ -483,7 +483,7 @@ def onboarding_analyze():
         )
     except Exception:  # noqa: BLE001
         logger.exception("Operational model generation could not be started")
-        return jsonify({"errore": "The operational model generation could not be started."}), 500
+        return jsonify({"errore": "Non è stato possibile avviare la generazione del modello operativo."}), 500
     return jsonify({"ok": True, "status": "processing"}), 202
 
 
@@ -494,7 +494,7 @@ def onboarding_analyze_status():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "The operation has not been configured yet."}), 404
+        return jsonify({"errore": "L’operazione non è ancora stata configurata."}), 404
     with ONBOARDING_JOB_LOCK:
         job = dict(ONBOARDING_JOBS.get(operation["id"]) or {})
     if job.get("status") == "error":
@@ -511,7 +511,7 @@ def onboarding_analyze_status():
             }
         )
     if operation.get("status") == "draft" and job.get("status") != "processing":
-        return jsonify({"errore": "Generation was interrupted. Start it again.", "status": "error"}), 409
+        return jsonify({"errore": "La generazione è stata interrotta. Avviala nuovamente.", "status": "error"}), 409
     return jsonify({"ok": True, "status": "processing"}), 202
 
 
@@ -522,7 +522,7 @@ def onboarding_clarifications():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "Operation not found."}), 404
+        return jsonify({"errore": "Operazione non trovata."}), 404
     clarifications = onboarding_store.list_clarifications(operation["id"])
     answers = (request.get_json(silent=True) or {}).get("answers") or {}
     answer_rows = [
@@ -545,7 +545,7 @@ def onboarding_model_reviewed():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "Operation not found."}), 404
+        return jsonify({"errore": "Operazione non trovata."}), 404
     scenarios = operational_model_service.get_operational_model_service().scenarios(
         operation.get("operational_model") or {}
     )
@@ -561,7 +561,7 @@ def onboarding_update_model():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "Operation not found."}), 404
+        return jsonify({"errore": "Operazione non trovata."}), 404
     try:
         updated_model = operational_model_service.get_operational_model_service().review(
             operation.get("operational_model") or {}, request.get_json(silent=True) or {}
@@ -581,7 +581,7 @@ def onboarding_tests():
         return error
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
-        return jsonify({"errore": "Operation not found."}), 404
+        return jsonify({"errore": "Operazione non trovata."}), 404
     feedback = (request.get_json(silent=True) or {}).get("feedback") or []
     scenarios = onboarding_store.save_scenario_feedback(
         workspace["id"], operation["id"], feedback
@@ -799,11 +799,11 @@ def policies():
     )
     builtins = {
         "customer_care": {
-            "title": "Customer Care & Resi",
+            "title": "Assistenza clienti e resi",
             "description": "Assistenza, garanzia, recesso, spedizioni e pagamenti",
-            "source": policy["source"],
+            "source": "Documento interno sui resi",
             "version": policy["version"],
-            "overview": "Playbook per classificare le richieste clienti e preparare risposte verificabili.",
+            "overview": "Procedura per classificare le richieste dei clienti e preparare risposte verificabili.",
             "rules": [
                 {"id": "RET-01", "label": "Finestra recesso", "value": f"{policy['withdrawal']['window_days']} giorni dalla consegna"},
                 {"id": "RET-02", "label": "Condizioni prodotto", "value": "Integro e rivendibile"},
@@ -812,39 +812,39 @@ def policies():
                 {"id": "ESC-01", "label": "Controllo umano", "value": "Obbligatorio prima dell’uso della risposta"},
             ],
             "exceptions": policy["unresolved"],
-            "flow": [("Richiesta", "Intento cliente"), ("Contesto", "Ordine e fatti"), ("Regole", "Idoneità"), ("Human gate", "Risposta")],
+            "flow": [("Richiesta", "Intento del cliente"), ("Contesto", "Ordine e fatti"), ("Regole", "Idoneità"), ("Controllo umano", "Risposta")],
         },
         "agency_ops": {
-            "title": "Agency Delivery",
-            "description": "Brief, cambi di scope, approvazioni e blocchi di delivery",
-            "source": "playbooks/agency_delivery.md",
+            "title": "Progetti di agenzia",
+            "description": "Informazioni iniziali, cambi di perimetro, approvazioni e blocchi di consegna",
+            "source": "Procedura interna sui progetti",
             "version": "1.0",
-            "overview": "Playbook per trasformare comunicazioni di clienti e team in brief e prossime azioni.",
+            "overview": "Procedura per trasformare comunicazioni di clienti e gruppi di lavoro in informazioni iniziali e prossime azioni.",
             "rules": [
-                {"id": "AGY-01", "label": "Brief minimo", "value": "Obiettivo e scope devono essere espliciti"},
+                {"id": "AGY-01", "label": "Informazioni iniziali minime", "value": "Obiettivo e perimetro devono essere espliciti"},
                 {"id": "AGY-02", "label": "Fattibilità", "value": "Scadenza e copertura economica verificate"},
-                {"id": "CHG-01", "label": "Cambio di scope", "value": "Stimare sempre impatto su tempi e costi"},
+                {"id": "CHG-01", "label": "Cambio di perimetro", "value": "Stimare sempre l’impatto su tempi e costi"},
                 {"id": "APR-01", "label": "Approvazione", "value": "Richiedere un esito esplicito del referente"},
-                {"id": "BLK-01", "label": "Blocco critico", "value": "Owner obbligatorio ed escalation delivery"},
+                {"id": "BLK-01", "label": "Blocco critico", "value": "Responsabile obbligatorio ed escalation di progetto"},
             ],
             "exceptions": [{"id": "AGY-X1", "description": "Richieste urgenti senza budget confermato restano sotto revisione del responsabile."}],
-            "flow": [("Richiesta", "Brief o change"), ("Contesto", "Scope e vincoli"), ("Impatto", "Tempi e costi"), ("Human gate", "Handoff")],
+            "flow": [("Richiesta", "Informazioni o modifica"), ("Contesto", "Perimetro e vincoli"), ("Impatto", "Tempi e costi"), ("Controllo umano", "Passaggio di consegne")],
         },
         "internal_ops": {
-            "title": "Internal Operations",
+            "title": "Operazioni interne",
             "description": "Acquisti, accessi, incidenti ed eccezioni interne",
-            "source": "playbooks/internal_operations.md",
+            "source": "Procedura interna sulle operazioni",
             "version": "1.0",
-            "overview": "Playbook per rendere tracciabili richieste interne, approvazioni e responsabilità.",
+            "overview": "Procedura per rendere tracciabili richieste interne, approvazioni e responsabilità.",
             "rules": [
                 {"id": "PUR-01", "label": "Motivazione acquisto", "value": "Utilizzo e beneficiari devono essere documentati"},
-                {"id": "PUR-03", "label": "Approvazione spesa", "value": "Budget e responsabile verificati prima dell’handoff"},
+                {"id": "PUR-03", "label": "Approvazione spesa", "value": "Budget e responsabile verificati prima del passaggio di consegne"},
                 {"id": "ACC-01", "label": "Accessi", "value": "Sistema, ruolo, durata e motivazione obbligatori"},
                 {"id": "INC-01", "label": "Incidente critico", "value": "Escalation se l’attività aziendale è bloccata"},
-                {"id": "EXC-02", "label": "Deroga", "value": "Durata, owner e data di revisione obbligatori"},
+                {"id": "EXC-02", "label": "Deroga", "value": "Durata, responsabile e data di revisione obbligatori"},
             ],
             "exceptions": [{"id": "OPS-X1", "description": "Le urgenze non sostituiscono le approvazioni richieste per accessi o spese."}],
-            "flow": [("Richiesta", "Acquisto o accesso"), ("Contesto", "Motivo e impatto"), ("Approval", "Responsabile"), ("Human gate", "Handoff")],
+            "flow": [("Richiesta", "Acquisto o accesso"), ("Contesto", "Motivo e impatto"), ("Approvazione", "Responsabile"), ("Controllo umano", "Passaggio di consegne")],
         },
     }
     policy_cards = [
@@ -857,7 +857,7 @@ def policies():
             {
                 "id": document["id"],
                 "title": document["name"],
-                "description": "Playbook strutturato e confermato dall’operatore",
+                "description": "Procedura strutturata e confermata dall’operatore",
                 "status": "Pubblicata",
                 "source": document["source_label"],
                 "version": f"1.{document['version'] - 1}",
@@ -872,10 +872,10 @@ def policies():
             0,
             {
                 "id": configured_workflow.workflow_key(configured_operation["id"]),
-                "title": operation_definition.get("name") or configured_operation.get("name") or "Configured operation",
+                "title": operation_definition.get("name") or configured_operation.get("name") or "Operazione configurata",
                 "description": operation_definition.get("purpose") or configured_operation.get("objective"),
-                "status": "Active",
-                "source": f"{(operational_model.get('knowledge') or {}).get('source_count', 0)} knowledge sources",
+                "status": "Attiva",
+                "source": f"{(operational_model.get('knowledge') or {}).get('source_count', 0)} fonti di conoscenza",
                 "version": operational_model.get("schema_version") or "1.0",
                 "custom": False,
                 "configured": True,
@@ -893,7 +893,7 @@ def policies():
         rules_view = [
             {
                 "id": rule.get("id"),
-                "label": rule.get("statement") or "Operational rule",
+                "label": rule.get("statement") or "Regola operativa",
                 "value": rule.get("action") or rule.get("statement"),
             }
             for rule in model.get("rules") or []
@@ -901,17 +901,17 @@ def policies():
         selected_exceptions = [
             {
                 "id": f"OPEN-{index:02d}",
-                "description": item.get("question") or "Ambiguity requires human review.",
+                "description": item.get("question") or "L’ambiguità richiede una revisione umana.",
             }
             for index, item in enumerate(model.get("ambiguities") or [], 1)
             if not item.get("resolved")
         ]
         description = (model.get("operation") or {}).get("purpose") or selected["description"]
         decision_flow = [
-            ("Request", "Unstructured operational input"),
-            ("Context", f"{len(model.get('required_fields') or [])} required fields"),
-            ("Rules", f"{len(model.get('rules') or [])} explicit checks"),
-            ("Human gate", "Operator confirms the action"),
+            ("Richiesta", "Informazione operativa non strutturata"),
+            ("Contesto", f"{len(model.get('required_fields') or [])} informazioni necessarie"),
+            ("Regole", f"{len(model.get('rules') or [])} controlli espliciti"),
+            ("Controllo umano", "L’operatore conferma l’azione"),
         ]
     elif selected.get("custom"):
         document = selected["document"]
@@ -921,7 +921,7 @@ def policies():
             for index, copy in enumerate(document["confirmations"])
         ]
         description = selected["description"]
-        decision_flow = [("Request", "Unstructured input"), ("Context", "Required facts"), ("Rules", "Structured procedure"), ("Human gate", "Operator review")]
+        decision_flow = [("Richiesta", "Informazione non strutturata"), ("Contesto", "Fatti necessari"), ("Regole", "Procedura strutturata"), ("Controllo umano", "Revisione dell’operatore")]
     else:
         definition = builtins[selected_id]
         rules_view = definition["rules"]
@@ -989,7 +989,7 @@ def publish_policy_preview():
     name = str(data.get("name") or "").strip()
     rules_preview = data.get("rules") or []
     if not name or not isinstance(rules_preview, list) or not rules_preview:
-        return jsonify({"errore": "Nome e regole del playbook sono obbligatori."}), 400
+        return jsonify({"errore": "Il nome e le regole della procedura sono obbligatori."}), 400
     if not data.get("human_confirmed"):
         return jsonify({"errore": "Conferma la revisione umana prima di pubblicare."}), 400
     document = database.publish_policy_document(
@@ -1037,7 +1037,7 @@ def simulate_policy():
             None,
         )
         if not scenario:
-            return jsonify({"errore": "Scenario not found."}), 404
+            return jsonify({"errore": "Scenario non trovato."}), 404
         return jsonify(
             {
                 "category": "configured",
@@ -1046,7 +1046,7 @@ def simulate_policy():
                 "eligibility": "human_review",
                 "motivation": scenario["rationale"],
                 "rule_id": "MODEL-TEST",
-                "policy_sections": [operation.get("name") or "Configured playbook"],
+                "policy_sections": [operation.get("name") or "Procedura configurata"],
                 "next_action": scenario["recommendation"],
                 "no_real_action": True,
             }
@@ -1115,7 +1115,7 @@ def analytics_view():
     configured_key = configured_workflow.workflow_key(operation["id"]) if operation and not legacy_demo else None
     metrics = database.copilot_analytics(workflow_key=configured_key)
     feedback_labels = {
-        "policy_interpretation": "Interpretazione policy",
+        "policy_interpretation": "Interpretazione della procedura",
         "missing_information": "Informazioni mancanti",
         "tone_style": "Tono e stile",
         "too_verbose": "Troppo prolisso",
@@ -1218,12 +1218,12 @@ def _render_workbench(
     if operation and not legacy_demo:
         operation_model = operation.get("operational_model") or {}
         workflow = {
-            "label": (operation_model.get("operation") or {}).get("name") or operation.get("name") or "Configured operation",
-            "short": "Company playbook",
+            "label": (operation_model.get("operation") or {}).get("name") or operation.get("name") or "Operazione configurata",
+            "short": "Procedura aziendale",
             "description": (operation_model.get("operation") or {}).get("purpose") or operation.get("objective"),
-            "input_label": "Operational request",
-            "output_label": "Recommended next action",
-            "playbook": (operation_model.get("operation") or {}).get("name") or "Active playbook",
+            "input_label": "Richiesta operativa",
+            "output_label": "Prossima azione consigliata",
+            "playbook": (operation_model.get("operation") or {}).get("name") or "Procedura attiva",
             "examples": [],
         }
         workflows = {configured_key: workflow}
@@ -1588,35 +1588,35 @@ def _recorded_regenerated_draft(return_case: dict, instructions: str = "") -> st
     )
     templates = {
         "procedi_rimborso": (
-            f"{greeting}\n\nla richiesta relativa all'ordine #{order} rispetta i requisiti della policy. "
+            f"{greeting}\n\nla richiesta relativa all'ordine #{order} rispetta i requisiti della procedura. "
             f"{shipping_text} Il rimborso verrà autorizzato solo dopo il rientro e il controllo fisico del prodotto.\n\n"
-            "A presto,\nCustomer Care Team"
+            "A presto,\nTeam assistenza clienti"
         ),
         "procedi_swap": (
             f"{greeting}\n\nle verifiche sull'ordine #{order} consentono di proporre una sostituzione. "
             f"{shipping_text} La sostituzione partirà dopo il rientro e il controllo fisico.\n\n"
-            "A presto,\nCustomer Care Team"
+            "A presto,\nTeam assistenza clienti"
         ),
         "chiedi_foto_video": (
             f"{greeting}\n\nper verificare il problema dell'ordine #{order}, inviaci un breve video del difetto "
             "e una foto dell'etichetta seriale. La pratica sarà rivalutata appena riceveremo le prove.\n\n"
-            "Grazie,\nCustomer Care Team"
+            "Grazie,\nTeam assistenza clienti"
         ),
         "chiedi_stato_sigillo": (
             f"{greeting}\n\nprima di valutare il recesso dell'ordine #{order}, confermaci se confezione e sigillo "
-            "sono integri e se il prodotto è stato aperto o utilizzato.\n\nGrazie,\nCustomer Care Team"
+            "sono integri e se il prodotto è stato aperto o utilizzato.\n\nGrazie,\nTeam assistenza clienti"
         ),
         "offri_scelta_rimborso_o_swap": (
             f"{greeting}\n\nper l'ordine #{order} puoi scegliere tra rimborso e sostituzione. "
-            "Indicaci l'opzione che preferisci e prepareremo il passaggio successivo.\n\nCustomer Care Team"
+            "Indicaci l'opzione che preferisci e prepareremo il passaggio successivo.\n\nTeam assistenza clienti"
         ),
         "rifiuta_recesso_prodotto_escluso": (
             f"{greeting}\n\nnon possiamo approvare il recesso dell'ordine #{order}: il prodotto per uso personale "
-            "risulta aperto. Un eventuale difetto resta comunque coperto dalla garanzia.\n\nCustomer Care Team"
+            "risulta aperto. Un eventuale difetto resta comunque coperto dalla garanzia.\n\nTeam assistenza clienti"
         ),
         "rifiuta_fuori_finestra": (
             f"{greeting}\n\nla richiesta per l'ordine #{order} è oltre i 14 giorni previsti dalla consegna. "
-            "Per questo il recesso non può essere approvato.\n\nCustomer Care Team"
+            "Per questo il recesso non può essere approvato.\n\nTeam assistenza clienti"
         ),
     }
     return templates.get(outcome, return_case.get("original_suggested_response") or "")
@@ -2065,7 +2065,7 @@ def health():
             "operational_model_effort": operational_model_service.MODEL_EFFORT,
             "release": (os.getenv("RENDER_GIT_COMMIT") or "local")[:7],
             "database": "sqlite",
-            "shipping": "mock",
+            "shipping": "simulato",
             "automated_tests": 30,
             "policy_version": policy_config.load_policy()["version"],
         }

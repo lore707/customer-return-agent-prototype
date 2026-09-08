@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 
-{% block title %}Analytics · Ops Copilot{% endblock %}
-{% block page_kicker %}Intelligence interna{% endblock %}
-{% block page_title %}Analytics{% endblock %}
-{% block page_subtitle %}I casi operativi diventano segnali utili per workflow, output e playbook.{% endblock %}
+{% block title %}Analisi · Ops Copilot{% endblock %}
+{% block page_kicker %}Conoscenza interna{% endblock %}
+{% block page_title %}Analisi{% endblock %}
+{% block page_subtitle %}I casi operativi diventano segnali utili per flussi, risultati e procedure.{% endblock %}
 {% block header_actions %}
   <span class="mode-chip"><i></i> Fonte: Casi</span>
   <a class="button ghost" href="{{ url_for('database_register') }}">Verifica i dati</a>
@@ -11,24 +11,24 @@
 {% block page_class %}copilot-analytics{% endblock %}
 
 {% block content %}
-<span class="sr-only">Performance agente</span>
+<span class="sr-only">Prestazioni dell’assistente</span>
 <section class="analytics-source-note">
-  <div><span>Database di origine</span><strong>{{ metrics.total }} casi con redazione base</strong></div>
-  <p>Ogni numero deriva esclusivamente dai casi salvati nel Workbench, indipendentemente dal workflow che li ha generati.</p>
+  <div><span>Archivio di origine</span><strong>{{ metrics.total }} casi con redazione base</strong></div>
+  <p>Ogni numero deriva esclusivamente dai casi salvati nell’area operativa, indipendentemente dal flusso che li ha generati.</p>
   {% if metrics.sample_count %}<span class="demo-data-badge">{{ metrics.sample_count }} casi demo inclusi</span>{% endif %}
 </section>
 
 <section class="analytics-panel analytics-workflows">
-  <div class="analytics-panel-head"><div><span class="section-label">Adozione dei workflow</span><h2>Dove viene usato il copilot?</h2></div><span>{{ metrics.workflows|length }} workflow</span></div>
+  <div class="analytics-panel-head"><div><span class="section-label">Adozione dei flussi</span><h2>Dove viene usato l’assistente?</h2></div><span>{{ metrics.workflows|length }} flussi</span></div>
   <div class="workflow-distribution">{% for row in metrics.workflows %}<div><strong>{{ workflow_labels.get(row.key, row.key) }}</strong><i><b style="width: {{ row.relative }}%"></b></i><span>{{ row.count }} casi · {{ row.percentage }}%</span></div>{% endfor %}</div>
 </section>
 
 <section class="analytics-kpis">
   <article><span>Casi analizzati</span><strong>{{ metrics.total }}</strong><small>{{ metrics.open }} ancora aperti</small></article>
-  <article><span>Bozze preparate</span><strong>{{ metrics.drafts }}</strong><small>sempre con human gate</small></article>
-  <article><span>Esiti registrati</span><strong>{{ metrics.outcome_recorded }}</strong><small>feedback operativo reale</small></article>
+  <article><span>Bozze preparate</span><strong>{{ metrics.drafts }}</strong><small>sempre con controllo umano</small></article>
+  <article><span>Esiti registrati</span><strong>{{ metrics.outcome_recorded }}</strong><small>riscontro operativo reale</small></article>
   <article><span>Bozze modificate</span><strong>{{ metrics.modification_rate }}%</strong><small>{{ metrics.modified }} su {{ metrics.reviewed }} revisionate</small></article>
-  <article><span>Escalation</span><strong>{{ metrics.escalated }}</strong><small>fuori dal percorso standard</small></article>
+  <article><span>Passaggi al responsabile</span><strong>{{ metrics.escalated }}</strong><small>fuori dal percorso ordinario</small></article>
   <article><span>Messaggi per caso</span><strong>{{ metrics.average_messages }}</strong><small>{{ metrics.message_total }} messaggi totali</small></article>
 </section>
 
@@ -38,7 +38,7 @@
     <div class="analytics-bars">
       {% for row in metrics.categories %}
         <div><div><strong>{{ category_labels.get(row.key, row.key) }}</strong><span>{{ row.count }} · {{ row.percentage }}%</span></div><i><b style="width: {{ row.relative }}%"></b></i></div>
-      {% else %}<p class="analytics-empty">Crea il primo caso nel Workbench per vedere la distribuzione.</p>{% endfor %}
+      {% else %}<p class="analytics-empty">Crea il primo caso nell’area operativa per vedere la distribuzione.</p>{% endfor %}
     </div>
   </section>
 
@@ -47,15 +47,15 @@
     <div class="analytics-bars outcome-bars">
       {% for row in metrics.outcomes %}
         <div><div><strong>{{ outcome_labels.get(row.key, row.key) }}</strong><span>{{ row.count }}</span></div><i><b style="width: {{ row.relative }}%"></b></i></div>
-      {% else %}<p class="analytics-empty">Gli esiti compariranno quando l’operatore li registra nel Workbench.</p>{% endfor %}
+      {% else %}<p class="analytics-empty">Gli esiti compariranno quando l’operatore li registra nell’area operativa.</p>{% endfor %}
     </div>
   </section>
 </div>
 
 <div class="analytics-secondary-grid">
   <section class="analytics-panel analytics-friction">
-    <div class="analytics-panel-head"><div><span class="section-label">Attrito operativo</span><h2>Informazioni richieste più spesso</h2></div><a href="{{ url_for('workbench') }}">Apri Workbench →</a></div>
-    <p class="panel-intro">Indica quali controlli fanno perdere più tempo prima di poter applicare un playbook.</p>
+    <div class="analytics-panel-head"><div><span class="section-label">Attrito operativo</span><h2>Informazioni richieste più spesso</h2></div><a href="{{ url_for('workbench') }}">Apri l’area operativa →</a></div>
+    <p class="panel-intro">Indica quali controlli fanno perdere più tempo prima di poter applicare una procedura.</p>
     <div class="friction-list">
       {% for row in metrics.context_fields %}
         <div><span>{% if loop.index < 10 %}0{% endif %}{{ loop.index }}</span><div><strong>{{ fact_labels.get(row.key, row.key) }}</strong><i><b style="width: {{ row.relative }}%"></b></i></div><em>{{ row.count }} casi</em></div>
@@ -75,7 +75,7 @@
 </div>
 
 <section class="analytics-insights">
-  <div class="analytics-insights-head"><div><span class="section-label">Insight azionabili</span><h2>Cosa conviene migliorare</h2><p>Suggerimenti generati dai pattern interni. Richiedono sempre una valutazione umana prima di modificare un playbook.</p></div><a class="button primary" href="{{ url_for('playbooks') }}">Valuta nei Playbooks</a></div>
+  <div class="analytics-insights-head"><div><span class="section-label">Indicazioni operative</span><h2>Cosa conviene migliorare</h2><p>Suggerimenti generati dagli schemi ricorrenti interni. Richiedono sempre una valutazione umana prima di modificare una procedura.</p></div><a class="button primary" href="{{ url_for('playbooks') }}">Valuta nelle procedure</a></div>
   <div class="insight-grid">
     {% for insight in metrics.insights %}
       <article class="insight-{{ insight.type }}">
@@ -89,7 +89,7 @@
 </section>
 
 <section class="analytics-lineage">
-  <div><span class="section-label">Data lineage</span><h2>Dall’evidenza al numero</h2><p>Apri un caso per verificare messaggio, fatti, regola, risposta ed esito che alimentano le aggregazioni.</p></div>
+  <div><span class="section-label">Origine dei dati</span><h2>Dall’evidenza al numero</h2><p>Apri un caso per verificare messaggio, fatti, regola, risposta ed esito che alimentano le aggregazioni.</p></div>
   <div class="lineage-cases">
     {% for item in metrics.recent_cases %}<a href="{{ url_for('workbench_case', case_id=item.id) }}"><strong>{{ item.id }}</strong><span>{{ workflow_labels.get(item.workflow_key or 'customer_care') }} · {{ category_labels.get(item.return_reason, item.return_reason) }}</span><i>→</i></a>{% endfor %}
   </div>

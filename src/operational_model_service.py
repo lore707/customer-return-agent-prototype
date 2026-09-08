@@ -73,7 +73,7 @@ Quality requirements:
 - Rules must have executable condition/action semantics.
 - Stages must be ordered, non-overlapping and collectively explain the end-to-end flow.
 - Infer carefully from incomplete prose, but expose every inference through provenance.
-- Write output labels in the predominant language of the supplied knowledge.
+- Write every user-facing label and description in Italian, regardless of the source language.
 - Be complete without being repetitive: return at most 32 elements, normally 4-8 stages,
   3-10 decision rules and only distinct actors, systems, inputs and controls.
 - Keep descriptive strings concise, details to at most 3 entries and evidence to one short
@@ -130,15 +130,15 @@ def _source_for_excerpt(excerpt: str, sources: list[dict]) -> str:
     for source in sources:
         content = (source.get("content") or "").casefold()
         if excerpt.casefold() in content or (words and sum(word in content for word in words[:8]) >= min(3, len(words))):
-            return source.get("name") or "Knowledge source"
-    return "Operation description"
+            return source.get("name") or "Fonte di conoscenza"
+    return "Descrizione dell’operazione"
 
 
 def _operation_name(context: dict, text: str) -> str:
     operation = context["operation"]
     if operation.get("name"):
         return operation["name"][:72]
-    description = _first_sentence(operation.get("description") or "", "Core operation")
+    description = _first_sentence(operation.get("description") or "", "Operazione principale")
     cleaned = re.sub(
         r"(?i)^(?:we|noi|l'azienda|la nostra azienda)?\s*(?:want to|wants to|vogliamo|deve|gestisce|gestire|manage|handle|coordinate|coordinare)\s+",
         "",
@@ -386,11 +386,11 @@ def _extract_rules(text: str, sources: list[dict]) -> list[dict]:
     source_sentences: list[tuple[str, str]] = []
     for source in sources:
         source_sentences.extend(
-            (sentence, source.get("name") or "Knowledge source")
+            (sentence, source.get("name") or "Fonte di conoscenza")
             for sentence in _sentences(source.get("content") or "")
         )
     if not source_sentences:
-        source_sentences = [(sentence, "Operation description") for sentence in _sentences(text)]
+        source_sentences = [(sentence, "Descrizione dell’operazione") for sentence in _sentences(text)]
     counters: dict[str, int] = {}
     rules = []
     seen = set()
@@ -425,9 +425,9 @@ def _extract_rules(text: str, sources: list[dict]) -> list[dict]:
             {
                 "id": "SAFE-01",
                 "label": "Contesto completo prima della decisione",
-                "statement": "A case can proceed only when the required information is available.",
-                "action": "Collect missing information before proposing the next step.",
-                "source": "Generated operating safeguard",
+                "statement": "Un caso può procedere solo quando sono disponibili tutte le informazioni necessarie.",
+                "action": "Raccogliere le informazioni mancanti prima di proporre il passaggio successivo.",
+                "source": "Protezione operativa generata",
                 "confidence": .72,
                 "status": "draft",
                 "origin": "safeguard",
@@ -439,9 +439,9 @@ def _extract_rules(text: str, sources: list[dict]) -> list[dict]:
             {
                 "id": "SAFE-02",
                 "label": "Conferma umana prima dell’esecuzione",
-                "statement": "External actions require human confirmation.",
-                "action": "Prepare the recommendation and wait for an operator decision.",
-                "source": "Workspace safety default",
+                "statement": "Le azioni esterne richiedono una conferma umana.",
+                "action": "Preparare la raccomandazione e attendere la decisione di un operatore.",
+                "source": "Protezione predefinita dello spazio di lavoro",
                 "confidence": 1.0,
                 "status": "active",
                 "origin": "safeguard",
@@ -493,7 +493,7 @@ def _extract_escalations(text: str) -> list[dict]:
             if len(match.groups()) == 2:
                 trigger, owner = match.group(1), match.group(2)
             else:
-                trigger, owner = "Eccezioni e decisioni non coperte dal playbook", match.group(1)
+                trigger, owner = "Eccezioni e decisioni non coperte dalla procedura", match.group(1)
             owner = re.split(r"[.;\n]", owner)[0]
             owner = _clean_markdown(owner)
             if not owner:
@@ -502,7 +502,7 @@ def _extract_escalations(text: str) -> list[dict]:
                 {
                     "trigger": _clean_markdown(trigger)[-180:],
                     "owner": owner[:70],
-                    "action": f"Escalate for review by {owner[:70]}.",
+                    "action": f"Sottoporre il caso alla revisione di {owner[:70]}.",
                     "origin": "knowledge",
                     "evidence": [_clean_markdown(match.group(0))[:220]],
                 }
@@ -512,9 +512,9 @@ def _extract_escalations(text: str) -> list[dict]:
         return [
             {
                 "id": "ESC-DRAFT",
-                "trigger": "Ambiguity, exception or risk outside the documented path",
-                "owner": "Owner da confermare",
-                "action": "Pause the case until an accountable owner is defined.",
+                "trigger": "Ambiguità, eccezione o rischio fuori dal percorso documentato",
+                "owner": "Responsabile da confermare",
+                "action": "Sospendere il caso finché non viene definito un responsabile.",
                 "origin": "safeguard",
                 "evidence": [],
             }
@@ -557,14 +557,14 @@ def _sentence_source_rows(context: dict) -> list[tuple[str, str]]:
     rows: list[tuple[str, str]] = []
     operation = context.get("operation") or {}
     for field, label in (
-        ("description", "Operation description"),
-        ("objective", "Operation objective"),
-        ("current_process", "Current process"),
+        ("description", "Descrizione dell’operazione"),
+        ("objective", "Obiettivo dell’operazione"),
+        ("current_process", "Processo attuale"),
     ):
         rows.extend((sentence, label) for sentence in _sentences(operation.get(field) or ""))
     for source in context.get("knowledge_sources") or []:
         rows.extend(
-            (sentence, source.get("name") or "Knowledge source")
+            (sentence, source.get("name") or "Fonte di conoscenza")
             for sentence in _sentences(source.get("content") or "")
         )
     return rows
@@ -716,7 +716,7 @@ def _model_assumptions(context: dict, extracted: dict, process_steps: list[dict]
     if not _extract_channels(_all_text(context)):
         suggestions.append(("intake_channel", "Confermare da quale canale entrano normalmente le richieste."))
     if len(company.get("markets") or []) > 1:
-        suggestions.append(("market_scope", "Confermare se lo stesso playbook vale in tutti i mercati indicati."))
+        suggestions.append(("market_scope", "Confermare se la stessa procedura vale in tutti i mercati indicati."))
     return [
         {"id": f"ASM-{index:02d}", "topic": topic, "statement": statement, "status": "needs_confirmation", "origin": "contextual_suggestion"}
         for index, (topic, statement) in enumerate(suggestions[:6], 1)
@@ -758,22 +758,22 @@ def public_provider_error(exc: Exception) -> tuple[str, str]:
     """Map provider failures to useful, non-sensitive messages for the public UI."""
     detail = str(exc).casefold()
     if isinstance(exc, anthropic.RateLimitError):
-        return "rate_limit", "Anthropic's rate limit was reached. Wait a minute, then retry; your knowledge is still saved."
+        return "rate_limit", "È stato raggiunto il limite temporaneo di richieste Anthropic. Attendi un minuto e riprova: le informazioni inserite sono al sicuro."
     if isinstance(exc, anthropic.AuthenticationError):
-        return "authentication", "The Anthropic API key configured on Render was rejected. Check the secret and redeploy."
+        return "authentication", "La chiave API Anthropic configurata su Render è stata rifiutata. Controlla la variabile segreta e ripubblica il servizio."
     if isinstance(exc, anthropic.PermissionDeniedError):
-        return "permission", "This Anthropic API key cannot use the configured Claude model. Check the workspace permissions."
+        return "permission", "La chiave API Anthropic non può utilizzare il modello Claude configurato. Controlla i permessi dello spazio di lavoro."
     if any(term in detail for term in ("credit balance", "credit_balance", "billing", "insufficient credit", "insufficient_quota", "purchase credits")):
-        return "billing", "Anthropic rejected the call because the API credit is unavailable or insufficient. Add credit, then retry."
+        return "billing", "Anthropic ha rifiutato la chiamata perché il credito API non è disponibile o sufficiente. Aggiungi credito e riprova."
     if isinstance(exc, (anthropic.APITimeoutError, anthropic.APIConnectionError)):
-        return "connection", "The connection to Anthropic was interrupted. Wait a moment, then retry; your knowledge is still saved."
+        return "connection", "La connessione ad Anthropic è stata interrotta. Attendi un momento e riprova: le informazioni inserite sono al sicuro."
     if isinstance(exc, json.JSONDecodeError) or "output token limit" in detail:
-        return "incomplete_output", "Claude reached the output limit before completing the operational model. Retry with fewer notes or documents."
+        return "incomplete_output", "Claude ha raggiunto il limite di output prima di completare il modello operativo. Riprova con meno note o documenti."
     if isinstance(exc, ValueError):
-        return "invalid_model", "Claude returned an operational model that did not pass validation. Retry; no local result was substituted."
+        return "invalid_model", "Claude ha restituito un modello operativo che non ha superato la validazione. Riprova: non è stato sostituito con un risultato locale."
     if isinstance(exc, anthropic.BadRequestError):
-        return "bad_request", "Anthropic rejected the model request. Check the configured model and generation settings."
-    return "provider_error", "Claude could not complete the operational model. Retry in a moment."
+        return "bad_request", "Anthropic ha rifiutato la richiesta. Controlla il modello configurato e le impostazioni di generazione."
+    return "provider_error", "Claude non è riuscito a completare il modello operativo. Riprova tra poco."
 
 
 def _normalise_extraction(payload: dict, context: dict) -> dict:
@@ -867,10 +867,10 @@ def _normalise_extraction(payload: dict, context: dict) -> dict:
             {
                 "id": "SAFE-02",
                 "label": "Conferma umana prima dell’esecuzione",
-                "statement": "External actions require human confirmation.",
-                "condition": "Before any external action is executed",
-                "action": "Prepare the recommendation and wait for an operator decision.",
-                "source": "Workspace safety default",
+                "statement": "Le azioni esterne richiedono una conferma umana.",
+                "condition": "Prima di eseguire qualsiasi azione esterna",
+                "action": "Preparare la raccomandazione e attendere la decisione di un operatore.",
+                "source": "Protezione predefinita dello spazio di lavoro",
                 "confidence": 1.0,
                 "status": "active",
                 "origin": "safeguard",
@@ -891,7 +891,7 @@ def _normalise_extraction(payload: dict, context: dict) -> dict:
                 "id": f"ESC-{index:02d}",
                 "trigger": trigger,
                 "owner": owner,
-                "action": _clean_markdown(item.get("action"))[:220] or f"Escalate for review by {owner}.",
+                "action": _clean_markdown(item.get("action"))[:220] or f"Sottoporre il caso alla revisione di {owner}.",
                 "origin": item.get("origin") if item.get("origin") in {"knowledge", "model_derived", "human_review"} else "knowledge",
                 "provenance": item.get("provenance") if isinstance(item.get("provenance"), dict) else {},
                 "evidence": [str(value)[:220] for value in item.get("evidence") or []][:3],
@@ -912,7 +912,7 @@ def _normalise_extraction(payload: dict, context: dict) -> dict:
             {
                 "issue_type": _slug(item.get("issue_type") or question, "clarification"),
                 "question": question,
-                "options": options or ["Add it to the playbook", "Leave unresolved"],
+                "options": options or ["Aggiungila alla procedura", "Lasciala irrisolta"],
                 "details": item.get("details") if isinstance(item.get("details"), dict) else {},
             }
         )
@@ -938,11 +938,11 @@ def _generated_clarifications(context: dict, extracted: dict) -> list[dict]:
     if not fields:
         issues.append({"issue_type": "required_information_gap", "question": "Quali informazioni devono essere disponibili prima di prendere una decisione?", "options": ["Le aggiungo nel documento", "Nessun campo obbligatorio", "Da definire dopo i primi casi"], "details": {}})
     if not any(item.get("origin") == "knowledge" for item in escalations):
-        issues.append({"issue_type": "missing_owner", "question": "Chi deve decidere sulle eccezioni o sui casi ambigui?", "options": ["Process owner", "Team manager", "Da assegnare caso per caso"], "details": {}})
+        issues.append({"issue_type": "missing_owner", "question": "Chi deve decidere sulle eccezioni o sui casi ambigui?", "options": ["Responsabile del processo", "Responsabile del gruppo", "Da assegnare caso per caso"], "details": {}})
     if len([item for item in rules if item.get("origin") == "knowledge"]) < 2:
         issues.append({"issue_type": "decision_rule_gap", "question": "Le fonti contengono poche regole decisionali esplicite. Come va trattata questa prima versione?", "options": ["Bozza da completare", "Revisione manager obbligatoria", "Aggiungeremo regole dai casi"], "details": {}})
     if len(context["company"].get("markets") or []) > 1 and not any("market" in item["statement"].casefold() for item in rules):
-        issues.append({"issue_type": "market_scope", "question": "Le stesse regole valgono in tutti i mercati indicati?", "options": ["Un solo playbook globale", "Regole diverse per mercato", "Non è ancora deciso"], "details": {"markets": context["company"]["markets"]}})
+        issues.append({"issue_type": "market_scope", "question": "Le stesse regole valgono in tutti i mercati indicati?", "options": ["Un’unica procedura globale", "Regole diverse per mercato", "Non è ancora deciso"], "details": {"markets": context["company"]["markets"]}})
     if not context.get("knowledge_sources"):
         issues.append({"issue_type": "knowledge_gap", "question": "Il modello deriva solo dalla descrizione iniziale. Come deve essere considerato?", "options": ["Bozza utilizzabile", "Revisione obbligatoria", "Aggiungerò documenti"], "details": {}})
     return _dedupe(issues, "issue_type")[:5]
@@ -997,15 +997,15 @@ def _score(rows: dict, *, has_open_clarifications: bool, scenarios_reviewed: boo
 
 def _breakdown(rows: dict) -> list[dict]:
     labels = {
-        "company_context": "Company context",
-        "operation_definition": "Operation and objective",
-        "knowledge_sources": "Knowledge coverage",
-        "case_types": "Domain-specific case types",
-        "required_information": "Required information",
-        "decision_rules": "Source-backed decision rules",
-        "escalation_ownership": "Escalation ownership",
-        "clarifications": "Resolved ambiguities",
-        "scenario_validation": "Validated test scenarios",
+        "company_context": "Contesto aziendale",
+        "operation_definition": "Operazione e obiettivo",
+        "knowledge_sources": "Copertura della conoscenza",
+        "case_types": "Tipi di caso specifici",
+        "required_information": "Informazioni necessarie",
+        "decision_rules": "Regole decisionali sostenute dalle fonti",
+        "escalation_ownership": "Responsabilità delle escalation",
+        "clarifications": "Ambiguità risolte",
+        "scenario_validation": "Scenari di verifica validati",
     }
     return [
         {"id": key, "label": labels[key], "earned": int(rows.get(key) or 0), "maximum": maximum}
@@ -1023,17 +1023,17 @@ def _assemble_model(context: dict, payload: dict, provider_name: str) -> dict:
     operation = extracted["operation"]
     sources = context.get("knowledge_sources") or []
     policies = [
-        {"id": f"POL-{index:02d}", "name": source.get("name") or f"Knowledge source {index}", "source_id": source.get("id"), "status": "structured"}
+        {"id": f"POL-{index:02d}", "name": source.get("name") or f"Fonte di conoscenza {index}", "source_id": source.get("id"), "status": "strutturata"}
         for index, source in enumerate(sources, 1)
     ]
     model = {
         "schema_version": "1.2",
         "provider": provider_name,
         "operation": operation,
-        "playbook": {"name": f"{operation['name']} Playbook", "version": "1.0", "status": "review"},
+        "playbook": {"name": f"Procedura {operation['name']}", "version": "1.0", "status": "in revisione"},
         "policies": policies,
         "company_context": {
-            "summary": _first_sentence(company.get("description") or "", f"{company.get('name') or 'The company'} is configuring its first operational workflow."),
+            "summary": _first_sentence(company.get("description") or "", f"{company.get('name') or 'L’azienda'} sta configurando il suo primo flusso operativo."),
             "industry": company.get("industry"),
             "markets": company.get("markets") or [],
             "business_model": company.get("business_model"),
@@ -1079,7 +1079,7 @@ def _assemble_model(context: dict, payload: dict, provider_name: str) -> dict:
         steps = []
         for stage in sorted(lifecycle, key=lambda item: item.get("order") or 999):
             actions = stage.get("actions") or []
-            action = "; ".join(actions) or stage.get("name") or "Stage to review"
+            action = "; ".join(actions) or stage.get("name") or "Fase da revisionare"
             outputs = stage.get("outputs") or []
             provenance = stage.get("provenance") or {}
             steps.append(
@@ -1087,12 +1087,12 @@ def _assemble_model(context: dict, payload: dict, provider_name: str) -> dict:
                     "id": stage.get("id") or f"STEP-{len(steps) + 1:02d}",
                     "order": stage.get("order") or len(steps) + 1,
                     "stage": stage.get("name"),
-                    "actor": stage.get("owner") or "Owner da confermare",
+                    "actor": stage.get("owner") or "Responsabile da confermare",
                     "action": action,
                     "decisions": stage.get("decisions") or [],
                     "required_information": stage.get("required_information") or [],
                     "result": "; ".join(outputs) or "Output da confermare",
-                    "source": "Claude operational reconstruction",
+                    "source": "Ricostruzione operativa di Claude",
                     "origin": "knowledge" if provenance.get("source_type") == "explicit" else "model_derived",
                     "provenance": provenance,
                 }
@@ -1119,7 +1119,7 @@ def _assemble_model(context: dict, payload: dict, provider_name: str) -> dict:
             {
                 "name": item.get("name"), "description": item.get("definition"),
                 "origin": "knowledge" if (item.get("provenance") or {}).get("source_type") == "explicit" else "model_derived",
-                "source": "Claude operational reconstruction", "provenance": item.get("provenance") or {},
+                "source": "Ricostruzione operativa di Claude", "provenance": item.get("provenance") or {},
             }
             for item in ontology.get("outcomes") or []
         ]
@@ -1142,7 +1142,7 @@ class OperationalModelBehaviour:
         case_types = model.get("case_types") or []
         fields = model.get("required_fields") or []
         rules = model.get("rules") or []
-        escalations = model.get("escalations") or [{"owner": "Process owner"}]
+        escalations = model.get("escalations") or [{"owner": "Responsabile del processo"}]
 
         def matching_rule(case_type: dict) -> dict:
             case_words = set(re.findall(r"\w+", (case_type.get("name") or "").casefold()))
@@ -1151,35 +1151,35 @@ class OperationalModelBehaviour:
                 key=lambda rule: len(case_words & set(re.findall(r"\w+", (rule.get("label") or rule.get("statement") or "").casefold()))),
                 reverse=True,
             )
-            return ranked[0] if ranked else {"id": "RULE-DRAFT", "action": "Follow the reviewed playbook."}
+            return ranked[0] if ranked else {"id": "REGOLA-BOZZA", "action": "Seguire la procedura revisionata."}
 
         scenarios = []
         for case_type in case_types[:2]:
             rule = matching_rule(case_type)
             scenarios.append(
                 {
-                    "title": case_type.get("name") or "Operational case",
-                    "input_summary": f"A realistic {case_type.get('name', 'operational case').lower()} contains the information required by the current playbook.",
-                    "recommendation": rule.get("action") or "Proceed through the documented path.",
-                    "rationale": f"Applies {rule.get('id', 'the closest source-backed rule')} and still requires human confirmation.",
+                    "title": case_type.get("name") or "Caso operativo",
+                    "input_summary": f"Un caso realistico di {case_type.get('name', 'caso operativo').lower()} contiene le informazioni richieste dalla procedura corrente.",
+                    "recommendation": rule.get("action") or "Procedere secondo il percorso documentato.",
+                    "rationale": f"Applica {rule.get('id', 'la regola più vicina sostenuta dalle fonti')} e richiede comunque una conferma umana.",
                 }
             )
-        missing_label = fields[0].get("label") if fields else "required information"
+        missing_label = fields[0].get("label") if fields else "informazione necessaria"
         scenarios.append(
             {
-                "title": f"Missing {missing_label.lower()}",
-                "input_summary": f"A relevant request arrives without {missing_label.lower()}.",
-                "recommendation": f"Request {missing_label.lower()} before deciding.",
-                "rationale": "Incomplete inputs should not be converted into confident operational decisions.",
+                "title": f"Manca: {missing_label.lower()}",
+                "input_summary": f"Arriva una richiesta pertinente senza {missing_label.lower()}.",
+                "recommendation": f"Richiedere {missing_label.lower()} prima di decidere.",
+                "rationale": "Informazioni incomplete non devono diventare decisioni operative presentate come certe.",
             }
         )
         if len(scenarios) < 3:
             scenarios.append(
                 {
-                    "title": "Case outside the documented playbook",
-                    "input_summary": "A request introduces an exception that the current knowledge does not resolve.",
-                    "recommendation": f"Escalate to {escalations[0].get('owner', 'the process owner')} for review.",
-                    "rationale": "The model preserves ownership instead of inventing a rule.",
+                    "title": "Caso non coperto dalla procedura documentata",
+                    "input_summary": "Una richiesta introduce un’eccezione che la conoscenza disponibile non risolve.",
+                    "recommendation": f"Sottoporre il caso a {escalations[0].get('owner', 'responsabile del processo')} per una revisione.",
+                    "rationale": "Il modello mantiene una responsabilità umana invece di inventare una regola.",
                 }
             )
         return scenarios[:4]
@@ -1219,7 +1219,7 @@ class OperationalModelBehaviour:
         if len(name) < 3 or len(purpose) < 12:
             raise ValueError("Add an operation name and a clear purpose before saving the review.")
         updated["operation"] = {"name": name, "purpose": purpose}
-        updated.setdefault("playbook", {})["name"] = f"{name} Playbook"
+        updated.setdefault("playbook", {})["name"] = f"Procedura {name}"
         updated["playbook"]["status"] = "human_reviewed"
 
         def text_items(key: str, limit: int) -> list[dict]:
@@ -1233,12 +1233,12 @@ class OperationalModelBehaviour:
                     {
                         "id": _slug(value.get("id") or label, f"{key}_{index}") if isinstance(value, dict) else _slug(label, f"{key}_{index}"),
                         "name" if key == "case_types" else "label": label[:100],
-                        "description": (_clean_markdown(value.get("description"))[:220] if isinstance(value, dict) else "") or "Confermato durante la revisione del playbook.",
+                        "description": (_clean_markdown(value.get("description"))[:220] if isinstance(value, dict) else "") or "Confermato durante la revisione della procedura.",
                         "operation": name,
                         "required": True,
                         "keywords": [label.casefold()],
                         "origin": "human_review",
-                        "evidence": ["Human onboarding review"],
+                        "evidence": ["Revisione umana della configurazione"],
                     }
                 )
             return rows
@@ -1265,15 +1265,15 @@ class OperationalModelBehaviour:
                     "statement": statement,
                     "condition": statement,
                     "action": action or statement,
-                    "source": "Human onboarding review",
+                    "source": "Revisione umana della configurazione",
                     "confidence": 1.0,
                     "status": "active",
                     "origin": "human_review",
-                    "evidence": ["Human onboarding review"],
+                    "evidence": ["Revisione umana della configurazione"],
                 }
             )
         if not rules:
-            raise ValueError("Keep at least one decision rule in the playbook.")
+            raise ValueError("Mantieni almeno una regola decisionale nella procedura.")
         updated["rules"] = rules[:24]
 
         escalations = []
@@ -1283,7 +1283,7 @@ class OperationalModelBehaviour:
             owner = _clean_markdown(item.get("owner"))[:70]
             trigger = _clean_markdown(item.get("trigger"))[:220]
             if owner and trigger:
-                escalations.append({"id": f"ESC-{index:02d}", "owner": owner, "trigger": trigger, "action": f"Sottoporre il caso a {owner}.", "origin": "human_review", "evidence": ["Human onboarding review"]})
+                escalations.append({"id": f"ESC-{index:02d}", "owner": owner, "trigger": trigger, "action": f"Sottoporre il caso a {owner}.", "origin": "human_review", "evidence": ["Revisione umana della configurazione"]})
         updated["escalations"] = escalations or updated.get("escalations") or []
 
         def reviewed_rows(key: str, field_names: tuple[str, ...], limit: int = 16) -> list[dict]:
@@ -1302,7 +1302,7 @@ class OperationalModelBehaviour:
                         "provenance": {
                             "source_type": "explicit",
                             "confidence": 1.0,
-                            "evidence": ["Human onboarding review"],
+                            "evidence": ["Revisione umana della configurazione"],
                             "requires_confirmation": False,
                         },
                     }
@@ -1327,7 +1327,7 @@ class OperationalModelBehaviour:
                 continue
             action = _clean_markdown(item.get("action"))[:320]
             if action:
-                steps.append({"id": f"STEP-{index:02d}", "order": index, "actor": _clean_markdown(item.get("actor"))[:70] or "Ruolo da confermare", "action": action, "result": _clean_markdown(item.get("result"))[:160] or _step_result(action), "source": "Human onboarding review", "origin": "human_review"})
+                steps.append({"id": f"STEP-{index:02d}", "order": index, "actor": _clean_markdown(item.get("actor"))[:70] or "Ruolo da confermare", "action": action, "result": _clean_markdown(item.get("result"))[:160] or _step_result(action), "source": "Revisione umana della configurazione", "origin": "human_review"})
         updated.setdefault("process", {})["steps"] = steps
         if steps:
             updated["process"]["starts_when"] = steps[0]["action"]
@@ -1367,8 +1367,8 @@ class OperationalModelBehaviour:
             scenarios_reviewed=reviewed == len(scenarios) and bool(scenarios),
         )
         remaining = list(model.get("remaining_setup") or [])
-        if adjustments and "Review the scenarios marked as needing adjustment." not in remaining:
-            remaining.append("Review the scenarios marked as needing adjustment.")
+        if adjustments and "Rivedi gli scenari contrassegnati come da modificare." not in remaining:
+            remaining.append("Rivedi gli scenari contrassegnati come da modificare.")
         updated["remaining_setup"] = remaining[:6]
         return updated
 
@@ -1453,7 +1453,7 @@ class ResilientOperationalModelService(OperationalModelBehaviour):
             result["model"]["provider"] = "local_evidence_extractor_after_provider_error"
             result["model"]["remaining_setup"] = [
                 *result["model"].get("remaining_setup", []),
-                "Review the locally extracted model because the configured AI provider was unavailable.",
+                "Rivedi il modello estratto localmente perché il fornitore AI configurato non era disponibile.",
             ][:6]
             return result
 

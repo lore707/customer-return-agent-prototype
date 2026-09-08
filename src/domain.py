@@ -84,10 +84,10 @@ STATUS_LABELS = {
     CaseStatus.RETURN_VALIDATED.value: "Controllato e valido",
     CaseStatus.REFUND_PENDING.value: "Rimborso in attesa",
     CaseStatus.REFUNDED.value: "Rimborsato",
-    CaseStatus.REPLACEMENT_PENDING.value: "Swap in attesa",
+    CaseStatus.REPLACEMENT_PENDING.value: "Sostituzione in attesa",
     CaseStatus.REPLACED.value: "Sostituito",
     CaseStatus.CLOSED.value: "Chiuso",
-    CaseStatus.ESCALATED.value: "Escalato",
+    CaseStatus.ESCALATED.value: "Inoltrato al responsabile",
 }
 
 
