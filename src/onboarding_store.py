@@ -53,6 +53,35 @@ def get_workspace(workspace_id: str | None, path=None) -> dict | None:
     return _row(row, "workspaces")
 
 
+def get_generation_checkpoint(workspace_id: str, operation_id: str, path=None) -> dict | None:
+    with database.session(path) as conn:
+        row=conn.execute(
+            'SELECT payload FROM onboarding_generation_checkpoints WHERE operation_id=? AND workspace_id=?',
+            (operation_id,workspace_id),
+        ).fetchone()
+    if not row:
+        return None
+    try:
+        return json.loads(row['payload'])
+    except (TypeError,json.JSONDecodeError):
+        return None
+
+
+def save_generation_checkpoint(workspace_id: str, operation_id: str, payload: dict, path=None) -> None:
+    with database.session(path) as conn:
+        conn.execute(
+            '''INSERT INTO onboarding_generation_checkpoints(operation_id,workspace_id,payload,updated_at)
+               VALUES(?,?,?,?) ON CONFLICT(operation_id) DO UPDATE SET
+               workspace_id=excluded.workspace_id,payload=excluded.payload,updated_at=excluded.updated_at''',
+            (operation_id,workspace_id,json.dumps(payload,ensure_ascii=False),database.utc_now()),
+        )
+
+
+def clear_generation_checkpoint(workspace_id: str, operation_id: str, path=None) -> None:
+    with database.session(path) as conn:
+        conn.execute('DELETE FROM onboarding_generation_checkpoints WHERE operation_id=? AND workspace_id=?',(operation_id,workspace_id))
+
+
 def latest_completed_workspace(path=None) -> dict | None:
     with database.session(path) as conn:
         row = conn.execute(

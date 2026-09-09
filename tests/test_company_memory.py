@@ -204,5 +204,20 @@ class CompanyMemoryTests(unittest.TestCase):
         with database.session() as conn:
             self.assertIsNone(conn.execute('SELECT 1 FROM company_memory WHERE workspace_id=?',(other['id'],)).fetchone())
 
+    def test_interrupted_generation_keeps_a_scoped_resumable_checkpoint(self):
+        operation=onboarding_store.save_operation(self.ws['id'],{
+            'description':'Gestire le richieste operative con controlli e responsabilità documentati.',
+            'objective':'Ridurre errori e decisioni incoerenti.',
+            'current_process':'La richiesta viene verificata dal responsabile prima di procedere.',
+        })
+        onboarding_store.save_generation_checkpoint(self.ws['id'],operation['id'],{'fingerprint':'abc','details':{}})
+        onboarding_store.set_generation_status(self.ws['id'],operation['id'],'processing')
+        with app.ONBOARDING_JOB_LOCK:
+            app.ONBOARDING_JOBS.pop(operation['id'],None)
+        response=self.client.get('/api/onboarding/analyze/status')
+        self.assertEqual(409,response.status_code)
+        self.assertTrue(response.get_json()['resumable'])
+        self.assertEqual('draft',onboarding_store.get_operation(operation['id'])['status'])
+
 
 if __name__=='__main__':unittest.main()

@@ -82,6 +82,7 @@
         <li><i></i><div><strong>Preparazione dello spazio operativo</strong><span>Memoria pronta per Workbench, Casi, Analytics, Radar e Academy</span></div></li>
       </ol>
       <div class="analysis-status"><span id="analysisStatus">Preparazione del contesto…</span><b id="analysisPercent">In attesa</b></div>
+      <div class="analysis-processes" id="analysisProcesses" aria-live="polite"></div>
     </section>
 
     <section class="onboarding-step" data-step="5">
@@ -208,8 +209,8 @@
     const timer = setInterval(() => { items.forEach(item => item.classList.remove("active")); items[index % items.length]?.classList.add("active"); index += 1; }, 2000);
     try {
       let data = await postJSON("/api/onboarding/analyze"); const deadline = Date.now() + 6 * 60 * 1000;
-      while (!data.model && data.status === "processing") { await new Promise(resolve => setTimeout(resolve, 1500)); if (Date.now() > deadline) throw new Error("La ricostruzione sta impiegando più tempo del previsto. Riprova tra poco."); document.getElementById("analysisStatus").textContent = "Ricostruzione della memoria operativa…"; document.getElementById("analysisPercent").textContent = "In corso"; data = await getJSON("/api/onboarding/analyze/status"); }
-      if (!data.model) throw new Error("La memoria operativa non è stata restituita."); clearInterval(timer); items.forEach(item => { item.classList.remove("active"); item.classList.add("complete"); }); document.getElementById("analysisPercent").textContent = "100%"; state.operation.operational_model = data.model; state.operation.name = data.model.operation.name; state.clarifications = data.clarifications || []; setTimeout(() => showStep(5), 420);
+      while (!data.model && data.status === "processing") { await new Promise(resolve => setTimeout(resolve, 1500)); if (Date.now() > deadline) throw new Error("La ricostruzione sta impiegando più tempo del previsto. Puoi tornare più tardi: ciò che è già pronto viene salvato."); data = await getJSON("/api/onboarding/analyze/status"); document.getElementById("analysisStatus").textContent = data.label || "Ricostruzione della memoria operativa…"; const rows=data.processes||[]; document.getElementById("analysisPercent").textContent = rows.length ? `${rows.filter(row=>row.status==='complete').length} / ${rows.length} processi` : "Mappatura"; document.getElementById("analysisProcesses").innerHTML=rows.map(row=>`<div class="analysis-process"><span>${escapeHTML(row.name)}</span><b class="${escapeHTML(row.status)}">${row.status==='complete'?'Pronto':row.status==='processing'?'In elaborazione':'In attesa'}</b></div>`).join(''); }
+      if (!data.model) throw new Error("La memoria operativa non è stata restituita."); clearInterval(timer); items.forEach(item => { item.classList.remove("active"); item.classList.add("complete"); }); document.getElementById("analysisPercent").textContent = "Completata"; state.operation.operational_model = data.model; state.operation.name = data.model.operation.name; state.clarifications = data.clarifications || []; setTimeout(() => showStep(5), 420);
     } catch (error) { clearInterval(timer); showStep(3); setNotice(error.message, true); } finally { analysisRunning = false; }
   }
 
@@ -231,7 +232,8 @@
     const domains = model.operational_domains || [];
     const processes = model.operational_grammar?.processes || [];
     const sources = state.sources || [];
-    const provider = model.provider === "anthropic_operational_model" ? "Ricostruzione con Claude" : "Organizzazione locale delle informazioni";
+    const generation = model.generation || {};
+    const provider = model.provider === "anthropic_operational_model" ? `Ricostruzione con Claude · ${generation.calls || 1} chiamate · ${(generation.input_tokens || 0) + (generation.cache_read_input_tokens || 0) + (generation.cache_creation_input_tokens || 0)} token in ingresso · ${generation.output_tokens || 0} in uscita` : "Organizzazione locale delle informazioni";
     document.getElementById("modelSummary").innerHTML = `
       <section class="model-hero"><div><span>MEMORIA OPERATIVA AZIENDALE · PRIMA BOZZA</span><h2>${escapeHTML(company.company_name)}</h2><p>${escapeHTML(context.core_business || company.company_description || model.operation?.purpose || "")}</p><small class="model-engine-note">${escapeHTML(provider)}</small></div></section>
       <section class="model-domain-panel"><span class="onboarding-kicker">Le attività dell’organizzazione</span><p>${escapeHTML(context.operational_activities || "")}</p><div class="model-domain-grid">${domains.map(d => `<article><header><strong>${escapeHTML(d.name)}</strong>${provenanceBadge(d)}</header><p>${escapeHTML(d.description || "")}</p></article>`).join("")}</div></section>

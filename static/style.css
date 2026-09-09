@@ -1670,6 +1670,10 @@ td small { font-size: 10px; }
 .analysis-checklist li.active > i { border: 4px solid #8064ff; }.analysis-checklist li.complete > i { display: grid; place-items: center; border-color: #50c982; color: #50c982; font-style: normal; }.analysis-checklist li.complete > i::after { content: "✓"; font-size: 10px; }
 .analysis-checklist strong,.analysis-checklist span { display: block; }.analysis-checklist strong { font-size: 14px; }.analysis-checklist span { margin-top: 3px; color: #7f889b; font-size: 12px; }
 .analysis-status { display: flex; color: #8f98aa; font-size: 12px; justify-content: space-between; }.analysis-status b { color: #b4a5ff; font: 700 12px var(--body-font); }
+.analysis-processes { display: grid; gap: 8px; margin-top: 18px; }
+.analysis-process { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 12px 15px; border: 1px solid #252e42; border-radius: 10px; background: #101725; color: #cbd3e3; font-size: 13px; }
+.analysis-process b { color: #9ca8bd; font-size: 11px; }
+.analysis-process b.processing { color: #b7a2ff; }.analysis-process b.complete { color: #65d99a; }
 .clarification-list { display: grid; gap: 14px; }
 .clarification-card { padding: 22px; border: 1px solid #262d3d; border-radius: 13px; background: #0d111c; }
 .clarification-card header { display: flex; margin-bottom: 12px; justify-content: space-between; color: #9a88f6; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }.clarification-card header small { color: #687185; }

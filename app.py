@@ -436,10 +436,20 @@ def _run_onboarding_analysis(workspace_id: str, operation_id: str, prepared: dic
     """Generate outside the request lifecycle so hosting proxy timeouts cannot abort it."""
     try:
         service = operational_model_service.get_operational_model_service()
-        result = service.build(prepared)
+        checkpoint = onboarding_store.get_generation_checkpoint(workspace_id, operation_id)
+
+        def report(update, saved_checkpoint):
+            onboarding_store.save_generation_checkpoint(workspace_id, operation_id, saved_checkpoint)
+            with ONBOARDING_JOB_LOCK:
+                current = ONBOARDING_JOBS.setdefault(operation_id, {})
+                current.update({key:value for key,value in update.items() if key in {'phase','label','processes'}})
+                current['status'] = 'processing'
+
+        result = service.build(prepared, progress=report, checkpoint=checkpoint)
         onboarding_store.save_generated_model(workspace_id, operation_id, result)
+        onboarding_store.clear_generation_checkpoint(workspace_id, operation_id)
         with ONBOARDING_JOB_LOCK:
-            ONBOARDING_JOBS[operation_id] = {"status": "complete", "finished_at": time.time()}
+            ONBOARDING_JOBS[operation_id] = {"status": "complete", "phase":"complete", "label":"Memoria pronta per la revisione.", "finished_at": time.time()}
     except Exception as exc:  # noqa: BLE001
         logger.exception("Asynchronous operational model generation failed")
         error_code, public_message = operational_model_service.public_provider_error(exc)
@@ -464,12 +474,15 @@ def onboarding_analyze():
     operation = onboarding_store.active_operation(workspace["id"])
     if not operation:
         return jsonify({"errore": "L’operazione non è ancora stata configurata."}), 400
-    if operation.get("status") == "processing":
-        return jsonify({"ok": True, "status": "processing"}), 202
     with ONBOARDING_JOB_LOCK:
         current = ONBOARDING_JOBS.get(operation["id"]) or {}
         if current.get("status") == "processing":
-            return jsonify({"ok": True, "status": "processing"}), 202
+            return jsonify({"ok": True, **{key:value for key,value in current.items() if key in {'status','phase','label','processes'}}}), 202
+    # A process restart can interrupt the in-memory worker. The persisted
+    # checkpoint remains available and the next request resumes from it.
+    if operation.get("status") == "processing":
+        onboarding_store.set_generation_status(workspace["id"], operation["id"], "draft")
+        operation = onboarding_store.active_operation(workspace["id"])
     try:
         sources = onboarding_store.list_knowledge_sources(operation["id"])
         prepared = context_privacy.prepare_operational_context(workspace, operation, sources)
@@ -477,7 +490,12 @@ def onboarding_analyze():
         prepared["privacy"]["external_provider_used"] = service.uses_external_provider
         onboarding_store.set_generation_status(workspace["id"], operation["id"], "processing")
         with ONBOARDING_JOB_LOCK:
-            ONBOARDING_JOBS[operation["id"]] = {"status": "processing", "started_at": time.time()}
+            checkpoint=onboarding_store.get_generation_checkpoint(workspace["id"],operation["id"])
+            ONBOARDING_JOBS[operation["id"]] = {
+                "status": "processing", "phase":"resume" if checkpoint else "preparing",
+                "label":"Riprendo i processi mancanti." if checkpoint else "Preparo il contesto aziendale.",
+                "started_at": time.time(),
+            }
         ONBOARDING_EXECUTOR.submit(
             _run_onboarding_analysis,
             workspace["id"],
@@ -502,9 +520,12 @@ def onboarding_analyze_status():
         return jsonify({"errore": "L’operazione non è ancora stata configurata."}), 404
     with ONBOARDING_JOB_LOCK:
         job = dict(ONBOARDING_JOBS.get(operation["id"]) or {})
+    if operation.get('status') == 'processing' and not job:
+        onboarding_store.set_generation_status(workspace['id'],operation['id'],'draft')
+        return jsonify({"errore":"La generazione è stata interrotta da un riavvio. I risultati già completati sono salvi: avviala di nuovo per riprendere.","status":"error","resumable":bool(onboarding_store.get_generation_checkpoint(workspace['id'],operation['id']))}),409
     if job.get("status") == "error":
         return jsonify({"errore": job.get("message"), "error_code": job.get("code"), "status": "error"}), 500
-    if operation.get("status") == "review" and operation.get("operational_model"):
+    if operation.get("status") == "review" and operation.get("operational_model") and job.get('status') != 'processing':
         clarifications = onboarding_store.list_clarifications(operation["id"])
         return jsonify(
             {
@@ -517,7 +538,7 @@ def onboarding_analyze_status():
         )
     if operation.get("status") == "draft" and job.get("status") != "processing":
         return jsonify({"errore": "La generazione è stata interrotta. Avviala nuovamente.", "status": "error"}), 409
-    return jsonify({"ok": True, "status": "processing"}), 202
+    return jsonify({"ok": True, **{key:value for key,value in job.items() if key in {'status','phase','label','processes'}}}), 202
 
 
 @app.post("/api/onboarding/clarifications")
@@ -2071,6 +2092,8 @@ def health():
                 "anthropic" if operational_service.uses_external_provider else "local"
             ),
             "operational_model": os.getenv("OPERATIONAL_MODEL_MODEL", "claude-sonnet-5"),
+            "operational_map_model": os.getenv("OPERATIONAL_MAP_MODEL", "claude-haiku-4-5"),
+            "operational_pipeline": "map_then_processes_v1",
             "operational_model_effort": operational_model_service.MODEL_EFFORT,
             "release": (os.getenv("RENDER_GIT_COMMIT") or "local")[:7],
             "database": "sqlite",

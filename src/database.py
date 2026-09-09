@@ -176,6 +176,12 @@ def init_database(path: str | Path | None = None) -> None:
                    SELECT 1 FROM case_messages cm WHERE cm.case_id = rc.id
                )"""
         )
+        conn.execute(
+            """CREATE TABLE IF NOT EXISTS onboarding_generation_checkpoints (
+               operation_id TEXT PRIMARY KEY REFERENCES operations(id) ON DELETE CASCADE,
+               workspace_id TEXT NOT NULL REFERENCES workspaces(id) ON DELETE CASCADE,
+               payload TEXT NOT NULL, updated_at TEXT NOT NULL)"""
+        )
         conn.execute("PRAGMA optimize")
     import company_memory
     company_memory.init_tables(path)

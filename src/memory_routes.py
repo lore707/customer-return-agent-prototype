@@ -105,6 +105,7 @@ def reconstruct_job(job_id, company, name, sources):
                      'objective': f'Documentare in modo verificabile il processo {name}.',
                      'current_process': company.get('memory_context') or ''}
         prepared = context_privacy.prepare_operational_context(company, operation, sources)
+        prepared['generation']={'scope':'single_process','process_name':name}
         result = operational_model_service.get_operational_model_service().build(prepared)
         doc = memory.from_onboarding(company, result['model'], sources)
         if not doc['processes']:

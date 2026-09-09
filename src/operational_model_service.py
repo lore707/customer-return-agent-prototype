@@ -15,6 +15,7 @@ import re
 from dataclasses import dataclass
 
 import anthropic
+import anthropic_staged
 import operational_grammar
 
 
@@ -23,12 +24,6 @@ MODEL = os.getenv("OPERATIONAL_MODEL_MODEL", "claude-sonnet-5")
 MODEL_EFFORT = os.getenv("OPERATIONAL_MODEL_EFFORT", "medium").strip().lower()
 if MODEL_EFFORT not in {"low", "medium", "high"}:
     MODEL_EFFORT = "medium"
-try:
-    MODEL_MAX_TOKENS = max(4_000, min(12_000, int(os.getenv("OPERATIONAL_MODEL_MAX_TOKENS", "12000"))))
-except ValueError:
-    MODEL_MAX_TOKENS = 12_000
-
-
 SYSTEM_PROMPT = """You are an Operational Reconstruction Engine.
 
 Reconstruct how the supplied company actually works. The JSON schema is the universal
@@ -783,6 +778,12 @@ def _parse_json(value: str) -> dict:
 def public_provider_error(exc: Exception) -> tuple[str, str]:
     """Map provider failures to useful, non-sensitive messages for the public UI."""
     detail = str(exc).casefold()
+    if isinstance(exc, anthropic_staged.StageFailure):
+        if exc.stage == 'process' and exc.process_name:
+            return 'incomplete_process', f'Claude non ha completato «{exc.process_name}». I processi già pronti sono salvati: riprova per continuare da questo punto.'
+        if exc.stage == 'map':
+            return 'incomplete_map', 'Claude non ha completato la mappa iniziale dell’azienda. Riprova: nessuna ricostruzione parziale è stata pubblicata.'
+        return 'invalid_model', 'Una fase della ricostruzione non ha superato i controlli. I processi già completati sono salvati e il prossimo tentativo ripartirà da lì.'
     if isinstance(exc, anthropic.RateLimitError):
         return "rate_limit", "È stato raggiunto il limite temporaneo di richieste Anthropic. Attendi un minuto e riprova: le informazioni inserite sono al sicuro."
     if isinstance(exc, anthropic.AuthenticationError):
@@ -1437,7 +1438,7 @@ class OperationalModelBehaviour:
 class LocalOperationalModelService(OperationalModelBehaviour):
     provider_name: str = "local_evidence_extractor"
 
-    def build(self, context: dict) -> dict:
+    def build(self, context: dict, *, progress=None, checkpoint=None) -> dict:
         return _assemble_model(context, _local_extraction(context), self.provider_name)
 
 
@@ -1446,52 +1447,21 @@ class AnthropicOperationalModelService(OperationalModelBehaviour):
     provider_name: str = "anthropic_operational_model"
     uses_external_provider = True
 
-    def build(self, context: dict) -> dict:
+    def build(self, context: dict, *, progress=None, checkpoint=None) -> dict:
         api_key = (os.getenv("ANTHROPIC_API_KEY") or "").strip()
         if not api_key:
             raise RuntimeError("ANTHROPIC_API_KEY is required for the Anthropic operational model provider.")
         client = anthropic.Anthropic(api_key=api_key)
-        request = dict(
-            model=MODEL,
-            max_tokens=MODEL_MAX_TOKENS,
-            system=SYSTEM_PROMPT,
-            output_config={
-                "effort": MODEL_EFFORT,
-                "format": {
-                    "type": "json_schema",
-                    "schema": operational_grammar.schema(),
-                },
-            },
-            messages=[
-                {
-                    "role": "user",
-                    "content": "Reconstruct this operation from the redacted context. Return only the schema-conformant operational model.\n\n" + json.dumps(context, ensure_ascii=False),
-                }
-            ],
+        ontology, generation, _ = anthropic_staged.build(
+            client, context, SYSTEM_PROMPT, MODEL,
+            progress=progress, checkpoint=checkpoint,
         )
-        # Streaming keeps the outbound connection active on hosted environments while
-        # Claude performs a long structured reconstruction.
-        with client.messages.stream(**request) as stream:
-            text = stream.get_final_text()
-            response = stream.get_final_message()
-        if getattr(response, "stop_reason", None) == "max_tokens":
-            raise ValueError("Claude reached the output token limit before returning valid JSON.")
-        ontology = _parse_json(text)
-        validation_errors = operational_grammar.validate(ontology)
-        if validation_errors:
-            raise ValueError("Invalid operational grammar: " + "; ".join(validation_errors[:6]))
         result = _assemble_model(
             context,
             operational_grammar.to_application_payload(ontology),
             self.provider_name,
         )
-        usage = response.usage
-        result["model"]["generation"] = {
-            "model": MODEL,
-            "input_tokens": int(getattr(usage, "input_tokens", 0) or 0),
-            "output_tokens": int(getattr(usage, "output_tokens", 0) or 0),
-            "structured_output": True,
-        }
+        result["model"]["generation"] = generation
         return result
 
 
@@ -1501,15 +1471,15 @@ class ResilientOperationalModelService(OperationalModelBehaviour):
     fallback: LocalOperationalModelService
     uses_external_provider = True
 
-    def build(self, context: dict) -> dict:
+    def build(self, context: dict, *, progress=None, checkpoint=None) -> dict:
         try:
-            return self.primary.build(context)
+            return self.primary.build(context, progress=progress, checkpoint=checkpoint)
         except (anthropic.APIError, json.JSONDecodeError, KeyError, TypeError, ValueError) as exc:
             if (os.getenv("OPERATIONAL_MODEL_ALLOW_LOCAL_FALLBACK") or "").strip().lower() not in {"1", "true", "yes", "on"}:
                 LOGGER.exception("Operational model provider failed; transparent failure enabled")
                 raise
             LOGGER.warning("Operational model provider failed; explicitly using local evidence extraction: %s", exc)
-            result = self.fallback.build(context)
+            result = self.fallback.build(context, progress=progress, checkpoint=checkpoint)
             result["model"]["provider"] = "local_evidence_extractor_after_provider_error"
             result["model"]["remaining_setup"] = [
                 *result["model"].get("remaining_setup", []),

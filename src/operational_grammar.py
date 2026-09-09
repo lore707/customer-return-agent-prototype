@@ -199,9 +199,9 @@ def expand(payload: dict) -> dict:
         elif kind == "feedback_loop":
             expanded["feedback_loops"].append({**base, "signal": item["condition"], "review": item["summary"], "improvement_action": item["action"]})
         elif kind == "ambiguity":
-            expanded["ambiguities"].append({"id": item["id"], "issue": item["summary"], "question": item["action"], "options": item["details"], "evidence": item["evidence"]})
+            expanded["ambiguities"].append({**base, "issue": item["summary"], "question": item["action"], "options": item["details"], "evidence": item["evidence"]})
         elif kind == "missing_knowledge":
-            expanded["missing_knowledge"].append({"id": item["id"], "topic": item["name"], "why_it_matters": item["summary"], "question": item["action"], "blocking": item["required"]})
+            expanded["missing_knowledge"].append({**base, "topic": item["name"], "why_it_matters": item["summary"], "question": item["action"], "blocking": item["required"]})
     expanded["lifecycle"].sort(key=lambda item: item["order"])
     expanded["decision_rules"].sort(key=lambda item: item["priority"])
     return expanded

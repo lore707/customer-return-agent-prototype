@@ -100,12 +100,15 @@ def from_onboarding(workspace, model, sources):
                 return model.get(key, []) or ontology.get(key, [])
             return [item for item in ontology.get(key, []) if group['id'] in item.get('links', [])]
         notes = [
+            *[f"Percorso ricorrente: {i.get('name', '')}. {i.get('description', '')}" for i in relevant('case_types')],
             *[f"Eccezione: {i.get('trigger', '')}. {i.get('handling', '')}" for i in relevant('exceptions')],
             *[f"Escalation: {i.get('trigger', '')}. Responsabile: {i.get('owner', '')}" for i in relevant('escalations')],
             *[f"Vincolo: {i.get('statement', '')}" for i in relevant('constraints')],
             *[f"Indicatore: {i.get('name', '')}. {i.get('definition', '')}" for i in relevant('metrics')],
             *[f"Miglioramento: {i.get('signal', '')}. {i.get('review', '')}. {i.get('improvement_action', '')}" for i in relevant('feedback_loops')],
+            *[f"Risultato previsto: {i.get('name', '')}. {i.get('definition', '')}" for i in relevant('outcomes')],
         ]
+        issues = model.get('ambiguities', []) if legacy else [*relevant('ambiguities'), *relevant('missing_knowledge')]
         processes.append({
             'id': pid, 'name': group.get('name') or 'Processo importato',
             'area': group.get('area') or ', '.join(area_names) or 'Da assegnare',
@@ -125,9 +128,9 @@ def from_onboarding(workspace, model, sources):
                        'origin': item.get('provenance', {}).get('source_type') or 'derived',
                        'approved': False}
                       for item in rules if item.get('origin') != 'safeguard'],
-            'gaps': [{'id': uid('GAP'), 'question': item.get('question') or '',
-                      'why': (item.get('details') or {}).get('why_it_matters') or (item.get('details') or {}).get('issue') or 'Serve a chiarire quando e come applicare la procedura.',
-                      'status': 'open', 'answer': ''} for item in model.get('ambiguities', []) if not item.get('resolved')],
+            'gaps': [{'id': uid('GAP'), 'question': item.get('question') or item.get('action') or '',
+                      'why': item.get('why_it_matters') or item.get('issue') or (item.get('details') or {}).get('why_it_matters') or (item.get('details') or {}).get('issue') or 'Serve a chiarire quando e come applicare la procedura.',
+                      'status': 'open', 'answer': ''} for item in issues if not item.get('resolved') and (item.get('question') or item.get('action'))],
             'notes': '\n'.join(notes),
         })
     return {'company': {'name': workspace.get('company_name') or '',

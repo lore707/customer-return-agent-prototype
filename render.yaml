@@ -14,10 +14,16 @@ services:
         value: anthropic
       - key: OPERATIONAL_MODEL_MODEL
         value: claude-sonnet-5
+      - key: OPERATIONAL_MAP_MODEL
+        value: claude-haiku-4-5
       - key: OPERATIONAL_MODEL_EFFORT
         value: medium
-      - key: OPERATIONAL_MODEL_MAX_TOKENS
-        value: 12000
+      - key: OPERATIONAL_MAP_MAX_TOKENS
+        value: 2800
+      - key: OPERATIONAL_PROCESS_MAX_TOKENS
+        value: 5200
+      - key: OPERATIONAL_PROCESS_CONCURRENCY
+        value: 2
       - key: ANTHROPIC_API_KEY
         sync: false
       - key: RETURN_SHIPPING_PROVIDER
