@@ -33,12 +33,15 @@ import return_shipping  # noqa: E402
 import rules  # noqa: E402
 import shopify_client  # noqa: E402
 import support_copilot  # noqa: E402
+import company_memory  # noqa: E402
+import memory_routes  # noqa: E402
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 database.init_database()
+app.register_blueprint(memory_routes.bp)
 
 ONBOARDING_EXECUTOR = ThreadPoolExecutor(max_workers=1, thread_name_prefix="operational-model")
 ONBOARDING_JOB_LOCK = Lock()
@@ -481,6 +484,8 @@ def onboarding_analyze():
             operation["id"],
             prepared,
         )
+    except ValueError as exc:
+        return jsonify({"errore": str(exc)}), 400
     except Exception:  # noqa: BLE001
         logger.exception("Operational model generation could not be started")
         return jsonify({"errore": "Non è stato possibile avviare la generazione del modello operativo."}), 500
@@ -604,7 +609,8 @@ def onboarding_complete():
         completed = onboarding_store.complete_workspace(workspace["id"])
     except ValueError as exc:
         return jsonify({"errore": str(exc)}), 400
-    return jsonify({"ok": True, "workspace": completed, "redirect": url_for("workbench")})
+    company_memory.ensure(workspace["id"])
+    return jsonify({"ok": True, "workspace": completed, "redirect": "/memory"})
 
 
 @app.get("/demo/<scenario_slug>")
@@ -1253,6 +1259,9 @@ def _render_workbench(
 
 @app.get("/workbench")
 def workbench():
+    workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
+    if not request.args.get('demo') and workspace and workspace.get('status') == 'completed':
+        return redirect('/workspace/assist')
     requested = (request.args.get("case_id") or "").strip()
     if requested and database.get_case(requested):
         return redirect(url_for("workbench_case", case_id=requested))
@@ -1280,7 +1289,7 @@ def analyze_support_message():
         workspace = onboarding_store.get_workspace(request.cookies.get(WORKSPACE_COOKIE))
         operation = onboarding_store.active_operation(workspace["id"]) if workspace and workspace.get("status") == "completed" else None
         if operation and requested_workflow in {"", configured_workflow.workflow_key(operation["id"])}:
-            return_case = configured_workflow.create_case(message, operation)
+            return jsonify(errore="La configurazione aziendale usa la Memoria Operativa pubblicata. Apri la nuova area operativa e seleziona un processo approvato.", redirect="/workspace/assist"), 409
         else:
             return_case = support_copilot.create_case(
                 message,

@@ -86,7 +86,8 @@ def update_workspace(workspace_id: str, values: dict, *, path=None) -> dict:
 
 
 def save_company(workspace_id: str, values: dict, *, path=None) -> dict:
-    description = str(values.get("company_description") or "").strip()
+    existing = get_workspace(workspace_id, path) or {}
+    description = str(values.get("company_description") or existing.get('company_description') or "").strip()
     company_name = str(values.get("company_name") or "").strip()
     industry = str(values.get("industry") or "").strip()
     team_size = str(values.get("team_size") or "").strip()
@@ -102,6 +103,7 @@ def save_company(workspace_id: str, values: dict, *, path=None) -> dict:
     if not markets:
         raise ValueError("Indica almeno un Paese o mercato.")
     derived = {
+        **(existing.get('derived_context') or {}),
         "summary": description[:240] if description else f"{company_name} opera nel settore {industry}.",
         "operating_scope": " / ".join(markets[:4]) if markets else "To be refined",
         "model": str(values.get("business_model") or "Not specified"),

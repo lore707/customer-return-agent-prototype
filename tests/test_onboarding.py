@@ -109,7 +109,8 @@ class OnboardingTests(unittest.TestCase):
         completed = self.client.post("/api/onboarding/complete")
         self.assertEqual(200, completed.status_code)
 
-        workbench = self.client.get("/workbench")
+        self.assertEqual('/memory', completed.get_json()['redirect'])
+        workbench = self.client.get("/workbench", follow_redirects=True)
         self.assertEqual(200, workbench.status_code)
         self.assertIn(b"vendor onboarding requests", workbench.data)
 
@@ -120,11 +121,11 @@ class OnboardingTests(unittest.TestCase):
                 "message": "A supplier onboarding request is urgent and includes the required documents.",
             },
         )
-        self.assertEqual(200, created.status_code)
-        case_id = created.get_json()["case_id"]
-        case = database.get_case(case_id)
-        self.assertEqual(f"operation:{operation_id}", case["workflow_key"])
-        self.assertEqual("policy_copilot_configured", case["source_mode"])
+        # An onboarding draft must not enter the legacy first-rule evaluator.
+        self.assertEqual(409, created.status_code)
+        memory = self.client.get('/api/memory').get_json()
+        self.assertEqual(0, memory['published_version'])
+        self.assertTrue(all(p['status']=='draft' for p in memory['draft']['processes']))
 
         playbooks = self.client.get("/playbooks")
         self.assertEqual(200, playbooks.status_code)

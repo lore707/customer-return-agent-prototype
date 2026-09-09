@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}{{ section_title }} · Ops{% endblock %}
+{% block page_kicker %}{{ memory_state.draft.company.name }} · Conoscenza condivisa{% endblock %}
+{% block page_title %}{{ section_title }}{% endblock %}
+{% block page_subtitle %}Conoscere il lavoro. Decidere con contesto. Migliorare insieme.{% endblock %}
+{% block header_actions %}<a class="button ghost" href="/memory">Memoria aziendale ↗</a>{% endblock %}
+{% block page_class %}memory-page{% endblock %}
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='memory.css') }}">
+<nav class="mem-tabs" aria-label="Ciclo operativo">
+{% for key, label in [('memory','Memoria'),('assist','Area operativa'),('cases','Casi'),('analytics','Analisi'),('radar','Radar'),('academy','Academy')] %}
+<a href="{{ '/memory' if key=='memory' else '/workspace/'+key }}" class="{{ 'selected' if section==key else '' }}">{{ label }}</a>
+{% endfor %}
+</nav>
+<div id="memNotice" role="status" aria-live="polite" hidden></div>
+<div id="knowledgeApp" aria-busy="true"><div class="mem-empty">Caricamento della memoria…</div></div>
+<dialog id="memDialog" class="mem-dialog"><form method="dialog"><button class="mem-close" aria-label="Chiudi">×</button></form><div id="dialogContent"></div></dialog>
+<script id="memoryInitial" type="application/json">{{ {'section': section, 'state': memory_state}|tojson }}</script>
+{% endblock %}
+{% block scripts %}<script src="{{ url_for('static', filename='memory.js') }}" defer></script>{% endblock %}

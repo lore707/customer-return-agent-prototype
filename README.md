@@ -6,11 +6,10 @@ office: l’azienda descrive chi è, come lavora e ciò che sa già; il sistema
 costruisce una prima memoria operativa esplicita, modificabile e verificabile.
 
 ```text
-Company context + operational activities + knowledge
-→ context/privacy layer
-→ structured operational memory
-→ smart clarifications
-→ active human-guided workspace
+Conoscenza aziendale → memoria in bozza → revisione → versione pubblicata
+→ assistenza sui casi → decisione umana → azione → esito e riscontro
+→ Analisi / Radar → proposta verificata → nuova versione della memoria
+                                  ↘ Academy dalla stessa memoria pubblicata
 ```
 
 Non sono necessarie integrazioni o credenziali Shopify e il prototipo non esegue
@@ -26,14 +25,54 @@ Il percorso `/onboarding` salva progressivamente ogni passaggio in SQLite:
 2. core business, attività operative e difficoltà interne;
 3. documenti o note operative facoltativi;
 4. ricostruzione della memoria operativa;
-5. chiarimenti e revisione umana di aree, processi, campi, regole ed escalation;
-6. attivazione del workspace con un livello di completezza non forzato al 100%.
+5. lettura della ricostruzione generale e dei processi identificati;
+6. salvataggio nella Memoria Operativa come bozza, senza attivare le regole.
+
+## Memoria aziendale e ciclo operativo
+
+`/memory` separa identità, attività, difficoltà, persone e strumenti dai singoli
+processi. Ogni processo contiene una spiegazione, passaggi, responsabilità,
+informazioni da verificare, regole, fonti, eccezioni e lacune. Tutto è modificabile
+manualmente. È possibile aggiungere processi manualmente oppure ricostruirli da
+documenti e note con il provider configurato.
+
+La ricostruzione non approva le proprie regole e non inventa condizioni eseguibili.
+Il responsabile configura i confronti sui fatti oppure mantiene la valutazione
+umana. La pubblicazione crea una versione immutabile; solo i processi approvati
+e le loro regole confermate sono utilizzati nell’area operativa e in Academy.
+Una fonte cambiata richiede la revisione delle regole pertinenti: non viene
+reinterpretata automaticamente come nuova istruzione.
+
+- `/workspace/assist`: conversazione, raccolta di fatti tipizzati, fonti e
+  condizioni verificate. La lettura locale riconosce «Nome campo: valore»; il
+  pulsante AI propone fatti con estratti del messaggio. Entrambi richiedono
+  conferma umana. La valutazione delle condizioni non usa un LLM.
+- `/workspace/cases`: casi con snapshot della versione utilizzata, decisione,
+  azione ed esito distinti e storico degli aggiornamenti. Modificare i fatti
+  invalida la precedente approvazione. I casi conclusi restano immutabili.
+- `/workspace/analytics`: conteggi reali, processi utilizzati, informazioni
+  mancanti, riscontri e mediana del tempo alla prima decisione. Nessuna stima
+  inventata di risparmio o produttività.
+- `/workspace/radar`: lacune e riscontri collegati ai casi, proposte, revisione
+  motivata, aggiunta alle note del processo in bozza e successiva pubblicazione.
+  Il responsabile deve aggiornare anche le regole interessate. Le osservazioni
+  esterne si inseriscono manualmente: non c’è ricerca web automatica.
+- `/workspace/academy`: schede ed esercizi generati dalle regole pubblicate,
+  inclusi casi al di fuori delle soglie numeriche. Le risposte vengono valutate
+  con lo stesso motore dei casi; i tentativi conservano la versione studiata.
+
+Il motore confronta valori di tipo testo, numero, data e booleano. Tutte le
+condizioni di una regola devono essere vere; dati mancanti e azioni contrastanti
+richiedono raccolta di informazioni o valutazione umana. Non esegue azioni esterne.
+Gli endpoint precedenti della sandbox restano disponibili per la demo storica,
+ma non elaborano più le nuove configurazioni aziendali tramite la vecchia logica.
 
 La verifica tramite scenari non appesantisce più l’onboarding: verrà proposta
 successivamente come simulazione guidata usando la stessa memoria pubblicata.
 
 Gli upload supportano PDF, DOCX, TXT e MD. Il contenuto resta server-side; il
-browser riceve soltanto metadati e stato dell’elaborazione. La generazione con
+browser riceve metadati e stato durante l’elaborazione; nella Memoria Operativa
+può consultare le fonti della propria organizzazione. La generazione con
 Claude viene avviata come job in background: la pagina interroga un endpoint di
 stato fino al completamento, evitando i timeout dei proxy di hosting durante le
 ricostruzioni più lunghe.
@@ -46,7 +85,7 @@ quali processi debba usare un'azienda. Gli oggetti principali sono:
 - `Workspace` e relativo contesto aziendale;
 - `Operation` e modello operativo attivo;
 - `KnowledgeSource`;
-- `OperationalDomain`, `CaseType`, `Actor`, `System`, `Input`, `LifecycleStage` e `DecisionRule`;
+- `OperationalDomain`, `Process`, `CaseType`, `Actor`, `System`, `Input`, `LifecycleStage` e `DecisionRule`;
 - `Exception`, `Escalation`, `Constraint`, `Outcome`, `Metric` e `FeedbackLoop`;
 - `Clarification` e `TestScenario`;
 - casi, messaggi, feedback e audit trail già presenti nel prodotto.
@@ -135,7 +174,10 @@ output locale. Il fallback può essere abilitato soltanto in modo esplicito con
 ```
 
 La suite copre onboarding end-to-end, persistenza, privacy layer, modello
-generico, Workbench configurato e tutte le regressioni della sandbox.
+generico, versioni della memoria, isolamento per workspace, condizioni reali,
+Academy, ciclo di feedback e regressioni della sandbox. `tests/memory_ui.cjs`
+verifica inoltre rendering DOM, editor e interazioni delle sei sezioni (richiede
+`jsdom` nell’ambiente di sviluppo). Non sostituisce una verifica visuale browser.
 
 ## Deploy su Render
 
@@ -152,12 +194,14 @@ retention e controlli privacy formali.
 
 ## Limiti dichiarati
 
-- un solo workspace e una sola operazione per browser nel prototipo;
+- un workspace per browser, con più processi; nessuna gestione account;
 - nessuna autenticazione o autorizzazione multi-tenant;
-- motore di strutturazione locale, non un LLM esterno;
+- provider locale o Claude configurabile; i test automatici non consumano API;
 - redazione euristica, non sufficiente per dati reali sensibili;
 - nessuna integrazione o azione esterna;
 - SQLite e filesystem adatti a demo/portfolio, non a produzione distribuita.
 
-Academy, Radar e la promozione assistita delle decisioni in nuove regole restano
-estensioni successive.
+I job AI sono temporanei nel processo web, non una coda persistente distribuita.
+Il piano Render configurato usa SQLite in `/tmp`: un riavvio o deploy può perdere
+i dati demo. Per dati aziendali reali servono prima persistenza e backup,
+autenticazione, permessi, protezioni antiabuso delle chiamate API e verifica privacy.

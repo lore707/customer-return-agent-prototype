@@ -36,6 +36,11 @@ grammar; none of its business content is preconfigured. Never force the material
 categories such as "standard request", "incomplete request" or "policy exception" when the
 evidence supports domain-specific concepts.
 
+The onboarding describes the whole company, not just a single operation. The top-level
+operation summarizes the company operating context. Identify distinct operational domains
+and specific processes only where the supplied knowledge supports them. A documented
+returns process does not stand for all of an e-commerce company's operations.
+
 Reason across the company context, goals, current process and all knowledge sources. Reconstruct
 actors, systems, inputs, lifecycle stages, decisions, outputs, constraints, exceptions, metrics
 and feedback loops. Lifecycle stages must describe the actual operation, not a generic template.
@@ -43,9 +48,14 @@ and feedback loops. Lifecycle stages must describe the actual operation, not a g
 The output schema uses a compact typed-element transport. Create one element for every relevant
 operational object and use these field conventions:
 - operational_domain: summary=what the area does, action=its objective, details=main activities.
+- process: summary=a short narrative explaining how the process works, condition=start,
+  action=completion, owner=responsible role, links=operational_domain IDs.
+  Stages and rules must link to their process ID; retain global stage ordering for transport.
 - case_type: summary=definition, details=entry conditions.
 - actor: details=responsibilities, owner=accountability.
 - system/input: summary=purpose or definition; input.required marks required facts.
+  Link inputs, exceptions, escalations, constraints, metrics, feedback loops and case types
+  to the process IDs they belong to. Preserve company-wide items as shared context.
 - stage: condition=trigger, action=primary action, details=other actions, summary=output,
   owner=responsible actor, links=required input IDs, order=1..N.
 - decision_rule: condition=IF, action=THEN, links=case/stage IDs, order=priority starting at 1.
@@ -77,8 +87,9 @@ Quality requirements:
 - Stages must be ordered, non-overlapping and collectively explain the end-to-end flow.
 - Infer carefully from incomplete prose, but expose every inference through provenance.
 - Write every user-facing label and description in Italian, regardless of the source language.
-- Be complete without being repetitive: return at most 32 elements, normally 4-8 stages,
-  3-10 decision rules and only distinct actors, systems, inputs and controls.
+- Prioritize faithful coverage over quotas of stages or rules. Keep the first company map
+  concise, preserve documented process boundaries and identify omitted detail as missing
+  knowledge. Do not force every process into one sequence.
 - Keep descriptive strings concise, details to at most 3 entries and evidence to one short
   source excerpt per element. Missing knowledge is more useful than duplicated filler.
 """
@@ -416,7 +427,7 @@ def _extract_rules(text: str, sources: list[dict]) -> list[dict]:
                 "action": action[:240],
                 "source": source_name,
                 "confidence": .86,
-                "status": "active",
+                "status": "draft",
                 "origin": "knowledge",
                 "evidence": [statement[:180]],
             }
@@ -900,7 +911,7 @@ def _normalise_extraction(payload: dict, context: dict) -> dict:
                 "action": _clean_markdown(item.get("action"))[:240] or statement[:220],
                 "source": source,
                 "confidence": confidence,
-                "status": "active",
+                "status": item.get('status') if item.get('status') in {'draft', 'active'} else ('draft' if (item.get('provenance') or {}).get('requires_confirmation', True) else 'active'),
                 "origin": item.get("origin") if item.get("origin") in {"knowledge", "model_derived", "human_review"} else "knowledge",
                 "provenance": item.get("provenance") if isinstance(item.get("provenance"), dict) else {},
                 "evidence": evidence,

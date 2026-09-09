@@ -43,6 +43,8 @@ def prepare_operational_context(
 
     prepared_sources = []
     remaining = MAX_SOURCE_CHARACTERS
+    if sum(len(str(source.get('content') or '')) for source in sources) > remaining:
+        raise ValueError('I materiali superano 24.000 caratteri per questa elaborazione. Parti da una panoramica e aggiungi i documenti dei singoli processi nella Memoria Operativa: nessuna fonte verrà tagliata silenziosamente.')
     for source in sources:
         if remaining <= 0:
             break

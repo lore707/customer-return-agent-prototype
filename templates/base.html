@@ -39,25 +39,26 @@
     <aside class="sidebar" aria-label="Navigazione principale">
       <a class="brand-mark" href="{{ url_for('index') }}" aria-label="Ops Copilot home"><span>O</span></a>
       <nav class="side-nav">
-        <a class="nav-item {% if request.path.startswith('/workbench') %}active{% endif %}" href="/workbench">
+        <a class="nav-item {% if request.path.startswith('/workbench') or request.path == '/workspace/assist' %}active{% endif %}" href="/workspace/assist">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H7l-3 3V5Z"/><path d="M8 9h8M8 12h5"/></svg><span>Area operativa</span>
         </a>
-        <a class="nav-item {% if request.endpoint == 'database_register' or request.path.startswith('/cases/') %}active{% endif %}" href="{{ url_for('database_register') }}">
+        <a class="nav-item {% if request.endpoint == 'database_register' or request.path.startswith('/cases/') or request.path == '/workspace/cases' %}active{% endif %}" href="/workspace/cases">
           <svg viewBox="0 0 24 24" aria-hidden="true"><ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v7c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12v7c0 1.7 3.6 3 8 3s8-1.3 8-3v-7"/></svg><span>Casi</span>
         </a>
-        <a class="nav-item {% if request.path.startswith('/analytics') %}active{% endif %}" href="/analytics">
+        <a class="nav-item {% if request.path.startswith('/analytics') or request.path == '/workspace/analytics' %}active{% endif %}" href="/workspace/analytics">
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20V10M10 20V4M16 20v-7M22 20V7"/></svg><span>Analisi</span>
         </a>
-        <a class="nav-item {% if request.path.startswith('/policies') or request.path.startswith('/playbooks') %}active{% endif %}" href="{{ url_for('playbooks') }}">
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Procedure</span>
+        <a class="nav-item {% if request.path == '/memory' %}active{% endif %}" href="/memory">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 5 6v5c0 4.6 2.8 8.2 7 10 4.2-1.8 7-5.4 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-5"/></svg><span>Memoria</span>
         </a>
+        <a class="nav-item {% if request.path == '/workspace/radar' %}active{% endif %}" href="/workspace/radar"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="m12 12 7-7"/></svg><span>Radar</span></a>
+        <a class="nav-item {% if request.path == '/workspace/academy' %}active{% endif %}" href="/workspace/academy"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m2 9 10-5 10 5-10 5-10-5Zm4 3v6l6 3 6-3v-6"/></svg><span>Academy</span></a>
       </nav>
       {% if active_workspace and active_workspace.status == 'completed' and active_workspace.completeness < 100 %}
-      <a class="workspace-setup-card" href="{{ url_for('onboarding', edit=1) }}">
-        <span>CONFIGURAZIONE {{ active_workspace.completeness }}%</span>
-        <div><i style="width: {{ active_workspace.completeness }}%"></i></div>
-        <strong>{{ active_operation.name or 'Spazio di lavoro' }}</strong>
-        <small>Rivedi le informazioni mancanti →</small>
+      <a class="workspace-setup-card" href="/memory">
+        <span>CONOSCENZA AZIENDALE</span>
+        <strong>{{ active_workspace.company_name or 'Spazio di lavoro' }}</strong>
+        <small>Rivedi e completa la memoria →</small>
       </a>
       {% endif %}
       <div class="sidebar-foot"><a href="{{ url_for('index') }}">Panoramica</a><span><i class="pulse-dot"></i> Demo sicura</span></div>

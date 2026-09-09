@@ -1,0 +1,63 @@
+.memory-page {max-width:1360px; padding-bottom:64px; --paper:#f2f4fa; --ink:#202740; --muted:#606b82; --line:#dce1ed; --purple:#6945ce;}
+.mem-tabs {display:flex;gap:8px;flex-wrap:wrap;margin:0 0 25px;padding:7px;border:1px solid #39425d;border-radius:16px;background:#151f34}
+.mem-tabs a {padding:11px 17px;border-radius:10px;color:#c4cde0;text-decoration:none;font-size:14px;font-weight:600}
+.mem-tabs a.selected {background:#7853dc;color:white;box-shadow:0 4px 18px #7853dc30}
+#knowledgeApp {color:var(--ink);font-size:16px;line-height:1.65}
+#knowledgeApp h2,#knowledgeApp h3,#knowledgeApp h4 {color:var(--ink);font-family:Manrope, sans-serif;letter-spacing:-.03em;line-height:1.3}
+#knowledgeApp h2 {font-size:29px;margin:8px 0 16px} #knowledgeApp h3 {font-size:21px;margin:0 0 10px} #knowledgeApp h4 {font-size:17px;margin:0 0 8px}
+#knowledgeApp p {margin:0 0 16px;white-space:pre-line} #knowledgeApp small {font-size:13px;color:var(--muted)}
+.mem-eyebrow {text-transform:uppercase;letter-spacing:.12em;color:var(--purple);font-size:11px;font-weight:800}
+.mem-hero {padding:34px 36px;background:linear-gradient(115deg,#f8f7ff,#e9e6fb);border:1px solid #d6cff1;border-radius:22px;margin-bottom:20px}
+.mem-hero p {max-width:850px;color:#4c5872;font-size:17px}
+.mem-toolbar {display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:16px 0}
+.mem-actions {display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.mem-button {display:inline-flex;align-items:center;justify-content:center;gap:7px;padding:11px 17px;min-height:44px;border:1px solid #cdd4e4;background:#fff;border-radius:10px;color:#28324c;font:600 14px/1.4 Inter,sans-serif;cursor:pointer;text-decoration:none}
+.mem-button.primary {background:#6842c9;border-color:#6842c9;color:#fff}
+.mem-button.subtle {background:#e9edf6}.mem-button.danger {color:#b53651;background:#fff4f4}
+.mem-button:hover {filter:brightness(.97);box-shadow:0 3px 12px #25355216}.mem-button:disabled {opacity:.55;cursor:wait}
+.mem-button:focus-visible, #knowledgeApp a:focus-visible {outline:3px solid #a387f3;outline-offset:3px}
+.mem-grid {display:grid;grid-template-columns:270px minmax(0,1fr);gap:20px;align-items:start}
+.mem-list {border:1px solid var(--line);border-radius:16px;padding:14px;background:#e8edf7;position:sticky;top:18px}
+.mem-list button {display:block;width:100%;text-align:left;border:1px solid transparent;border-radius:12px;background:transparent;padding:15px;margin:6px 0;color:var(--ink);cursor:pointer;font:600 15px/1.4 Inter,sans-serif}
+.mem-list button small {display:block;margin-top:6px;font-weight:400}
+.mem-list button.selected {background:white;border-color:#bba5f0;box-shadow:0 4px 10px #513d7910}
+.mem-card {padding:28px;background:var(--paper);border:1px solid var(--line);border-radius:18px;margin-bottom:16px}
+.mem-card.tint {background:#eae7f7;border-color:#d1c8e9}.mem-card.warning {background:#fff4dd;border-color:#e9d5a9}
+.mem-card header {display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:14px}
+.mem-card header h3 {margin-bottom:0}
+.mem-badge {display:inline-block;vertical-align:middle;white-space:nowrap;padding:4px 9px;border-radius:7px;font-size:11px;font-weight:700;background:#e3e6f0;color:#465371;letter-spacing:.01em}
+.mem-badge.green {background:#d4eddf;color:#226c49}.mem-badge.amber {background:#fae5ba;color:#8c600e}.mem-badge.purple {background:#e6dcfc;color:#6945bc}
+.mem-flow {list-style:none;padding:0;margin:20px 0 0;counter-reset:stage}
+.mem-flow li {display:grid;grid-template-columns:40px 1fr;gap:14px;padding:17px 0;border-top:1px solid #dce1ed}
+.mem-flow li:before {counter-increment:stage;content:counter(stage,decimal-leading-zero);display:grid;place-items:center;width:36px;height:36px;background:#e4dcf9;color:#6945bc;border-radius:10px;font-size:12px;font-weight:800}
+.mem-flow p {font-size:15px;color:#4c5872;margin:6px 0!important}
+.mem-rule {border:1px solid #d8deeb;padding:21px;border-radius:13px;margin:12px 0;background:#fff}
+.mem-rule details {border-top:1px solid #e0e5ef;margin-top:15px;padding-top:12px}
+.mem-rule summary {cursor:pointer;color:#6945bc;font-size:13px;font-weight:600}
+.mem-rule blockquote {border-left:3px solid #a78bdc;padding:10px 15px;margin:12px 0;background:#f5f2fb;color:#566079;font-size:14px}
+.mem-rule p {font-size:15px}.mem-rule .action {color:#263b60;font-weight:500}
+.mem-stats {display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:18px 0}
+.mem-stat {padding:21px;background:#f2f4fa;border:1px solid var(--line);border-radius:14px}
+.mem-stat strong {display:block;font:800 31px Manrope;color:#44347c}.mem-stat span {font-size:13px;color:#626b80}
+.mem-empty {padding:45px;text-align:center;border:1px dashed #aeb8ce;border-radius:18px;background:#f0f3fa;color:#53617c}
+.mem-columns {display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.mem-field {display:flex;flex-direction:column;gap:7px;margin:14px 0;color:#3b4760;font-size:14px;font-weight:600}
+.mem-field input,.mem-field select,.mem-field textarea,.mem-search {width:100%;min-width:0;padding:11px 13px;background:white;border:1px solid #bdc8da;border-radius:9px;color:#26324a;font:400 15px/1.55 Inter,sans-serif;box-sizing:border-box}
+.mem-field input:focus,.mem-field select:focus,.mem-field textarea:focus {outline:3px solid #c6b4f660;border-color:#9573df}
+.mem-field textarea {resize:vertical;min-height:85px}.mem-field input[type=checkbox] {width:18px;height:18px}
+.mem-inline {display:flex;gap:12px;align-items:center;flex-wrap:wrap}.mem-inline>.mem-field {flex:1;min-width:130px}
+.mem-check {display:flex;gap:9px;align-items:center;font-size:14px;color:#46516b}
+.mem-editor {max-width:100%}.mem-editor details {margin:16px 0;padding:16px;border:1px solid #d5dcea;border-radius:12px;background:#fff}
+.mem-editor summary {cursor:pointer;font-weight:700;color:#4d397e}.mem-editor-row {padding:16px;background:#f0f3fa;border-radius:12px;margin:12px 0}
+.mem-dialog {width:min(900px,calc(100vw - 36px));max-height:88vh;overflow:auto;padding:30px;border:1px solid #d7d1ea;border-radius:20px;color:#26314b;background:#f2f4fa;box-shadow:0 30px 100px #0007}
+.mem-dialog::backdrop {background:#081126b0;backdrop-filter:blur(5px)}.mem-close {float:right;background:#e5e8f0;border:0;border-radius:8px;width:34px;height:34px;font-size:23px;color:#46516b;cursor:pointer}
+.mem-dialog h2 {font-family:Manrope;font-size:26px}.mem-dialog pre {white-space:pre-wrap;word-break:break-word;background:white;padding:18px;border-radius:12px;color:#46516b}
+#memNotice {position:sticky;top:12px;z-index:20;margin:14px 0;padding:15px 20px;border-radius:12px;background:#d9efdf;color:#245c3c;border:1px solid #a9d7b4;font-size:15px}
+#memNotice.error {background:#ffe2e3;color:#892f3a;border-color:#e9a6ad}
+.mem-chat {max-width:960px;margin:auto}.mem-message {padding:20px 24px;margin:16px 0;border-radius:16px;background:#fff;border:1px solid #dae1ee;white-space:pre-line}
+.mem-message.operator {margin-left:12%;background:#e8e0f9;border-color:#d1c2ed}.mem-message.system {margin-right:4%}
+.mem-table {width:100%;border-collapse:collapse;font-size:14px}.mem-table th,.mem-table td {padding:14px 12px;text-align:left;border-bottom:1px solid #dce1ed;color:#35415b}.mem-table th {font-size:12px;color:#73809a}.mem-table a {color:#6945bc;font-weight:600;text-decoration:none}
+.mem-scroll {overflow:auto}.mem-progress {height:7px;background:#dce2ef;border-radius:10px;overflow:hidden;margin:7px 0 18px}.mem-progress i {display:block;background:#8a68da;height:100%;border-radius:10px}
+.mem-sticky-actions {position:sticky;bottom:14px;padding:14px;background:#f1eefbea;border:1px solid #cebfed;border-radius:13px;backdrop-filter:blur(12px);z-index:3}
+@media(max-width:950px){.mem-grid{grid-template-columns:1fr}.mem-list{position:static}.mem-list button{display:inline-block;width:auto}.mem-columns{grid-template-columns:1fr}.mem-stats{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:600px){.mem-hero,.mem-card{padding:21px}.mem-tabs{gap:2px}.mem-tabs a{padding:10px 12px;font-size:12px}.mem-dialog{padding:20px}.mem-message.operator{margin-left:4%}.mem-stats{gap:8px}.mem-stat{padding:15px}}

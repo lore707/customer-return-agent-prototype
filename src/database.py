@@ -177,6 +177,8 @@ def init_database(path: str | Path | None = None) -> None:
                )"""
         )
         conn.execute("PRAGMA optimize")
+    import company_memory
+    company_memory.init_tables(path)
 
 
 def _new_case_id() -> str:

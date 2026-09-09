@@ -14,7 +14,7 @@ from copy import deepcopy
 GRAMMAR_VERSION = "2.0"
 SOURCE_TYPES = ("explicit", "derived", "suggested")
 ELEMENT_KINDS = (
-    "operational_domain", "case_type", "actor", "system", "input", "stage", "decision_rule",
+    "operational_domain", "process", "case_type", "actor", "system", "input", "stage", "decision_rule",
     "exception", "escalation", "constraint", "outcome", "metric",
     "feedback_loop", "ambiguity", "missing_knowledge",
 )
@@ -137,6 +137,10 @@ def validate(payload: dict) -> list[str]:
             errors.append(f"elements[{index}] needs a unique id.")
         seen_ids.add(item_id)
         check_provenance(item, f"elements[{index}]")
+    for item in elements:
+        for link in item.get('links') or []:
+            if link not in seen_ids:
+                errors.append(f"{item.get('id')} links to an unknown element: {link}.")
     stages = [item for item in elements if item.get("kind") == "stage"]
     orders = [item.get("order") for item in stages]
     if orders and (len(set(orders)) != len(orders) or sorted(orders) != list(range(1, len(orders) + 1))):
@@ -158,16 +162,18 @@ def expand(payload: dict) -> dict:
             "completion_definition": operation["completion_definition"],
             "provenance": _provenance(operation),
         },
-        "operational_domains": [], "case_types": [], "actors": [], "systems": [], "inputs": [],
+        "operational_domains": [], "processes": [], "case_types": [], "actors": [], "systems": [], "inputs": [],
         "lifecycle": [], "decision_rules": [], "exceptions": [],
         "escalations": [], "constraints": [], "outcomes": [], "metrics": [],
         "feedback_loops": [], "ambiguities": [], "missing_knowledge": [],
     }
     for item in payload.get("elements") or []:
-        base = {"id": item["id"], "provenance": _provenance(item)}
+        base = {"id": item["id"], "links": item.get('links') or [], "provenance": _provenance(item)}
         kind = item["kind"]
         if kind == "operational_domain":
             expanded["operational_domains"].append({**base, "name": item["name"], "description": item["summary"], "objective": item["action"], "activities": item["details"]})
+        elif kind == 'process':
+            expanded['processes'].append({**base, 'name': item['name'], 'description': item['summary'], 'trigger': item['condition'], 'completion': item['action'], 'owner': item['owner']})
         elif kind == "case_type":
             expanded["case_types"].append({**base, "name": item["name"], "description": item["summary"], "entry_conditions": item["details"]})
         elif kind == "actor":
