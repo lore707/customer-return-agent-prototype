@@ -779,8 +779,17 @@ def public_provider_error(exc: Exception) -> tuple[str, str]:
     """Map provider failures to useful, non-sensitive messages for the public UI."""
     detail = str(exc).casefold()
     if isinstance(exc, anthropic_staged.StageFailure):
+        if exc.stage == 'map' and exc.reason == 'max_tokens':
+            return 'map_token_limit', 'La mappa aziendale supera ancora il limite anche dopo il secondo tentativo compatto. Riduci il numero di attività descritte oppure aggiungi i processi separatamente dalla Memoria Operativa.'
+        if exc.stage == 'map' and exc.reason == 'invalid_json':
+            return 'map_invalid_json', 'Claude ha interrotto la risposta strutturata della mappa. Le informazioni inserite sono salve: riprova la generazione.'
+        if exc.stage == 'map' and exc.reason == 'validation':
+            return 'map_validation', 'Claude ha restituito una mappa, ma non conteneva processi e collegamenti validi. Le informazioni inserite sono salve: riprova.'
+        if exc.stage == 'map' and exc.reason in {'refusal','model_context_window_exceeded'}:
+            return 'map_interrupted', 'Claude ha interrotto la costruzione della mappa prima del completamento. Controlla che le note non contengano istruzioni estranee o materiali eccessivamente estesi.'
         if exc.stage == 'process' and exc.process_name:
-            return 'incomplete_process', f'Claude non ha completato «{exc.process_name}». I processi già pronti sono salvati: riprova per continuare da questo punto.'
+            reason = 'perché ha raggiunto il limite di output' if exc.reason == 'max_tokens' else 'perché il risultato non ha superato i controlli'
+            return 'incomplete_process', f'Claude non ha completato «{exc.process_name}» {reason}. I processi già pronti sono salvati: riprova per continuare da questo punto.'
         if exc.stage == 'map':
             return 'incomplete_map', 'Claude non ha completato la mappa iniziale dell’azienda. Riprova: nessuna ricostruzione parziale è stata pubblicata.'
         return 'invalid_model', 'Una fase della ricostruzione non ha superato i controlli. I processi già completati sono salvati e il prossimo tentativo ripartirà da lì.'

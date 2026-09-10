@@ -16,11 +16,71 @@ import operational_grammar
 
 
 class StageFailure(ValueError):
-    def __init__(self, message, *, stage, process_name='', usage=None):
+    def __init__(self, message, *, stage, process_name='', usage=None, reason='unknown'):
         super().__init__(message)
         self.stage = stage
         self.process_name = process_name
         self.usage = usage or {}
+        self.reason = reason
+
+
+def _object(properties, required):
+    return {
+        'type':'object',
+        'additionalProperties':False,
+        'properties':properties,
+        'required':required,
+    }
+
+
+def _provenance_properties():
+    return {
+        'source_type':{'type':'string','enum':['explicit','derived','suggested']},
+        'confidence':{'type':'number'},
+        'evidence':{'type':'array','items':{'type':'string'}},
+        'requires_confirmation':{'type':'boolean'},
+    }
+
+
+def company_map_schema():
+    """A deliberately small contract for process discovery only."""
+    provenance=_provenance_properties()
+    operation_fields={
+        'name':{'type':'string'},'objective':{'type':'string'},'scope':{'type':'string'},
+        'trigger':{'type':'string'},'completion_definition':{'type':'string'},**provenance,
+    }
+    domain_fields={
+        'id':{'type':'string'},'name':{'type':'string'},'summary':{'type':'string'},
+        'objective':{'type':'string'},**provenance,
+    }
+    process_fields={
+        'id':{'type':'string'},'name':{'type':'string'},'summary':{'type':'string'},
+        'trigger':{'type':'string'},'completion':{'type':'string'},'owner':{'type':'string'},
+        'domain_id':{'type':'string'},**provenance,
+    }
+    return _object(
+        {
+            'schema_version':{'type':'string','enum':['1.0']},
+            'operation':_object(operation_fields,list(operation_fields)),
+            'domains':{'type':'array','items':_object(domain_fields,list(domain_fields))},
+            'processes':{'type':'array','items':_object(process_fields,list(process_fields))},
+        },
+        ['schema_version','operation','domains','processes'],
+    )
+
+
+def process_fragment_schema(kinds):
+    """Small reusable grammar for one logical slice of a process."""
+    element=copy.deepcopy(operational_grammar.schema()['properties']['elements']['items'])
+    element['properties']['kind']['enum']=list(kinds)
+    return _object(
+        {
+            'schema_version':{'type':'string','enum':['1.0']},
+            'process_id':{'type':'string'},
+            'elements':{'type':'array','items':element},
+        },
+        ['schema_version','process_id','elements'],
+    )
 
 
 def _integer(name, default, low, high):
@@ -54,8 +114,8 @@ def _usage(response):
     }
 
 
-def _call(client, *, model, effort, max_tokens, system_prompt, context, instruction, cached=False):
-    output_config={'format':{'type':'json_schema','schema':operational_grammar.schema()}}
+def _call(client, *, model, effort, max_tokens, system_prompt, context, instruction, schema, cached=False):
+    output_config={'format':{'type':'json_schema','schema':schema}}
     if effort:
         output_config['effort']=effort
     request = {
@@ -70,11 +130,23 @@ def _call(client, *, model, effort, max_tokens, system_prompt, context, instruct
         response = stream.get_final_message()
     usage=_usage(response)
     if getattr(response, 'stop_reason', None) == 'max_tokens':
-        raise StageFailure('Claude ha raggiunto il limite durante una fase della ricostruzione.',stage='max_tokens',usage=usage)
+        raise StageFailure(
+            'Claude ha raggiunto il limite durante una fase della ricostruzione.',
+            stage='request',usage=usage,reason='max_tokens',
+        )
+    if getattr(response, 'stop_reason', None) in {'refusal','model_context_window_exceeded'}:
+        reason=str(getattr(response,'stop_reason'))
+        raise StageFailure(
+            'Claude ha interrotto la ricostruzione prima di produrre un risultato utilizzabile.',
+            stage='request',usage=usage,reason=reason,
+        )
     try:
         value=json.loads(text)
     except json.JSONDecodeError as exc:
-        raise StageFailure('Claude non ha completato una risposta strutturata.',stage='json',usage=usage) from exc
+        raise StageFailure(
+            'Claude non ha completato una risposta strutturata.',
+            stage='request',usage=usage,reason='invalid_json',
+        ) from exc
     return value, usage
 
 
@@ -92,6 +164,37 @@ def _ground(payload, context):
             item['source_type']='derived'
             item['requires_confirmation']=True
             item['confidence']=min(float(item.get('confidence') or 0), .55)
+    return result
+
+
+def _map_to_grammar(payload):
+    """Convert the compact discovery contract into grammar 2.0."""
+    operation=copy.deepcopy(payload.get('operation') or {})
+    result={'schema_version':'2.0','operation':operation,'elements':[]}
+    domains=[]
+    for item in payload.get('domains') or []:
+        domain={
+            'kind':'operational_domain','id':item.get('id'),'name':item.get('name'),
+            'summary':item.get('summary'),'condition':'','action':item.get('objective'),
+            'owner':'','details':[],'links':[],'order':0,'required':False,
+            'source_type':item.get('source_type'),'confidence':item.get('confidence'),
+            'evidence':item.get('evidence') or [],
+            'requires_confirmation':bool(item.get('requires_confirmation')),
+        }
+        domains.append(domain)
+        result['elements'].append(domain)
+    domain_ids={item.get('id') for item in domains}
+    for item in payload.get('processes') or []:
+        domain_id=item.get('domain_id')
+        result['elements'].append({
+            'kind':'process','id':item.get('id'),'name':item.get('name'),
+            'summary':item.get('summary'),'condition':item.get('trigger'),
+            'action':item.get('completion'),'owner':item.get('owner'),'details':[],
+            'links':[domain_id] if domain_id in domain_ids else [],'order':0,'required':False,
+            'source_type':item.get('source_type'),'confidence':item.get('confidence'),
+            'evidence':item.get('evidence') or [],
+            'requires_confirmation':bool(item.get('requires_confirmation')),
+        })
     return result
 
 
@@ -125,35 +228,14 @@ def _namespace_fragment(payload, process_id, domain_ids):
             translated=mapping.get(link,link)
             if translated in mapping.values() or translated==process_id or translated in domain_ids:
                 links.append(translated)
-        if item.get('kind') not in {'actor','system'} and process_id not in links:
+        # Every process fragment is generated in isolation. Keeping the parent
+        # process link also on actors and systems preserves that scope in the
+        # expanded memory and prevents apparently global, orphaned resources.
+        if process_id not in links:
             links.append(process_id)
         item['links']=list(dict.fromkeys(links))
     result['elements']=elements
     return result
-
-
-def _normalise_single(payload, context):
-    """Make one-process output deterministic before semantic validation."""
-    result=_ground(payload,context)
-    elements=result.get('elements') or []
-    processes=[item for item in elements if item.get('kind')=='process']
-    if len(processes)!=1:
-        return result, processes
-    process_id=processes[0]['id']
-    known={item.get('id') for item in elements}
-    domain_ids={item.get('id') for item in elements if item.get('kind')=='operational_domain'}
-    for item in elements:
-        links=[link for link in item.get('links',[]) if link in known]
-        if item.get('kind')=='process':
-            links=[link for link in links if link in domain_ids]
-        elif item.get('kind')!='operational_domain' and process_id not in links:
-            links.append(process_id)
-        item['links']=list(dict.fromkeys(links))
-    for index,item in enumerate((x for x in elements if x.get('kind')=='stage'),1):
-        item['order']=index
-    for index,item in enumerate((x for x in elements if x.get('kind')=='decision_rule'),1):
-        item['order']=index
-    return result, processes
 
 
 def _merge(company_map, fragments, context):
@@ -174,7 +256,10 @@ def _merge(company_map, fragments, context):
     merged=_ground(merged,context)
     errors=operational_grammar.validate(merged)
     if errors:
-        raise StageFailure('Il modello ricostruito non ha superato i controlli: '+'; '.join(errors[:4]),stage='validation')
+        raise StageFailure(
+            'Il modello ricostruito non ha superato i controlli: '+'; '.join(errors[:4]),
+            stage='validation',reason='validation',
+        )
     return merged
 
 
@@ -189,58 +274,162 @@ def build(client, context, system_prompt, detail_model, *, progress=None, checkp
     """Return a complete grammar plus aggregate real usage and checkpoint."""
     progress=progress or (lambda update, state: None)
     fingerprint=_fingerprint(context)
-    state=copy.deepcopy(checkpoint) if checkpoint and checkpoint.get('fingerprint')==fingerprint else {}
-    state.setdefault('fingerprint',fingerprint);state.setdefault('details',{});state.setdefault('usage',[])
+    pipeline_version=2
+    state=(
+        copy.deepcopy(checkpoint)
+        if checkpoint and checkpoint.get('fingerprint')==fingerprint
+        and checkpoint.get('pipeline_version')==pipeline_version
+        else {}
+    )
+    state.setdefault('fingerprint',fingerprint)
+    state.setdefault('pipeline_version',pipeline_version)
+    state.setdefault('details',{})
+    state.setdefault('partials',{})
+    state.setdefault('usage',[])
     map_model=os.getenv('OPERATIONAL_MAP_MODEL','claude-haiku-4-5').strip() or detail_model
     map_tokens=_integer('OPERATIONAL_MAP_MAX_TOKENS',2800,1200,5000)
+    flow_model=os.getenv('OPERATIONAL_FLOW_MODEL',map_model).strip() or map_model
+    flow_tokens=_integer('OPERATIONAL_FLOW_MAX_TOKENS',4200,2200,6000)
     detail_tokens=_integer('OPERATIONAL_PROCESS_MAX_TOKENS',5200,2400,8000)
     workers=_integer('OPERATIONAL_PROCESS_CONCURRENCY',2,1,3)
     generation=context.get('generation') or {}
-    if generation.get('scope')=='single_process':
-        name=str(generation.get('process_name') or 'Processo').strip()[:160]
-        progress({'phase':'process','label':f'Ricostruisco: {name}','processes':[{'id':'single','name':name,'status':'processing'}]},state)
-        instruction=f'''RICOSTRUZIONE DI UN SINGOLO PROCESSO. Ricostruisci esclusivamente «{name}». Restituisci una grammatica 2.0 completa ma concisa: una sola operational_domain se documentata, esattamente un process, quindi case_type, actor, system, input, stage, decision_rule, exception, escalation, constraint, outcome, metric, feedback_loop, ambiguity e missing_knowledge pertinenti. Collega tutti gli elementi specifici all’ID del processo. Massimo 10 fasi e 16 regole, senza duplicazioni. Non inventare soglie, responsabilità o sistemi. Le informazioni non supportate diventano domande, non regole.'''
-        try:
-            ontology,usage=_call(client,model=detail_model,effort=os.getenv('OPERATIONAL_MODEL_EFFORT','medium'),max_tokens=detail_tokens,system_prompt=system_prompt,context=context,instruction=instruction)
-            ontology,processes=_normalise_single(ontology,context)
-            if len(processes)!=1:
-                raise StageFailure('La ricostruzione deve contenere un solo processo.',stage='process',process_name=name,usage=usage)
-            errors=operational_grammar.validate(ontology)
-            if errors:raise StageFailure('Il processo non ha superato i controlli: '+'; '.join(errors[:4]),stage='process',process_name=name,usage=usage)
-        except StageFailure as exc:
-            exc.stage='process';exc.process_name=name;raise
-        state['usage'].append({'phase':'process','process_id':processes[0]['id'],'model':detail_model,**usage})
-        progress({'phase':'complete','label':f'Processo pronto: {name}','processes':[{'id':processes[0]['id'],'name':name,'status':'complete'}]},state)
-        totals=_sum_usage(state['usage'])
-        return ontology,{'model':detail_model,'calls':len(state['usage']),'processes':1,'stages':state['usage'],**totals,'structured_output':True,'pipeline':'single_process_v1'},state
+    single_name=(
+        str(generation.get('process_name') or 'Processo').strip()[:160]
+        if generation.get('scope')=='single_process' else ''
+    )
     if not state.get('map'):
         progress({'phase':'map','label':'Sto identificando aree e processi supportati dalle fonti.'},state)
-        instruction='''FASE 1 — MAPPA AZIENDALE. Restituisci una grammatica 2.0 molto compatta. In elements includi soltanto: operational_domain, process, actor, system, ambiguity e missing_knowledge. Identifica al massimo 6 processi realmente supportati. Non produrre ancora fasi, input, regole, eccezioni, escalation, metriche o feedback loop. Ogni processo deve collegarsi alla propria area e avere confini, responsabile, inizio e completamento specifici; usa vuoto e conferma richiesta quando il dato manca.'''
-        try:
-            mapped,usage=_call(client,model=map_model,effort=None,max_tokens=map_tokens,system_prompt=system_prompt,context=context,instruction=instruction)
-        except StageFailure as exc:
-            exc.stage='map';raise
-        mapped=_ground(_cap_company_map(mapped),context)
+        if single_name:
+            instruction=f'''FASE 1 — MAPPA DI UN SOLO PROCESSO. Ricostruisci esclusivamente «{single_name}». Restituisci una sintesi operativa, una sola area pertinente ed esattamente un processo. Non estrarre ancora attori, sistemi, campi, fasi, regole, eccezioni, escalation, metriche, lacune o domande. Descrivi in modo breve inizio, fine e responsabile; se il responsabile non è documentato usa una stringa vuota e richiedi conferma. Usa ID brevi e univoci. Mantieni ogni testo sotto 180 caratteri e usa al massimo una citazione breve come evidenza.'''
+        else:
+            instruction='''FASE 1 — MAPPA AZIENDALE COMPATTA. Identifica soltanto il perimetro dell’azienda: una sintesi operativa, da 1 a 4 aree e al massimo 6 processi realmente sostenuti dalle fonti. Non estrarre ancora attori, sistemi, campi, fasi, regole, eccezioni, escalation, metriche, lacune o domande. Per ogni processo descrivi in modo breve inizio, fine e responsabile; se il responsabile non è documentato usa una stringa vuota e richiedi conferma. Usa ID brevi e univoci. Non duplicare lo stesso processo in aree diverse. Mantieni ogni testo sotto 180 caratteri e usa al massimo una citazione breve come evidenza.'''
+        retry_tokens=min(5000,max(map_tokens+1200,int(map_tokens*1.5)))
+        limits=list(dict.fromkeys([map_tokens,retry_tokens]))
+        raw_map=None
+        usage={}
+        for attempt,limit in enumerate(limits,1):
+            try:
+                raw_map,usage=_call(
+                    client,model=map_model,effort=None,max_tokens=limit,
+                    system_prompt=system_prompt,context=context,instruction=instruction,
+                    schema=company_map_schema(),
+                )
+                break
+            except StageFailure as exc:
+                exc.stage='map'
+                if exc.usage:
+                    state['usage'].append({
+                        'phase':'map_failed','attempt':attempt,'model':map_model,
+                        'reason':exc.reason,**exc.usage,
+                    })
+                if exc.reason=='max_tokens' and attempt<len(limits):
+                    progress({
+                        'phase':'map_retry',
+                        'label':'La prima mappa era troppo estesa: la ricompongo in forma più compatta.',
+                    },state)
+                    continue
+                progress({
+                    'phase':'map_failed','label':'La mappa non ha superato i controlli.',
+                    'reason':exc.reason,
+                },state)
+                raise
+        mapped=_ground(_cap_company_map(_map_to_grammar(raw_map),1 if single_name else 6),context)
         errors=operational_grammar.validate(mapped)
         processes=[item for item in mapped.get('elements',[]) if item.get('kind')=='process']
         if errors or not processes:
-            raise StageFailure('Claude non ha identificato una mappa aziendale valida: '+'; '.join(errors[:3]),stage='map')
+            detail='; '.join(errors[:3]) if errors else 'nessun processo identificato'
+            failure=StageFailure(
+                'Claude non ha identificato una mappa aziendale valida: '+detail,
+                stage='map',usage=usage,reason='validation',
+            )
+            if usage:
+                state['usage'].append({
+                    'phase':'map_failed','model':map_model,'reason':'validation',**usage,
+                })
+            progress({'phase':'map_failed','label':'La mappa restituita non è valida.','reason':'validation'},state)
+            raise failure
         state['map']=mapped;state['usage'].append({'phase':'map','model':map_model,**usage})
         progress({'phase':'map_complete','label':f'Mappa pronta: {len(processes)} processi da approfondire.','processes':[{'id':p['id'],'name':p['name'],'status':'pending'} for p in processes]},state)
     company_map=state['map']
     processes=[item for item in company_map['elements'] if item.get('kind')=='process']
     process_rows=[{'id':p['id'],'name':p['name'],'status':'complete' if p['id'] in state['details'] else 'pending'} for p in processes]
     pending=[p for p in processes if p['id'] not in state['details']]
-    cache=len(processes)>1
+    cache=True  # The flow call warms the common prefix for the controls call.
+    flow_kinds=('case_type','actor','system','input','stage','outcome')
+    control_kinds=(
+        'decision_rule','exception','escalation','constraint','metric',
+        'feedback_loop','ambiguity','missing_knowledge',
+    )
 
     def detail(process):
-        instruction=f'''FASE 2 — PROCESSO SINGOLO. Approfondisci esclusivamente questo processo già identificato:\n{json.dumps(process,ensure_ascii=False,separators=(',',':'))}\nRestituisci operation ed esattamente un elemento process con lo stesso ID {process['id']}, seguito solo dagli elementi specifici e documentati di questo processo: case_type, actor, system, input, stage, decision_rule, exception, escalation, constraint, outcome, metric, feedback_loop, ambiguity e missing_knowledge. Collega ogni elemento operativo al processo {process['id']}. Produci una sequenza end-to-end non ripetitiva e regole IF/THEN. Mantieni l’output conciso: massimo 10 fasi e 16 regole, senza duplicare la stessa informazione. Non inventare soglie, ruoli o sistemi.'''
+        process_json=json.dumps(process,ensure_ascii=False,separators=(',',':'))
+        requests=(
+            (
+                'flow',flow_kinds,flow_model,flow_tokens,
+                f'''FASE 2A — FLUSSO DEL PROCESSO. Analizza esclusivamente:\n{process_json}\nRestituisci process_id={process['id']} e soltanto case_type, actor, system, input, stage e outcome sostenuti dalle fonti. Ricostruisci una sequenza end-to-end senza duplicazioni. Massimo 5 percorsi, 5 attori, 5 sistemi, 8 input, 9 fasi e 4 risultati. Sono limiti, non quantità da raggiungere. Usa gli ID degli input nei link delle fasi e collega tutti gli elementi al processo. Non inventare ruoli o sistemi. Nome massimo 80 caratteri; summary, condition e action massimo 180; massimo 3 dettagli e una sola citazione breve per elemento.''',
+            ),
+            (
+                'controls',control_kinds,detail_model,detail_tokens,
+                f'''FASE 2B — DECISIONI E CONTROLLI DEL PROCESSO. Analizza esclusivamente:\n{process_json}\nRestituisci process_id={process['id']} e soltanto decision_rule, exception, escalation, constraint, metric, feedback_loop, ambiguity e missing_knowledge sostenuti dalle fonti. Le regole devono avere semantica IF/THEN. Massimo 12 regole, 4 eccezioni, 3 escalation, 4 vincoli, 3 metriche, 2 cicli di miglioramento e complessivamente 6 ambiguità o conoscenze mancanti. Sono limiti, non quantità da raggiungere. Una raccolta vuota è corretta quando manca evidenza. Non inventare soglie; ciò che manca diventa una domanda concisa. Nome massimo 80 caratteri; summary, condition e action massimo 180; massimo 3 dettagli e una sola citazione breve per elemento.''',
+            ),
+        )
+        fragments=[]
+        usages=[]
+        saved_parts=copy.deepcopy(state.get('partials',{}).get(process['id']) or {})
+        for part,kinds,model,max_tokens,instruction in requests:
+            if part in saved_parts:
+                fragments.extend(saved_parts[part].get('elements') or [])
+                continue
+            try:
+                value,usage=_call(
+                    client,model=model,
+                    # Haiku does not accept Anthropic's effort parameter. The
+                    # control model (Sonnet by default) does and benefits from it.
+                    effort=(
+                        os.getenv('OPERATIONAL_MODEL_EFFORT','medium')
+                        if model==detail_model else None
+                    ),
+                    max_tokens=max_tokens,system_prompt=system_prompt,context=context,
+                    instruction=instruction,schema=process_fragment_schema(kinds),cached=cache,
+                )
+            except StageFailure as exc:
+                exc.stage='process'
+                exc.process_name=process['name']
+                exc.model=model
+                exc.prior_usage=usages
+                exc.partial_parts=saved_parts
+                raise
+            except Exception as exc:
+                # Preserve the original provider exception type so the public
+                # error can still distinguish billing, rate limits and network
+                # failures, while retaining the completed process slice.
+                exc.stage='process'
+                exc.process_name=process['name']
+                exc.model=model
+                exc.prior_usage=usages
+                exc.partial_parts=saved_parts
+                raise
+            if value.get('process_id')!=process['id']:
+                failure=StageFailure(
+                    'Il dettaglio restituito non appartiene al processo richiesto.',
+                    stage='process',process_name=process['name'],usage=usage,
+                    reason='validation',
+                )
+                failure.prior_usage=usages
+                failure.partial_parts=saved_parts
+                raise failure
+            saved_parts[part]=value
+            fragments.extend(value.get('elements') or [])
+            usages.append({'part':part,'model':model,**usage})
+        fragment={'schema_version':'1.0','process_id':process['id'],'elements':fragments}
         try:
-            value,usage=_call(client,model=detail_model,effort=os.getenv('OPERATIONAL_MODEL_EFFORT','medium'),max_tokens=detail_tokens,system_prompt=system_prompt,context=context,instruction=instruction,cached=cache)
+            _merge(company_map,{process['id']:fragment},context)
         except StageFailure as exc:
-            exc.stage='process';exc.process_name=process['name'];raise
-        _merge(company_map,{process['id']:value},context)
-        return process,value,usage
+            exc.stage='process'
+            exc.process_name=process['name']
+            exc.prior_usage=usages
+            raise
+        return process,fragment,usages
 
     # Finish one request before parallel fan-out so subsequent calls can read the cache.
     failures=[]
@@ -249,17 +438,28 @@ def build(client, context, system_prompt, detail_model, *, progress=None, checkp
         process_rows[next(i for i,r in enumerate(process_rows) if r['id']==first['id'])]['status']='processing'
         progress({'phase':'process','label':f"Approfondisco: {first['name']}",'processes':process_rows},state)
         try:
-            process,value,usage=detail(first)
-            state['details'][process['id']]=value;state['usage'].append({'phase':'process','process_id':process['id'],'model':detail_model,**usage})
+            process,value,usages=detail(first)
+            state['details'][process['id']]=value
+            state['partials'].pop(process['id'],None)
+            for usage in usages:
+                state['usage'].append({'phase':'process','process_id':process['id'],**usage})
             process_rows[next(i for i,r in enumerate(process_rows) if r['id']==process['id'])]['status']='complete'
             progress({'phase':'process_complete','label':f"Processo pronto: {process['name']}",'processes':process_rows},state)
         except StageFailure as exc:
             process_rows[next(i for i,r in enumerate(process_rows) if r['id']==first['id'])]['status']='failed'
-            if exc.usage:state['usage'].append({'phase':'process_failed','process_id':first['id'],'model':detail_model,**exc.usage})
+            if getattr(exc,'partial_parts',None):
+                state['partials'][first['id']]=exc.partial_parts
+            for prior in getattr(exc,'prior_usage',[]):
+                state['usage'].append({'phase':'process','process_id':first['id'],**prior})
+            if exc.usage:state['usage'].append({'phase':'process_failed','process_id':first['id'],'model':getattr(exc,'model',detail_model),**exc.usage})
             failures.append(exc)
             progress({'phase':'process_failed','label':f"Da riprovare: {first['name']}",'processes':process_rows},state)
         except Exception as exc:  # Preserve other completed fragments before surfacing API failures.
             process_rows[next(i for i,r in enumerate(process_rows) if r['id']==first['id'])]['status']='failed'
+            if getattr(exc,'partial_parts',None):
+                state['partials'][first['id']]=exc.partial_parts
+            for prior in getattr(exc,'prior_usage',[]):
+                state['usage'].append({'phase':'process','process_id':first['id'],**prior})
             failures.append(exc)
             progress({'phase':'process_failed','label':f"Da riprovare: {first['name']}",'processes':process_rows},state)
     if pending:
@@ -271,17 +471,28 @@ def build(client, context, system_prompt, detail_model, *, progress=None, checkp
             for future in as_completed(futures):
                 expected=futures[future]
                 try:
-                    process,value,usage=future.result()
-                    state['details'][process['id']]=value;state['usage'].append({'phase':'process','process_id':process['id'],'model':detail_model,**usage})
+                    process,value,usages=future.result()
+                    state['details'][process['id']]=value
+                    state['partials'].pop(process['id'],None)
+                    for usage in usages:
+                        state['usage'].append({'phase':'process','process_id':process['id'],**usage})
                     process_rows[next(i for i,r in enumerate(process_rows) if r['id']==process['id'])]['status']='complete'
                     progress({'phase':'process_complete','label':f"Processo pronto: {process['name']}",'processes':process_rows},state)
                 except StageFailure as exc:
                     process_rows[next(i for i,r in enumerate(process_rows) if r['id']==expected['id'])]['status']='failed'
-                    if exc.usage:state['usage'].append({'phase':'process_failed','process_id':expected['id'],'model':detail_model,**exc.usage})
+                    if getattr(exc,'partial_parts',None):
+                        state['partials'][expected['id']]=exc.partial_parts
+                    for prior in getattr(exc,'prior_usage',[]):
+                        state['usage'].append({'phase':'process','process_id':expected['id'],**prior})
+                    if exc.usage:state['usage'].append({'phase':'process_failed','process_id':expected['id'],'model':getattr(exc,'model',detail_model),**exc.usage})
                     failures.append(exc)
                     progress({'phase':'process_failed','label':f"Da riprovare: {expected['name']}",'processes':process_rows},state)
                 except Exception as exc:  # Let sibling futures finish and checkpoint their output.
                     process_rows[next(i for i,r in enumerate(process_rows) if r['id']==expected['id'])]['status']='failed'
+                    if getattr(exc,'partial_parts',None):
+                        state['partials'][expected['id']]=exc.partial_parts
+                    for prior in getattr(exc,'prior_usage',[]):
+                        state['usage'].append({'phase':'process','process_id':expected['id'],**prior})
                     failures.append(exc)
                     progress({'phase':'process_failed','label':f"Da riprovare: {expected['name']}",'processes':process_rows},state)
     if failures:
@@ -289,4 +500,5 @@ def build(client, context, system_prompt, detail_model, *, progress=None, checkp
     ontology=_merge(company_map,state['details'],context)
     totals=_sum_usage(state['usage'])
     progress({'phase':'complete','label':'Ricostruzione completa e validata.','processes':process_rows,'usage':totals},state)
-    return ontology,{'model':detail_model,'map_model':map_model,'calls':len(state['usage']),'stages':state['usage'],**totals,'structured_output':True,'pipeline':'map_then_processes_v1'},state
+    pipeline='single_process_staged_v2' if single_name else 'map_then_processes_v2'
+    return ontology,{'model':detail_model,'map_model':map_model,'calls':len(state['usage']),'stages':state['usage'],**totals,'structured_output':True,'pipeline':pipeline},state

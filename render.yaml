@@ -16,10 +16,14 @@ services:
         value: claude-sonnet-5
       - key: OPERATIONAL_MAP_MODEL
         value: claude-haiku-4-5
+      - key: OPERATIONAL_FLOW_MODEL
+        value: claude-haiku-4-5
       - key: OPERATIONAL_MODEL_EFFORT
         value: medium
       - key: OPERATIONAL_MAP_MAX_TOKENS
         value: 2800
+      - key: OPERATIONAL_FLOW_MAX_TOKENS
+        value: 4200
       - key: OPERATIONAL_PROCESS_MAX_TOKENS
         value: 5200
       - key: OPERATIONAL_PROCESS_CONCURRENCY

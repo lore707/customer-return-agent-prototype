@@ -79,21 +79,29 @@ ricostruzioni più lunghe.
 
 La ricostruzione Claude è suddivisa in passaggi controllabili:
 
-1. un modello rapido produce una mappa compatta di aree e processi, senza
-   generare prematuramente regole e fasi;
-2. ogni processo viene approfondito separatamente dal modello principale;
+1. un modello rapido produce una mappa con un contratto dedicato che contiene
+   soltanto contesto, aree e processi, senza generare prematuramente dettagli;
+2. ogni processo viene approfondito in due frammenti piccoli: Haiku ricostruisce
+   attori, sistemi, input e sequenza; Sonnet ricostruisce decisioni, eccezioni,
+   escalation, metriche e conoscenza mancante;
 3. i frammenti superano la grammatica e i controlli di provenienza prima di
    essere accettati;
 4. i processi completati vengono salvati in un checkpoint SQLite: dopo un
-   errore o un riavvio, il nuovo tentativo paga ed elabora solo quelli mancanti;
+   errore, il nuovo tentativo paga ed elabora solo quelli mancanti finché il
+   database dell’ambiente rimane disponibile;
 5. il contesto comune usa la cache del prompt e, dopo la prima richiesta, gli
    approfondimenti rimanenti procedono con concorrenza limitata.
 
 Il primo onboarding approfondisce al massimo sei processi. Gli altri possono
-essere aggiunti in seguito dalla Memoria Operativa con una singola chiamata
-mirata, evitando di ricostruire l’intera azienda. La schermata mostra fasi reali,
+essere aggiunti in seguito dalla Memoria Operativa con la stessa pipeline mirata,
+evitando di ricostruire l’intera azienda. La schermata mostra fasi reali,
 processi completati e token dichiarati dal provider; non simula una percentuale
 di avanzamento.
+
+Se la prima mappa raggiunge il limite di output, viene effettuato un solo
+tentativo adattivo con maggiore spazio. Gli errori pubblici distinguono limite
+token, JSON interrotto, interruzione del modello e mancata validazione, evitando
+di nascondere tutte le cause dietro un generico errore della mappa.
 
 ## Grammatica operativa universale
 
@@ -174,8 +182,10 @@ Per usare Claude, aggiungi a `.env`:
 OPERATIONAL_MODEL_PROVIDER=anthropic
 OPERATIONAL_MODEL_MODEL=claude-sonnet-5
 OPERATIONAL_MAP_MODEL=claude-haiku-4-5
+OPERATIONAL_FLOW_MODEL=claude-haiku-4-5
 OPERATIONAL_MODEL_EFFORT=medium
 OPERATIONAL_MAP_MAX_TOKENS=2800
+OPERATIONAL_FLOW_MAX_TOKENS=4200
 OPERATIONAL_PROCESS_MAX_TOKENS=5200
 OPERATIONAL_PROCESS_CONCURRENCY=2
 ANTHROPIC_API_KEY=la_tua_chiave

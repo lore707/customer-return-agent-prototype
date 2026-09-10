@@ -93,14 +93,40 @@ def context():
 
 
 def map_payload():
-    value=payload()
-    value['elements']=[
-        element('operational_domain','DOMAIN-01','Operations'),
-        element('process','PROCESS-01','Client process redesign',links=['DOMAIN-01'],
-                summary='Map and redesign a client process',condition='A sponsor starts an engagement',
-                action='The target process is launched',owner='Process owner'),
-    ]
-    return value
+    return {
+        'schema_version':'1.0',
+        'operation':payload()['operation'],
+        'domains':[
+            {
+                'id':'DOMAIN-01','name':'Operations','summary':'Operational work',
+                'objective':'Deliver consistent operations','source_type':'derived',
+                'confidence':.8,'evidence':['Supplied operating notes'],
+                'requires_confirmation':True,
+            },
+        ],
+        'processes':[
+            {
+                'id':'PROCESS-01','name':'Client process redesign',
+                'summary':'Map and redesign a client process',
+                'trigger':'A sponsor starts an engagement',
+                'completion':'The target process is launched','owner':'Process owner',
+                'domain_id':'DOMAIN-01','source_type':'derived','confidence':.8,
+                'evidence':['Supplied operating notes'],'requires_confirmation':True,
+            },
+        ],
+    }
+
+
+def detail_payload(process_id='PROCESS-01', part='flow'):
+    kinds={
+        'flow':{'case_type','actor','system','input','stage','outcome'},
+        'controls':{'decision_rule','exception','escalation','constraint','metric','feedback_loop','ambiguity','missing_knowledge'},
+    }[part]
+    return {
+        'schema_version':'1.0',
+        'process_id':process_id,
+        'elements':[item for item in payload()['elements'] if item['kind'] in kinds],
+    }
 
 
 def stream_for(value, input_tokens, output_tokens, *, cache_read=0, cache_creation=0, stop_reason='end_turn'):
@@ -144,6 +170,15 @@ class OperationalGrammarTests(unittest.TestCase):
         self.assertEqual("invalid_model", code)
         self.assertIn("non ha superato la validazione", message)
 
+    def test_map_token_limit_has_a_precise_public_message(self):
+        failure=anthropic_staged.StageFailure(
+            'token limit',stage='map',reason='max_tokens',
+            usage={'output_tokens':2800},
+        )
+        code,message=public_provider_error(failure)
+        self.assertEqual('map_token_limit',code)
+        self.assertIn('secondo tentativo compatto',message)
+
     def test_schema_uses_supported_compact_shape(self):
         value = json.dumps(operational_grammar.schema())
         for unsupported in ('"minimum"', '"maximum"', '"maxItems"'):
@@ -167,16 +202,25 @@ class OperationalGrammarTests(unittest.TestCase):
     @patch.dict("os.environ", {"ANTHROPIC_API_KEY": "test-key"})
     @patch("operational_model_service.anthropic.Anthropic")
     def test_anthropic_provider_requests_structured_output(self, anthropic_client):
-        detail=payload()
         anthropic_client.return_value.messages.stream.side_effect=[
-            stream_for(map_payload(),100,120),stream_for(detail,221,534)
+            stream_for(map_payload(),100,120),
+            stream_for(detail_payload(part='flow'),110,250),
+            stream_for(detail_payload(part='controls'),111,284),
         ]
         model = AnthropicOperationalModelService().build(context())["model"]
         requests=[call.kwargs for call in anthropic_client.return_value.messages.stream.call_args_list]
-        self.assertEqual(2,len(requests))
+        self.assertEqual(3,len(requests))
         self.assertEqual("json_schema", requests[0]["output_config"]["format"]["type"])
+        map_properties=requests[0]['output_config']['format']['schema']['properties']
+        detail_properties=requests[1]['output_config']['format']['schema']['properties']
+        self.assertIn('domains',map_properties)
+        self.assertNotIn('elements',map_properties)
+        self.assertIn('process_id',detail_properties)
         self.assertNotIn("effort", requests[0]["output_config"])
-        self.assertEqual("medium", requests[1]["output_config"]["effort"])
+        self.assertNotIn("effort", requests[1]["output_config"])
+        self.assertEqual("medium", requests[2]["output_config"]["effort"])
+        self.assertEqual('claude-haiku-4-5',requests[1]['model'])
+        self.assertEqual('claude-sonnet-5',requests[2]['model'])
         self.assertLess(requests[0]["max_tokens"],12_000)
         self.assertLess(requests[1]["max_tokens"],12_000)
         self.assertEqual("2.0", model["schema_version"])
@@ -186,15 +230,19 @@ class OperationalGrammarTests(unittest.TestCase):
 
     def test_staged_retry_reuses_map_and_completed_process(self):
         mapped=map_payload()
-        second=element('process','PROCESS-02','Invoice approval',links=['DOMAIN-01'],
-                       summary='Approve supplier invoices',condition='An invoice arrives',
-                       action='The invoice is recorded',owner='Finance owner')
-        mapped['elements'].append(second)
+        second={
+            'id':'PROCESS-02','name':'Invoice approval','summary':'Approve supplier invoices',
+            'trigger':'An invoice arrives','completion':'The invoice is recorded',
+            'owner':'Finance owner','domain_id':'DOMAIN-01','source_type':'derived',
+            'confidence':.8,'evidence':['Supplied operating notes'],'requires_confirmation':True,
+        }
+        mapped['processes'].append(second)
         checkpoints=[]
         first_client=MagicMock()
         first_client.messages.stream.side_effect=[
             stream_for(mapped,80,100),
-            stream_for(payload(),160,220,cache_creation=1400),
+            stream_for(detail_payload(part='flow'),80,110,cache_creation=1400),
+            stream_for(detail_payload(part='controls'),80,110,cache_read=1400),
             stream_for({},160,5000,cache_read=1400,stop_reason='max_tokens'),
         ]
         with self.assertRaises(anthropic_staged.StageFailure):
@@ -210,35 +258,106 @@ class OperationalGrammarTests(unittest.TestCase):
         self.assertEqual('ephemeral',detail_request['messages'][0]['content'][0]['cache_control']['type'])
 
         second_client=MagicMock()
-        second_client.messages.stream.side_effect=[stream_for(payload(),40,200,cache_read=1400)]
+        second_client.messages.stream.side_effect=[
+            stream_for(detail_payload('PROCESS-02','flow'),20,100,cache_read=1400),
+            stream_for(detail_payload('PROCESS-02','controls'),20,100,cache_read=1400),
+        ]
         ontology,usage,_=anthropic_staged.build(
             second_client,context(),"System","claude-sonnet-5",checkpoint=saved,
         )
-        self.assertEqual(1,second_client.messages.stream.call_count)
+        self.assertEqual(2,second_client.messages.stream.call_count)
         self.assertEqual(2,len([x for x in ontology['elements'] if x['kind']=='stage']))
-        self.assertEqual(4,usage['calls'])  # failed calls remain visible in provider billing, when reported
+        self.assertEqual(6,usage['calls'])  # failed calls remain visible in provider billing, when reported
 
-    def test_single_process_reconstruction_uses_one_direct_call(self):
-        value=payload()
-        value['elements']=[
-            element('operational_domain','DOMAIN-01','Customer operations'),
-            element('process','PROCESS-01','Warranty claims',links=['DOMAIN-01']),
-            *value['elements'],
+    def test_oversized_map_is_retried_once_with_more_output_space(self):
+        client=MagicMock()
+        client.messages.stream.side_effect=[
+            stream_for({},100,2800,stop_reason='max_tokens'),
+            stream_for(map_payload(),100,700),
+            stream_for(detail_payload(part='flow'),90,150),
+            stream_for(detail_payload(part='controls'),90,150),
         ]
-        # Simulate plausible model noise: duplicate priorities and missing
-        # process links are normalised before the strict grammar check.
-        value['elements'][-2]['order']=0
+        updates=[]
+
+        _,usage,_=anthropic_staged.build(
+            client,context(),'System','claude-sonnet-5',
+            progress=lambda update,state:updates.append(update),
+        )
+
+        calls=client.messages.stream.call_args_list
+        self.assertEqual(4,len(calls))
+        self.assertGreater(calls[1].kwargs['max_tokens'],calls[0].kwargs['max_tokens'])
+        self.assertTrue(any(update.get('phase')=='map_retry' for update in updates))
+        self.assertEqual(4,usage['calls'])
+        self.assertEqual('max_tokens',usage['stages'][0]['reason'])
+
+    def test_retry_reuses_a_completed_flow_when_controls_fail(self):
+        checkpoints=[]
+        supplied_context=context()
+        first_client=MagicMock()
+        first_client.messages.stream.side_effect=[
+            stream_for(map_payload(),50,100),
+            stream_for(detail_payload(part='flow'),60,150),
+            stream_for({},70,5200,stop_reason='max_tokens'),
+        ]
+
+        with self.assertRaises(anthropic_staged.StageFailure):
+            anthropic_staged.build(
+                first_client,supplied_context,'System','claude-sonnet-5',
+                progress=lambda update,state:checkpoints.append(json.loads(json.dumps(state))),
+            )
+
+        saved=checkpoints[-1]
+        self.assertIn('PROCESS-01',saved['partials'])
+        self.assertIn('flow',saved['partials']['PROCESS-01'])
+
+        second_client=MagicMock()
+        second_client.messages.stream.side_effect=[
+            stream_for(detail_payload(part='controls'),40,180),
+        ]
+        _,usage,_=anthropic_staged.build(
+            second_client,supplied_context,'System','claude-sonnet-5',checkpoint=saved,
+        )
+
+        self.assertEqual(1,second_client.messages.stream.call_count)
+        self.assertEqual('claude-sonnet-5',second_client.messages.stream.call_args.kwargs['model'])
+        self.assertEqual(4,usage['calls'])
+
+    def test_provider_error_also_checkpoints_the_completed_flow(self):
+        checkpoints=[]
+        client=MagicMock()
+        client.messages.stream.side_effect=[
+            stream_for(map_payload(),50,100),
+            stream_for(detail_payload(part='flow'),60,150),
+            RuntimeError('temporary provider failure'),
+        ]
+
+        with self.assertRaisesRegex(RuntimeError,'temporary provider failure'):
+            anthropic_staged.build(
+                client,context(),'System','claude-sonnet-5',
+                progress=lambda update,state:checkpoints.append(json.loads(json.dumps(state))),
+            )
+
+        saved=checkpoints[-1]
+        self.assertIn('flow',saved['partials']['PROCESS-01'])
+        self.assertEqual('flow',saved['usage'][-1]['part'])
+
+    def test_single_process_reconstruction_uses_the_safe_staged_contract(self):
         focused=context()
         focused['generation']={'scope':'single_process','process_name':'Warranty claims'}
         client=MagicMock()
-        client.messages.stream.side_effect=[stream_for(value,140,260)]
+        client.messages.stream.side_effect=[
+            stream_for(map_payload(),50,100),
+            stream_for(detail_payload(part='flow'),60,150),
+            stream_for(detail_payload(part='controls'),70,180),
+        ]
 
         ontology,usage,_=anthropic_staged.build(
             client,focused,'System','claude-sonnet-5',
         )
 
-        self.assertEqual(1,client.messages.stream.call_count)
-        self.assertEqual('single_process_v1',usage['pipeline'])
+        self.assertEqual(3,client.messages.stream.call_count)
+        self.assertEqual('single_process_staged_v2',usage['pipeline'])
         process_id=next(item['id'] for item in ontology['elements'] if item['kind']=='process')
         linked=[item for item in ontology['elements'] if item['kind'] not in {'process','operational_domain'}]
         self.assertTrue(all(process_id in item['links'] for item in linked))
