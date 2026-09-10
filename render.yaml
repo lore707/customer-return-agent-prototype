@@ -23,9 +23,9 @@ services:
       - key: OPERATIONAL_MAP_MAX_TOKENS
         value: 2800
       - key: OPERATIONAL_FLOW_MAX_TOKENS
-        value: 4200
-      - key: OPERATIONAL_PROCESS_MAX_TOKENS
         value: 5200
+      - key: OPERATIONAL_PROCESS_MAX_TOKENS
+        value: 6500
       - key: OPERATIONAL_PROCESS_CONCURRENCY
         value: 2
       - key: ANTHROPIC_API_KEY

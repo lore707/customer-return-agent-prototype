@@ -788,7 +788,11 @@ def public_provider_error(exc: Exception) -> tuple[str, str]:
         if exc.stage == 'map' and exc.reason in {'refusal','model_context_window_exceeded'}:
             return 'map_interrupted', 'Claude ha interrotto la costruzione della mappa prima del completamento. Controlla che le note non contengano istruzioni estranee o materiali eccessivamente estesi.'
         if exc.stage == 'process' and exc.process_name:
-            reason = 'perché ha raggiunto il limite di output' if exc.reason == 'max_tokens' else 'perché il risultato non ha superato i controlli'
+            section = {
+                'flow': 'il flusso operativo',
+                'controls': 'le regole e i controlli',
+            }.get(getattr(exc, 'part', ''), 'il dettaglio operativo')
+            reason = f'perché {section} ha raggiunto il limite anche dopo il tentativo compatto' if exc.reason == 'max_tokens' else f'perché {section} non ha superato i controlli'
             return 'incomplete_process', f'Claude non ha completato «{exc.process_name}» {reason}. I processi già pronti sono salvati: riprova per continuare da questo punto.'
         if exc.stage == 'map':
             return 'incomplete_map', 'Claude non ha completato la mappa iniziale dell’azienda. Riprova: nessuna ricostruzione parziale è stata pubblicata.'

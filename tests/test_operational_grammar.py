@@ -179,6 +179,17 @@ class OperationalGrammarTests(unittest.TestCase):
         self.assertEqual('map_token_limit',code)
         self.assertIn('secondo tentativo compatto',message)
 
+    def test_process_token_limit_identifies_the_failed_section(self):
+        failure=anthropic_staged.StageFailure(
+            'token limit',stage='process',process_name='Trasmissione ordini',
+            reason='max_tokens',usage={'output_tokens':7000},
+        )
+        failure.part='controls'
+        code,message=public_provider_error(failure)
+        self.assertEqual('incomplete_process',code)
+        self.assertIn('regole e i controlli',message)
+        self.assertIn('tentativo compatto',message)
+
     def test_schema_uses_supported_compact_shape(self):
         value = json.dumps(operational_grammar.schema())
         for unsupported in ('"minimum"', '"maximum"', '"maxItems"'):
@@ -244,6 +255,7 @@ class OperationalGrammarTests(unittest.TestCase):
             stream_for(detail_payload(part='flow'),80,110,cache_creation=1400),
             stream_for(detail_payload(part='controls'),80,110,cache_read=1400),
             stream_for({},160,5000,cache_read=1400,stop_reason='max_tokens'),
+            stream_for({},160,6000,cache_read=1400,stop_reason='max_tokens'),
         ]
         with self.assertRaises(anthropic_staged.StageFailure):
             anthropic_staged.build(
@@ -267,7 +279,7 @@ class OperationalGrammarTests(unittest.TestCase):
         )
         self.assertEqual(2,second_client.messages.stream.call_count)
         self.assertEqual(2,len([x for x in ontology['elements'] if x['kind']=='stage']))
-        self.assertEqual(6,usage['calls'])  # failed calls remain visible in provider billing, when reported
+        self.assertEqual(7,usage['calls'])  # failed calls remain visible in provider billing, when reported
 
     def test_oversized_map_is_retried_once_with_more_output_space(self):
         client=MagicMock()
@@ -299,6 +311,7 @@ class OperationalGrammarTests(unittest.TestCase):
             stream_for(map_payload(),50,100),
             stream_for(detail_payload(part='flow'),60,150),
             stream_for({},70,5200,stop_reason='max_tokens'),
+            stream_for({},70,7000,stop_reason='max_tokens'),
         ]
 
         with self.assertRaises(anthropic_staged.StageFailure):
@@ -321,7 +334,26 @@ class OperationalGrammarTests(unittest.TestCase):
 
         self.assertEqual(1,second_client.messages.stream.call_count)
         self.assertEqual('claude-sonnet-5',second_client.messages.stream.call_args.kwargs['model'])
-        self.assertEqual(4,usage['calls'])
+        self.assertEqual(5,usage['calls'])
+
+    def test_process_section_retries_automatically_with_more_output_space(self):
+        client=MagicMock()
+        client.messages.stream.side_effect=[
+            stream_for(map_payload(),50,100),
+            stream_for({},60,4200,stop_reason='max_tokens'),
+            stream_for(detail_payload(part='flow'),60,300),
+            stream_for(detail_payload(part='controls'),70,180),
+        ]
+
+        _,usage,_=anthropic_staged.build(
+            client,context(),'System','claude-sonnet-5',
+        )
+
+        calls=client.messages.stream.call_args_list
+        self.assertEqual(4,len(calls))
+        self.assertGreater(calls[2].kwargs['max_tokens'],calls[1].kwargs['max_tokens'])
+        self.assertIn('TENTATIVO COMPATTO',calls[2].kwargs['messages'][0]['content'][1]['text'])
+        self.assertEqual('flow_failed',usage['stages'][1]['part'])
 
     def test_provider_error_also_checkpoints_the_completed_flow(self):
         checkpoints=[]

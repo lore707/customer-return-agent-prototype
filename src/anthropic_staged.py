@@ -289,8 +289,8 @@ def build(client, context, system_prompt, detail_model, *, progress=None, checkp
     map_model=os.getenv('OPERATIONAL_MAP_MODEL','claude-haiku-4-5').strip() or detail_model
     map_tokens=_integer('OPERATIONAL_MAP_MAX_TOKENS',2800,1200,5000)
     flow_model=os.getenv('OPERATIONAL_FLOW_MODEL',map_model).strip() or map_model
-    flow_tokens=_integer('OPERATIONAL_FLOW_MAX_TOKENS',4200,2200,6000)
-    detail_tokens=_integer('OPERATIONAL_PROCESS_MAX_TOKENS',5200,2400,8000)
+    flow_tokens=_integer('OPERATIONAL_FLOW_MAX_TOKENS',5200,2200,7000)
+    detail_tokens=_integer('OPERATIONAL_PROCESS_MAX_TOKENS',6500,2400,9000)
     workers=_integer('OPERATIONAL_PROCESS_CONCURRENCY',2,1,3)
     generation=context.get('generation') or {}
     single_name=(
@@ -380,41 +380,60 @@ def build(client, context, system_prompt, detail_model, *, progress=None, checkp
             if part in saved_parts:
                 fragments.extend(saved_parts[part].get('elements') or [])
                 continue
-            try:
-                value,usage=_call(
-                    client,model=model,
-                    # Haiku does not accept Anthropic's effort parameter. The
-                    # control model (Sonnet by default) does and benefits from it.
-                    effort=(
-                        os.getenv('OPERATIONAL_MODEL_EFFORT','medium')
-                        if model==detail_model else None
-                    ),
-                    max_tokens=max_tokens,system_prompt=system_prompt,context=context,
-                    instruction=instruction,schema=process_fragment_schema(kinds),cached=cache,
-                )
-            except StageFailure as exc:
-                exc.stage='process'
-                exc.process_name=process['name']
-                exc.model=model
-                exc.prior_usage=usages
-                exc.partial_parts=saved_parts
-                raise
-            except Exception as exc:
-                # Preserve the original provider exception type so the public
-                # error can still distinguish billing, rate limits and network
-                # failures, while retaining the completed process slice.
-                exc.stage='process'
-                exc.process_name=process['name']
-                exc.model=model
-                exc.prior_usage=usages
-                exc.partial_parts=saved_parts
-                raise
+            retry_ceiling=7000 if part=='flow' else 9000
+            retry_tokens=min(retry_ceiling,max(max_tokens+1400,int(max_tokens*1.35)))
+            limits=list(dict.fromkeys([max_tokens,retry_tokens]))
+            for attempt,limit in enumerate(limits,1):
+                try:
+                    value,usage=_call(
+                        client,model=model,
+                        # Haiku does not accept Anthropic's effort parameter. The
+                        # control model (Sonnet by default) does and benefits from it.
+                        effort=(
+                            os.getenv('OPERATIONAL_MODEL_EFFORT','medium')
+                            if model==detail_model else None
+                        ),
+                        max_tokens=limit,system_prompt=system_prompt,context=context,
+                        instruction=instruction,schema=process_fragment_schema(kinds),cached=cache,
+                    )
+                    break
+                except StageFailure as exc:
+                    if exc.reason=='max_tokens' and attempt<len(limits):
+                        usages.append({
+                            'part':f'{part}_failed','attempt':attempt,'model':model,
+                            'reason':exc.reason,**exc.usage,
+                        })
+                        instruction += (
+                            '\nTENTATIVO COMPATTO: il primo output era troppo esteso. '
+                            'Mantieni soltanto gli elementi indispensabili, elimina ripetizioni, '
+                            'usa frasi brevi e non superare una evidenza per elemento.'
+                        )
+                        continue
+                    exc.stage='process'
+                    exc.process_name=process['name']
+                    exc.model=model
+                    exc.part=part
+                    exc.prior_usage=usages
+                    exc.partial_parts=saved_parts
+                    raise
+                except Exception as exc:
+                    # Preserve the original provider exception type so the public
+                    # error can still distinguish billing, rate limits and network
+                    # failures, while retaining the completed process slice.
+                    exc.stage='process'
+                    exc.process_name=process['name']
+                    exc.model=model
+                    exc.part=part
+                    exc.prior_usage=usages
+                    exc.partial_parts=saved_parts
+                    raise
             if value.get('process_id')!=process['id']:
                 failure=StageFailure(
                     'Il dettaglio restituito non appartiene al processo richiesto.',
                     stage='process',process_name=process['name'],usage=usage,
                     reason='validation',
                 )
+                failure.part=part
                 failure.prior_usage=usages
                 failure.partial_parts=saved_parts
                 raise failure

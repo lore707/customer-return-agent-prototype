@@ -98,10 +98,11 @@ evitando di ricostruire l’intera azienda. La schermata mostra fasi reali,
 processi completati e token dichiarati dal provider; non simula una percentuale
 di avanzamento.
 
-Se la prima mappa raggiunge il limite di output, viene effettuato un solo
-tentativo adattivo con maggiore spazio. Gli errori pubblici distinguono limite
-token, JSON interrotto, interruzione del modello e mancata validazione, evitando
-di nascondere tutte le cause dietro un generico errore della mappa.
+Se la mappa o una sezione del processo raggiungono il limite di output, viene
+effettuato un solo tentativo adattivo più compatto e con maggiore spazio. Gli
+errori pubblici distinguono limite token, JSON interrotto, interruzione del
+modello e mancata validazione, evitando di nascondere le cause dietro un errore
+generico. Se soltanto la seconda sezione fallisce, la prima rimane nel checkpoint.
 
 ## Grammatica operativa universale
 
@@ -185,8 +186,8 @@ OPERATIONAL_MAP_MODEL=claude-haiku-4-5
 OPERATIONAL_FLOW_MODEL=claude-haiku-4-5
 OPERATIONAL_MODEL_EFFORT=medium
 OPERATIONAL_MAP_MAX_TOKENS=2800
-OPERATIONAL_FLOW_MAX_TOKENS=4200
-OPERATIONAL_PROCESS_MAX_TOKENS=5200
+OPERATIONAL_FLOW_MAX_TOKENS=5200
+OPERATIONAL_PROCESS_MAX_TOKENS=6500
 OPERATIONAL_PROCESS_CONCURRENCY=2
 ANTHROPIC_API_KEY=la_tua_chiave
 ```
